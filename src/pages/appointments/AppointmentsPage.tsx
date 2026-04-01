@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { RefreshCw, CheckCircle } from 'lucide-react'
+import { type FormEvent, useEffect, useState } from 'react'
+import { RefreshCw, CheckCircle, TicketPlus, X } from 'lucide-react'
 import { api } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import { ui } from '../../ui/classes'
@@ -22,6 +22,8 @@ type Appointment = {
 
 type Center = { id: number; name: string; city: string; hospital_name?: string }
 
+type Department = { id: number; name: string }
+
 function today() {
   return new Date().toISOString().slice(0, 10)
 }
@@ -37,17 +39,50 @@ export function AppointmentsPage() {
   const [busyReceiptId, setBusyReceiptId] = useState<number | null>(null)
   const [busyCompleteId, setBusyCompleteId] = useState<number | null>(null)
 
+  const [walkInOpen, setWalkInOpen] = useState(false)
+  const [walkInBusy, setWalkInBusy] = useState(false)
+  const [walkInDepartments, setWalkInDepartments] = useState<Department[]>([])
+  const [walkInForm, setWalkInForm] = useState({
+    appointment_date: today(),
+    center_id: '' as number | '',
+    department_id: '' as number | '',
+    location: '',
+    notes: '',
+    cnic: '',
+    first_name: '',
+    last_name: '',
+    phone: '',
+    gender: '',
+    date_of_birth: '',
+    address: '',
+  })
+
   useEffect(() => {
     if (!can('centers.read')) return
     api<Center[]>('/centers').then(setCenters).catch(() => {})
   }, [can])
 
-  async function load() {
-    setMsg(null)
+  const canIssueWalkIn = can('appointments.checkin') || can('appointments.manage')
+
+  useEffect(() => {
+    if (!walkInOpen || !can('departments.read')) return
+    if (walkInForm.center_id === '') {
+      setWalkInDepartments([])
+      return
+    }
+    api<Department[]>(`/departments?center_id=${walkInForm.center_id}`)
+      .then(setWalkInDepartments)
+      .catch(() => setWalkInDepartments([]))
+  }, [walkInOpen, walkInForm.center_id, can])
+
+  async function load(override?: { centerId?: number | ''; date?: string; clearMsg?: boolean }) {
+    const cid = override?.centerId !== undefined ? override.centerId : centerId
+    const dt = override?.date !== undefined ? override.date : date
+    if (override?.clearMsg !== false) setMsg(null)
     try {
       const q = new URLSearchParams()
-      if (centerId !== '') q.set('center_id', String(centerId))
-      if (date) q.set('date', date)
+      if (cid !== '') q.set('center_id', String(cid))
+      if (dt) q.set('date', dt)
       if (status) q.set('status', status)
       const list = await api<Appointment[]>(`/appointments?${q.toString()}`)
       setRows(list)
@@ -64,11 +99,83 @@ export function AppointmentsPage() {
     return <p className={ui.muted}>No permission.</p>
   }
 
+  async function submitWalkIn(e: FormEvent) {
+    if (walkInForm.center_id === '') {
+      setMsg('Select a center.')
+      return
+    }
+    setWalkInBusy(true)
+    setMsg(null)
+    try {
+      const savedCenterId = Number(walkInForm.center_id)
+      const savedDate = walkInForm.appointment_date
+      const body = {
+        center_id: savedCenterId,
+        appointment_date: savedDate,
+        department_id:
+          walkInForm.department_id === '' ? null : Number(walkInForm.department_id),
+        location: walkInForm.location.trim() || null,
+        notes: walkInForm.notes.trim() || null,
+        patient: {
+          cnic: walkInForm.cnic.trim(),
+          first_name: walkInForm.first_name.trim(),
+          last_name: walkInForm.last_name.trim() || null,
+          phone: walkInForm.phone.trim() || null,
+          gender: walkInForm.gender.trim() || null,
+          date_of_birth: walkInForm.date_of_birth || null,
+          address: walkInForm.address.trim() || null,
+        },
+      }
+      const created = await api<Appointment & { token_number: number }>('/appointments/walk-in', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      })
+      setWalkInOpen(false)
+      setWalkInForm({
+        appointment_date: today(),
+        center_id: '',
+        department_id: '',
+        location: '',
+        notes: '',
+        cnic: '',
+        first_name: '',
+        last_name: '',
+        phone: '',
+        gender: '',
+        date_of_birth: '',
+        address: '',
+      })
+      setCenterId(savedCenterId)
+      setDate(savedDate)
+      await load({ centerId: savedCenterId, date: savedDate, clearMsg: false })
+      setMsg(`Walk-in ticket issued: token #${created.token_number} (appointment ID ${created.id}).`)
+    } catch (err) {
+      setMsg(String(err))
+    } finally {
+      setWalkInBusy(false)
+    }
+  }
+
   return (
     <div className={`space-y-8 ${ui.page}`}>
-      <div>
-        <h1 className={ui.h1}>Appointments</h1>
-        <p className={`mt-1 text-sm ${ui.muted}`}>Filter by center, date, and status.</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className={ui.h1}>Appointments</h1>
+          <p className={`mt-1 text-sm ${ui.muted}`}>Filter by center, date, and status.</p>
+        </div>
+        {canIssueWalkIn ? (
+          <button
+            type="button"
+            className={`${ui.btnPrimary} shrink-0 cursor-pointer`}
+            onClick={() => {
+              setMsg(null)
+              setWalkInOpen(true)
+            }}
+          >
+            <TicketPlus className="size-4" strokeWidth={2} aria-hidden />
+            Issue walk-in ticket
+          </button>
+        ) : null}
       </div>
 
       <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:flex-wrap md:items-end">
@@ -108,7 +215,209 @@ export function AppointmentsPage() {
         </button>
       </div>
 
-      {msg ? <div className={ui.alertError}>{msg}</div> : null}
+      {msg ? (
+        <div className={msg.startsWith('Walk-in ticket issued') ? ui.alertSuccess : ui.alertError}>{msg}</div>
+      ) : null}
+
+      {walkInOpen && canIssueWalkIn ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 cursor-pointer"
+          role="presentation"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setWalkInOpen(false)
+          }}
+        >
+          <div
+            className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-slate-200 bg-white p-6 shadow-xl cursor-default"
+            role="dialog"
+            aria-labelledby="walk-in-title"
+          >
+            <button
+              type="button"
+              className={`absolute right-4 top-4 rounded-lg p-1 text-slate-500 hover:bg-slate-100 cursor-pointer`}
+              onClick={() => setWalkInOpen(false)}
+              aria-label="Close"
+            >
+              <X className="size-5" />
+            </button>
+            <h2 id="walk-in-title" className="pr-10 text-lg font-semibold text-slate-900">
+              Issue walk-in ticket
+            </h2>
+            <p className={`mt-1 text-sm ${ui.muted}`}>
+              For patients without a mobile booking. Creates the patient record if the CNIC is new, then assigns the
+              next token for the selected date and center.
+            </p>
+            <form
+              className="mt-4 space-y-4"
+              onSubmit={(e) => {
+                e.preventDefault()
+                void submitWalkIn(e)
+              }}
+            >
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+                  Visit date
+                  <input
+                    type="date"
+                    required
+                    className={ui.input}
+                    value={walkInForm.appointment_date}
+                    onChange={(e) => setWalkInForm((f) => ({ ...f, appointment_date: e.target.value }))}
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+                  Center <span className="text-red-600">*</span>
+                  <select
+                    required
+                    className={ui.select}
+                    value={walkInForm.center_id === '' ? '' : String(walkInForm.center_id)}
+                    onChange={(e) =>
+                      setWalkInForm((f) => ({
+                        ...f,
+                        center_id: e.target.value === '' ? '' : Number(e.target.value),
+                        department_id: '',
+                      }))
+                    }
+                  >
+                    <option value="">Select center</option>
+                    {centers.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} · {c.city}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+                Department (optional)
+                <select
+                  className={ui.select}
+                  value={walkInForm.department_id === '' ? '' : String(walkInForm.department_id)}
+                  onChange={(e) =>
+                    setWalkInForm((f) => ({
+                      ...f,
+                      department_id: e.target.value === '' ? '' : Number(e.target.value),
+                    }))
+                  }
+                  disabled={walkInForm.center_id === ''}
+                >
+                  <option value="">—</option>
+                  {walkInDepartments.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="flex flex-col gap-1 text-xs font-medium text-slate-600 sm:col-span-2">
+                  Location / ward note (optional)
+                  <input
+                    type="text"
+                    className={ui.input}
+                    value={walkInForm.location}
+                    onChange={(e) => setWalkInForm((f) => ({ ...f, location: e.target.value }))}
+                    placeholder="e.g. OPD desk"
+                  />
+                </label>
+              </div>
+              <div className="border-t border-slate-200 pt-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Patient</p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <label className="flex flex-col gap-1 text-xs font-medium text-slate-600 sm:col-span-2">
+                    CNIC <span className="text-red-600">*</span>
+                    <input
+                      type="text"
+                      required
+                      className={ui.input}
+                      value={walkInForm.cnic}
+                      onChange={(e) => setWalkInForm((f) => ({ ...f, cnic: e.target.value }))}
+                      placeholder="Without dashes or with dashes"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+                    First name <span className="text-red-600">*</span>
+                    <input
+                      type="text"
+                      required
+                      className={ui.input}
+                      value={walkInForm.first_name}
+                      onChange={(e) => setWalkInForm((f) => ({ ...f, first_name: e.target.value }))}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+                    Last name
+                    <input
+                      type="text"
+                      className={ui.input}
+                      value={walkInForm.last_name}
+                      onChange={(e) => setWalkInForm((f) => ({ ...f, last_name: e.target.value }))}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+                    Phone
+                    <input
+                      type="text"
+                      className={ui.input}
+                      value={walkInForm.phone}
+                      onChange={(e) => setWalkInForm((f) => ({ ...f, phone: e.target.value }))}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+                    Gender
+                    <input
+                      type="text"
+                      className={ui.input}
+                      value={walkInForm.gender}
+                      onChange={(e) => setWalkInForm((f) => ({ ...f, gender: e.target.value }))}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+                    Date of birth
+                    <input
+                      type="date"
+                      className={ui.input}
+                      value={walkInForm.date_of_birth}
+                      onChange={(e) => setWalkInForm((f) => ({ ...f, date_of_birth: e.target.value }))}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs font-medium text-slate-600 sm:col-span-2">
+                    Address
+                    <input
+                      type="text"
+                      className={ui.input}
+                      value={walkInForm.address}
+                      onChange={(e) => setWalkInForm((f) => ({ ...f, address: e.target.value }))}
+                    />
+                  </label>
+                </div>
+              </div>
+              <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+                Notes (optional)
+                <input
+                  type="text"
+                  className={ui.input}
+                  value={walkInForm.notes}
+                  onChange={(e) => setWalkInForm((f) => ({ ...f, notes: e.target.value }))}
+                />
+              </label>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  className={`${ui.btnSecondary} cursor-pointer`}
+                  disabled={walkInBusy}
+                  onClick={() => setWalkInOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className={`${ui.btnPrimary} cursor-pointer`} disabled={walkInBusy}>
+                  {walkInBusy ? 'Issuing…' : 'Issue ticket'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
 
       <div className={ui.tableWrap}>
         <div className="overflow-x-auto">

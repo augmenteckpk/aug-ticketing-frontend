@@ -27,4 +27,6 @@ export const ui = {
   badgeOk: 'inline-flex rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800',
   badgeWarn: 'inline-flex rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-900',
   alertError: 'rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800',
+  alertSuccess:
+    'rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900',
 } as const
