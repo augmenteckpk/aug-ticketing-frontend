@@ -1,73 +1,60 @@
-# React + TypeScript + Vite
+# OPD Ticketing — Staff Web App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + Vite + Tailwind CSS SPA for hospital staff: dashboard, hospitals/centers/departments CRUD, users and roles, appointments, queue and batches, reports, and CSV exports.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **React** 19, **React Router** 7
+- **Vite** 8
+- **Tailwind CSS** 4
+- **Lucide** icons
 
-## React Compiler
+Staff sign-in uses the backend JWT. Patient accounts are intended for the mobile app, not this console.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Prerequisites
 
-## Expanding the ESLint configuration
+- Node.js 18+
+- Backend API running (default `http://localhost:3001`)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Environment
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Create `.env` in this folder (or set variables in your shell):
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `VITE_API_URL` | Base URL of the API **without** trailing slash | `http://localhost:3001` |
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+If unset, the client defaults to `http://localhost:3001` (see `src/api/client.ts`).
+
+## Setup
+
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Open the URL Vite prints (usually `http://localhost:5173`).
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Scripts
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+| Script | Purpose |
+|--------|---------|
+| `npm run dev` | Development server with HMR |
+| `npm run build` | Typecheck + production build to `dist/` |
+| `npm run preview` | Serve `dist/` locally |
+| `npm run lint` | ESLint |
+
+## Features (high level)
+
+- Light-themed UI with shared layout and permission-based navigation
+- Admin-style tables and modals for hospitals, centers, departments, users, roles
+- Appointments and queue pages with patient/center/department context
+- Reports with filters and CSV export options
+
+## Production build
+
+```bash
+npm run build
 ```
+
+Deploy the `dist/` folder behind any static host. Configure `VITE_API_URL` at build time to point at your production API and ensure CORS allows your staff app origin.
