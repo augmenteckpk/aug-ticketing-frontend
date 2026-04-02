@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { RefreshCw, CheckCircle, TicketPlus, X } from 'lucide-react'
 import { api } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
@@ -99,7 +99,7 @@ export function AppointmentsPage() {
     return <p className={ui.muted}>No permission.</p>
   }
 
-  async function submitWalkIn(e: FormEvent) {
+  async function submitWalkIn() {
     if (walkInForm.center_id === '') {
       setMsg('Select a center.')
       return
@@ -251,7 +251,7 @@ export function AppointmentsPage() {
               className="mt-4 space-y-4"
               onSubmit={(e) => {
                 e.preventDefault()
-                void submitWalkIn(e)
+                void submitWalkIn()
               }}
             >
               <div className="grid gap-3 sm:grid-cols-2">
