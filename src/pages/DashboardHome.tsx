@@ -4,7 +4,6 @@ import {
   CalendarDays,
   MapPin,
   ClipboardList,
-  UserCheck,
   Truck,
   CheckCircle2,
   SkipForward,
@@ -12,8 +11,11 @@ import {
   Hash,
   AlertCircle,
   RefreshCw,
+  FileText,
+  HeartPulse,
 } from 'lucide-react'
 import { api } from '../api/client'
+import { todayLocalYmd } from '../utils/dateYmd'
 import { useAuth } from '../context/AuthContext'
 import { ui } from '../ui/classes'
 
@@ -32,12 +34,13 @@ type Summary = {
 }
 
 function today() {
-  return new Date().toISOString().slice(0, 10)
+  return todayLocalYmd()
 }
 
 const STATUS_ORDER: { key: string; label: string; icon: typeof ClipboardList; iconWrap: string }[] = [
   { key: 'booked', label: 'Booked', icon: ClipboardList, iconWrap: 'bg-sky-100 text-sky-700 ring-sky-200' },
-  { key: 'checked_in', label: 'Checked in', icon: UserCheck, iconWrap: 'bg-cyan-100 text-cyan-800 ring-cyan-200' },
+  { key: 'registered', label: 'Registered', icon: FileText, iconWrap: 'bg-blue-100 text-blue-800 ring-blue-200' },
+  { key: 'ready', label: 'Ready (pre-assessment done)', icon: HeartPulse, iconWrap: 'bg-teal-100 text-teal-800 ring-teal-200' },
   { key: 'batched', label: 'Batched', icon: LayoutDashboard, iconWrap: 'bg-violet-100 text-violet-800 ring-violet-200' },
   { key: 'dispatched', label: 'Dispatched', icon: Truck, iconWrap: 'bg-amber-100 text-amber-900 ring-amber-200' },
   { key: 'completed', label: 'Completed', icon: CheckCircle2, iconWrap: 'bg-emerald-100 text-emerald-800 ring-emerald-200' },

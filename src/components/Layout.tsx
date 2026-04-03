@@ -2,11 +2,14 @@ import { NavLink, Outlet } from 'react-router-dom'
 import {
   LayoutDashboard,
   Calendar,
-  UserRoundCheck,
+  ClipboardList,
+  Activity,
   Layers,
   Building2,
   MapPin,
   Stethoscope,
+  NotebookPen,
+  FlaskConical,
   Users,
   Shield,
   LogOut,
@@ -20,7 +23,30 @@ const nav: NavItem[] = [
   { to: '/app', label: 'Dashboard', perm: 'dashboard.read', icon: LayoutDashboard },
   { to: '/app/appointments', label: 'Appointments', perm: 'appointments.read', icon: Calendar },
   { to: '/app/reports', label: 'Reports', perm: 'reports.read', icon: BarChart3 },
-  { to: '/app/reception', label: 'Check-in', perm: 'appointments.checkin', icon: UserRoundCheck },
+  {
+    to: '/app/registration',
+    label: 'Registration',
+    perm: 'appointments.register',
+    icon: ClipboardList,
+  },
+  {
+    to: '/app/waiting-area',
+    label: 'Waiting area (vitals)',
+    perm: 'appointments.pre_assessment',
+    icon: Activity,
+  },
+  {
+    to: '/app/consultation',
+    label: 'Consultation',
+    perm: 'appointments.consult',
+    icon: NotebookPen,
+  },
+  {
+    to: '/app/laboratory',
+    label: 'Laboratory',
+    perm: 'lab.read',
+    icon: FlaskConical,
+  },
   { to: '/app/queue', label: 'Queue & batches', perm: 'queue.read', icon: Layers },
   { to: '/app/hospitals', label: 'Hospitals', perm: 'hospitals.read', icon: Building2 },
   { to: '/app/centers', label: 'Centers', perm: 'centers.read', icon: MapPin },
@@ -41,7 +67,9 @@ export function Layout() {
             <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">OPD Ticketing</span>
           </div>
           <div className="mt-2 text-lg font-semibold tracking-tight text-slate-900">Staff console</div>
-          <p className="mt-1 text-xs leading-relaxed text-slate-500">Queue & appointment control</p>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500">
+            HIS — token → registration → triage → queue → consultation → lab / complete
+          </p>
         </div>
         <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
           {nav.map((item) => {

@@ -9,7 +9,10 @@ import { CentersPage } from './pages/admin/CentersPage'
 import { DepartmentsPage } from './pages/admin/DepartmentsPage'
 import { UsersPage } from './pages/admin/UsersPage'
 import { RolesPage } from './pages/admin/RolesPage'
-import { CheckInPage } from './pages/reception/CheckInPage'
+import { RegistrationPage } from './pages/reception/RegistrationPage'
+import { PreAssessmentPage } from './pages/reception/PreAssessmentPage'
+import { ConsultationPage } from './pages/consultation/ConsultationPage'
+import { LaboratoryPage } from './pages/laboratory/LaboratoryPage'
 import { QueuePage } from './pages/queue/QueuePage'
 import { AppointmentsPage } from './pages/appointments/AppointmentsPage'
 import { ReportsPage } from './pages/ReportsPage'
@@ -31,7 +34,11 @@ export default function App() {
             <Route index element={<DashboardHome />} />
             <Route path="appointments" element={<AppointmentsPage />} />
             <Route path="reports" element={<ReportsPage />} />
-            <Route path="reception" element={<CheckInPage />} />
+            <Route path="registration" element={<RegistrationPage />} />
+            <Route path="waiting-area" element={<PreAssessmentPage />} />
+            <Route path="pre-assessment" element={<Navigate to="/app/waiting-area" replace />} />
+            <Route path="consultation" element={<ConsultationPage />} />
+            <Route path="laboratory" element={<LaboratoryPage />} />
             <Route path="queue" element={<QueuePage />} />
             <Route path="hospitals" element={<HospitalsPage />} />
             <Route path="centers" element={<CentersPage />} />

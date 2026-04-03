@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BarChart3, RefreshCw } from 'lucide-react'
 import { api } from '../api/client'
+import { todayLocalYmd } from '../utils/dateYmd'
 import { useAuth } from '../context/AuthContext'
 import { ui } from '../ui/classes'
 import { getToken } from '../api/client'
@@ -39,7 +40,7 @@ type RangeReport = {
 }
 
 function today() {
-  return new Date().toISOString().slice(0, 10)
+  return todayLocalYmd()
 }
 
 export function ReportsPage() {

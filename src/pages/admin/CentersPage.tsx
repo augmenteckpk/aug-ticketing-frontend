@@ -15,6 +15,10 @@ type Center = {
   status: string
 }
 
+type Department = { id: number; name: string }
+
+const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
+
 export function CentersPage() {
   const { can } = useAuth()
   const [hospitals, setHospitals] = useState<Hospital[]>([])
@@ -25,17 +29,39 @@ export function CentersPage() {
   const [address, setAddress] = useState('')
   const [edit, setEdit] = useState<Center | null>(null)
   const [err, setErr] = useState<string | null>(null)
+  const [departments, setDepartments] = useState<Department[]>([])
+  const [routeCenterId, setRouteCenterId] = useState<number | ''>('')
+  const [routeDeptByWeekday, setRouteDeptByWeekday] = useState<Record<number, number | ''>>({})
 
   async function load() {
-    const [h, c] = await Promise.all([api<Hospital[]>('/hospitals'), api<Center[]>('/centers')])
+    const [h, c, d] = await Promise.all([
+      api<Hospital[]>('/hospitals'),
+      api<Center[]>('/centers'),
+      api<Department[]>('/departments').catch(() => [] as Department[]),
+    ])
     setHospitals(h)
     setRows(c)
+    setDepartments(d)
     if (h[0]) setHospitalId(h[0].id)
+    if (c[0] && routeCenterId === '') setRouteCenterId(c[0].id)
+  }
+
+  async function loadWeekdayRoutes(cid: number) {
+    const list = await api<{ weekday: number; department_id: number }[]>(`/centers/${cid}/weekday-routes`)
+    const map: Record<number, number | ''> = {}
+    for (let w = 0; w <= 6; w++) map[w] = ''
+    for (const r of list) map[r.weekday] = r.department_id
+    setRouteDeptByWeekday(map)
   }
 
   useEffect(() => {
     if (can('centers.read')) void load().catch((e) => setErr(String(e)))
   }, [can])
+
+  useEffect(() => {
+    if (!can('centers.manage') || routeCenterId === '') return
+    void loadWeekdayRoutes(routeCenterId).catch((e) => setErr(String(e)))
+  }, [routeCenterId, can])
 
   if (!can('centers.read')) {
     return <p className={ui.muted}>No access.</p>
@@ -169,6 +195,80 @@ export function CentersPage() {
         </table>
         {!rows.length ? <p className={`border-t border-slate-100 px-4 py-8 text-center text-sm ${ui.muted}`}>No centers.</p> : null}
       </div>
+
+      {can('centers.manage') ? (
+        <div className={ui.card}>
+          <h2 className="text-lg font-semibold text-slate-900">Weekday → department routing</h2>
+          <p className={`mt-1 text-sm ${ui.muted}`}>
+            On registration, the visit&apos;s department is set from the visit date&apos;s weekday. Used for day-based
+            OPD allocation.
+          </p>
+          <label className={`mt-4 flex max-w-md flex-col gap-1 text-xs font-medium text-slate-600`}>
+            Center
+            <select
+              className={ui.select}
+              value={routeCenterId === '' ? '' : String(routeCenterId)}
+              onChange={(e) => setRouteCenterId(e.target.value === '' ? '' : Number(e.target.value))}
+            >
+              <option value="">Select</option>
+              {rows.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} — {c.city}
+                </option>
+              ))}
+            </select>
+          </label>
+          {routeCenterId !== '' ? (
+            <div className="mt-4 space-y-2">
+              {WEEKDAY_LABELS.map((label, w) => (
+                <div key={w} className="flex flex-wrap items-center gap-3">
+                  <span className="w-12 text-sm font-medium text-slate-700">{label}</span>
+                  <select
+                    className={`${ui.select} min-w-[220px] flex-1`}
+                    value={routeDeptByWeekday[w] === '' || routeDeptByWeekday[w] === undefined ? '' : String(routeDeptByWeekday[w])}
+                    onChange={(e) =>
+                      setRouteDeptByWeekday((m) => ({
+                        ...m,
+                        [w]: e.target.value === '' ? '' : Number(e.target.value),
+                      }))
+                    }
+                  >
+                    <option value="">— None —</option>
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+              <button
+                type="button"
+                className={`${ui.btnPrimary} mt-4`}
+                onClick={async () => {
+                  setErr(null)
+                  try {
+                    const body: { weekday: number; department_id: number }[] = []
+                    for (let w = 0; w <= 6; w++) {
+                      const id = routeDeptByWeekday[w]
+                      if (id !== '' && id !== undefined) body.push({ weekday: w, department_id: id as number })
+                    }
+                    await api(`/centers/${routeCenterId}/weekday-routes`, {
+                      method: 'PUT',
+                      body: JSON.stringify(body),
+                    })
+                    await loadWeekdayRoutes(routeCenterId)
+                  } catch (e) {
+                    setErr(String(e))
+                  }
+                }}
+              >
+                Save routing
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {edit ? (
         <div

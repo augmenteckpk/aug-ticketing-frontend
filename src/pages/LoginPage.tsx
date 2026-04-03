@@ -117,7 +117,8 @@ export function LoginPage() {
         </button>
 
         <p className="mt-6 text-center text-xs leading-relaxed text-slate-500">
-          Demo: <span className="text-slate-700">admin / Admin@123</span> · reception / Reception@123 · queue / Queue@123
+          Demo: <span className="text-slate-700">admin / Admin@123</span> · greeter/Greeter@123 · clerk/Clerk@123 ·
+          coordinator/Coordinator@123 · physician/Physician@123 · labtech/LabTech@123
         </p>
       </form>
     </div>

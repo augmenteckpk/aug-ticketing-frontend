@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { RefreshCw, Layers, Send, Eye } from 'lucide-react'
 import { api } from '../../api/client'
+import { todayLocalYmd } from '../../utils/dateYmd'
 import { useAuth } from '../../context/AuthContext'
 import { ui } from '../../ui/classes'
 
@@ -30,7 +31,7 @@ type BatchDetail = {
 }
 
 function today() {
-  return new Date().toISOString().slice(0, 10)
+  return todayLocalYmd()
 }
 
 export function QueuePage() {
@@ -85,7 +86,11 @@ export function QueuePage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className={ui.h1}>Queue & batches</h1>
-          <p className={`mt-1 text-sm ${ui.muted}`}>Checked-in FIFO; absent tokens stay in “not arrived”.</p>
+          <p className={`mt-1 text-sm ${ui.muted}`}>
+            Batches may include only the <strong>ready</strong> pool (pre-screening / vitals completed in Waiting area).
+            Patients who are only <code className="rounded bg-slate-100 px-1 text-xs">registered</code> do not appear here
+            — they must complete vitals first.
+          </p>
         </div>
         <button type="button" onClick={() => void refresh()} className={ui.btnSecondary}>
           <RefreshCw className="size-4" strokeWidth={2} aria-hidden />
@@ -112,10 +117,33 @@ export function QueuePage() {
 
       {msg ? <div className={ui.alertError}>{msg}</div> : null}
 
+      <div className={`rounded-xl border border-cyan-100 bg-cyan-50/80 px-4 py-3 text-xs text-slate-700`}>
+        <p className="font-semibold text-cyan-900">HIS queue pools (status mapping)</p>
+        <ul className={`mt-2 list-inside list-disc space-y-1 ${ui.muted}`}>
+          <li>
+            <strong>Token queue</strong> — <code className="rounded bg-white px-1">booked</code> (token issued; not yet at
+            registration desk). Shown here as &quot;Not arrived yet&quot;.
+          </li>
+          <li>
+            <strong>Checked-in (registered)</strong> — <code className="rounded bg-white px-1">registered</code> (W number
+            assigned). Waiting on pre-assessment — use the <strong>Pre-assessment</strong> page.
+          </li>
+          <li>
+            <strong>Verified / ready pool</strong> — <code className="rounded bg-white px-1">ready</code> (waiting-area
+            pre-screening saved). Coordinator builds batches <strong>only</strong> from this list — never from{' '}
+            <code className="rounded bg-white px-1">registered</code> alone.
+          </li>
+          <li>
+            <code className="rounded bg-white px-1">batched</code> → <code className="rounded bg-white px-1">dispatched</code>{' '}
+            → doctor consultation → reception <code className="rounded bg-white px-1">completed</code>.
+          </li>
+        </ul>
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-2">
         <section className={ui.card}>
-          <h2 className="text-base font-semibold text-slate-900">Ready (checked in)</h2>
-          <p className={`mt-1 text-xs ${ui.muted}`}>Next batch pulls from this list in token order.</p>
+          <h2 className="text-base font-semibold text-slate-900">Ready for batch</h2>
+          <p className={`mt-1 text-xs ${ui.muted}`}>Pre-assessment complete; coordinator pulls FIFO by token.</p>
           <div className={`${ui.tableWrap} mt-4 border-slate-200`}>
             <table className="min-w-full border-collapse text-left text-sm">
               <thead>

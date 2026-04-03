@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { RefreshCw, CheckCircle, TicketPlus, X } from 'lucide-react'
 import { api } from '../../api/client'
+import { todayLocalYmd } from '../../utils/dateYmd'
 import { useAuth } from '../../context/AuthContext'
 import { ui } from '../../ui/classes'
 
@@ -11,6 +12,8 @@ type Appointment = {
   appointment_date: string
   token_number: number
   status: string
+  w_number?: string | null
+  visit_type?: string | null
   patient_name?: string | null
   patient_cnic?: string | null
   center_name?: string | null
@@ -18,6 +21,8 @@ type Appointment = {
   hospital_name?: string | null
   department_name?: string | null
   location?: string | null
+  consultation_outcome?: string | null
+  follow_up_advised_date?: string | null
 }
 
 type Center = { id: number; name: string; city: string; hospital_name?: string }
@@ -25,7 +30,7 @@ type Center = { id: number; name: string; city: string; hospital_name?: string }
 type Department = { id: number; name: string }
 
 function today() {
-  return new Date().toISOString().slice(0, 10)
+  return todayLocalYmd()
 }
 
 export function AppointmentsPage() {
@@ -46,6 +51,7 @@ export function AppointmentsPage() {
     appointment_date: today(),
     center_id: '' as number | '',
     department_id: '' as number | '',
+    visit_type: 'first_visit' as 'first_visit' | 'follow_up',
     location: '',
     notes: '',
     cnic: '',
@@ -62,7 +68,7 @@ export function AppointmentsPage() {
     api<Center[]>('/centers').then(setCenters).catch(() => {})
   }, [can])
 
-  const canIssueWalkIn = can('appointments.checkin') || can('appointments.manage')
+  const canIssueWalkIn = can('appointments.issue_token')
 
   useEffect(() => {
     if (!walkInOpen || !can('departments.read')) return
@@ -112,6 +118,7 @@ export function AppointmentsPage() {
       const body = {
         center_id: savedCenterId,
         appointment_date: savedDate,
+        visit_type: walkInForm.visit_type,
         department_id:
           walkInForm.department_id === '' ? null : Number(walkInForm.department_id),
         location: walkInForm.location.trim() || null,
@@ -135,6 +142,7 @@ export function AppointmentsPage() {
         appointment_date: today(),
         center_id: '',
         department_id: '',
+        visit_type: 'first_visit',
         location: '',
         notes: '',
         cnic: '',
@@ -202,9 +210,18 @@ export function AppointmentsPage() {
           Status
           <select className={ui.select} value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="">All statuses</option>
-            {['booked', 'checked_in', 'batched', 'dispatched', 'completed', 'skipped', 'cancelled'].map((s) => (
+            {[
+              'booked',
+              'registered',
+              'ready',
+              'batched',
+              'dispatched',
+              'completed',
+              'skipped',
+              'cancelled',
+            ].map((s) => (
               <option key={s} value={s}>
-                {s}
+                {s.replace(/_/g, ' ')}
               </option>
             ))}
           </select>
@@ -285,6 +302,22 @@ export function AppointmentsPage() {
                         {c.name} · {c.city}
                       </option>
                     ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1 text-xs font-medium text-slate-600 sm:col-span-2">
+                  Visit type
+                  <select
+                    className={ui.select}
+                    value={walkInForm.visit_type}
+                    onChange={(e) =>
+                      setWalkInForm((f) => ({
+                        ...f,
+                        visit_type: e.target.value === 'follow_up' ? 'follow_up' : 'first_visit',
+                      }))
+                    }
+                  >
+                    <option value="first_visit">First visit</option>
+                    <option value="follow_up">Follow-up</option>
                   </select>
                 </label>
               </div>
@@ -426,12 +459,16 @@ export function AppointmentsPage() {
               <tr>
                 <th className={ui.th}>ID</th>
                 <th className={ui.th}>Token</th>
+                <th className={ui.th}>W #</th>
+                <th className={ui.th}>Visit</th>
                 <th className={ui.th}>Patient</th>
                 <th className={ui.th}>CNIC</th>
                 <th className={ui.th}>Center</th>
                 <th className={ui.th}>Department</th>
                 <th className={ui.th}>Location</th>
                 <th className={ui.th}>Date</th>
+                <th className={ui.th}>Outcome</th>
+                <th className={ui.th}>F/U by</th>
                 <th className={ui.th}>Status</th>
                 {can('appointments.complete') ? <th className={`${ui.th} text-right`}>Actions</th> : null}
               </tr>
@@ -441,6 +478,10 @@ export function AppointmentsPage() {
                 <tr key={r.id} className={ui.trHover}>
                   <td className={ui.td}>{r.id}</td>
                   <td className={`${ui.td} font-mono font-medium text-slate-900`}>{r.token_number}</td>
+                  <td className={`${ui.td} font-mono text-xs`}>{r.w_number ?? '—'}</td>
+                  <td className={`${ui.td} text-xs capitalize`}>
+                    {r.visit_type ? String(r.visit_type).replace(/_/g, ' ') : '—'}
+                  </td>
                   <td className={ui.td}>
                     <div className="font-medium text-slate-900">{r.patient_name ?? `Patient #${r.patient_id}`}</div>
                     <div className="text-xs text-slate-500">ID {r.patient_id}</div>
@@ -456,6 +497,12 @@ export function AppointmentsPage() {
                   <td className={ui.td}>{r.department_name ?? '—'}</td>
                   <td className={ui.td}>{r.location ?? '—'}</td>
                   <td className={ui.td}>{String(r.appointment_date).slice(0, 10)}</td>
+                  <td className={`${ui.td} text-xs capitalize`}>
+                    {r.consultation_outcome ? r.consultation_outcome.replace(/_/g, ' ') : '—'}
+                  </td>
+                  <td className={`${ui.td} font-mono text-xs`}>
+                    {r.follow_up_advised_date ? String(r.follow_up_advised_date).slice(0, 10) : '—'}
+                  </td>
                   <td className={ui.td}>
                     <span className={ui.badge}>{r.status.replace(/_/g, ' ')}</span>
                   </td>

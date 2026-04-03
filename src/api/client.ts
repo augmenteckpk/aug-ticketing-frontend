@@ -34,7 +34,22 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const data = text ? (JSON.parse(text) as unknown) : null
   if (!res.ok) {
     const err = data as { error?: string; details?: unknown }
-    throw new ApiError(err?.error ?? res.statusText, res.status, err?.details)
+    let message = err?.error ?? res.statusText
+    const det = err?.details as
+      | { fieldErrors?: Record<string, string[]>; formErrors?: string[] }
+      | undefined
+    if (det && typeof det === 'object') {
+      const fe = det.fieldErrors
+      if (fe && typeof fe === 'object') {
+        const bits = Object.entries(fe).flatMap(([k, arr]) =>
+          Array.isArray(arr) ? arr.map((m) => `${k}: ${m}`) : [],
+        )
+        if (bits.length) message = `${message} — ${bits.join('; ')}`
+      }
+      const frm = det.formErrors
+      if (Array.isArray(frm) && frm.length) message = `${message} [${frm.join('; ')}]`
+    }
+    throw new ApiError(message, res.status, err?.details)
   }
   return data as T
 }
