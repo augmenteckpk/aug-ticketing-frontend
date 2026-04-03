@@ -3,9 +3,11 @@ export const ui = {
   page: 'text-slate-900',
   muted: 'text-slate-600',
   subtle: 'text-slate-500',
-  h1: 'text-2xl font-semibold tracking-tight text-slate-900',
-  card: 'rounded-xl border border-slate-200 bg-white p-5 shadow-sm',
-  cardMuted: 'rounded-xl border border-slate-200 bg-slate-50/80 p-5',
+  h1: 'text-2xl font-semibold tracking-tight text-slate-900 sm:text-[1.65rem]',
+  /** Page intro under h1 */
+  lead: 'mt-1 max-w-3xl text-sm leading-relaxed text-slate-600',
+  card: 'rounded-xl border border-slate-200/90 bg-white p-5 shadow-sm shadow-slate-900/5',
+  cardMuted: 'rounded-xl border border-slate-200/90 bg-slate-50/90 p-5',
   input:
     'rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500',
   select:
