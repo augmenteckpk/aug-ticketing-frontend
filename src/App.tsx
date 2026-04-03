@@ -9,6 +9,8 @@ import { CentersPage } from './pages/admin/CentersPage'
 import { DepartmentsPage } from './pages/admin/DepartmentsPage'
 import { UsersPage } from './pages/admin/UsersPage'
 import { RolesPage } from './pages/admin/RolesPage'
+import { PatientsListPage } from './pages/admin/PatientsListPage'
+import { PatientDetailPage } from './pages/admin/PatientDetailPage'
 import { RegistrationPage } from './pages/reception/RegistrationPage'
 import { PreAssessmentPage } from './pages/reception/PreAssessmentPage'
 import { ConsultationPage } from './pages/consultation/ConsultationPage'
@@ -43,6 +45,8 @@ export default function App() {
             <Route path="hospitals" element={<HospitalsPage />} />
             <Route path="centers" element={<CentersPage />} />
             <Route path="departments" element={<DepartmentsPage />} />
+            <Route path="patients" element={<PatientsListPage />} />
+            <Route path="patients/:patientId" element={<PatientDetailPage />} />
             <Route path="users" element={<UsersPage />} />
             <Route path="roles" element={<RolesPage />} />
           </Route>
