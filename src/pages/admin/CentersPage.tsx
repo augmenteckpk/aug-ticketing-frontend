@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { MapPin, Pencil, Plus, RefreshCw } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { MapPin, Pencil, Plus, RefreshCw, UserCircle2 } from 'lucide-react'
 import { api } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import { toastError, toastSuccess } from '../../lib/toast'
@@ -32,6 +33,7 @@ export function CentersPage() {
   const [departments, setDepartments] = useState<Department[]>([])
   const [routeCenterId, setRouteCenterId] = useState<number | ''>('')
   const [routeDeptByWeekday, setRouteDeptByWeekday] = useState<Record<number, number | ''>>({})
+  const [patientCounts, setPatientCounts] = useState<Record<number, number>>({})
 
   async function load() {
     const [h, c, d] = await Promise.all([
@@ -59,6 +61,24 @@ export function CentersPage() {
   }, [can])
 
   useEffect(() => {
+    if (!can('patients.read')) return
+    let off = false
+    api<{ center_id: number; patient_count: number }[]>('/patients/stats/by-center')
+      .then((list) => {
+        if (off) return
+        const m: Record<number, number> = {}
+        for (const r of list) m[r.center_id] = r.patient_count
+        setPatientCounts(m)
+      })
+      .catch(() => {})
+    return () => {
+      off = true
+    }
+  }, [can])
+
+  const canSeePatientCol = can('patients.read')
+
+  useEffect(() => {
     if (!can('centers.manage') || routeCenterId === '') return
     void loadWeekdayRoutes(routeCenterId).catch((e) => toastError(e, 'Failed to load weekday routes'))
   }, [routeCenterId, can])
@@ -72,7 +92,15 @@ export function CentersPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className={ui.h1}>Centers</h1>
-          <p className={`mt-1 text-sm ${ui.muted}`}>OPD centers linked to hospitals.</p>
+          <p className={`mt-1 text-sm ${ui.muted}`}>
+            OPD centers linked to hospitals.
+            {canSeePatientCol ? (
+              <>
+                {' '}
+                Distinct patients with at least one visit at a center are counted; open the directory filtered by center.
+              </>
+            ) : null}
+          </p>
         </div>
         <button
           type="button"
@@ -152,6 +180,14 @@ export function CentersPage() {
               <th className={ui.th}>City</th>
               <th className={ui.th}>Address</th>
               <th className={ui.th}>Status</th>
+              {canSeePatientCol ? (
+                <th className={ui.th}>
+                  <span className="inline-flex items-center gap-1">
+                    <UserCircle2 className="size-3.5 text-slate-400" strokeWidth={2} aria-hidden />
+                    Patients
+                  </span>
+                </th>
+              ) : null}
               {can('centers.manage') ? <th className={`${ui.th} text-right`}>Actions</th> : null}
             </tr>
           </thead>
@@ -171,6 +207,17 @@ export function CentersPage() {
                 <td className={ui.td}>
                   <span className={r.status === 'Active' ? ui.badgeOk : ui.badge}>{r.status}</span>
                 </td>
+                {canSeePatientCol ? (
+                  <td className={ui.td}>
+                    <span className="tabular-nums text-slate-800">{patientCounts[r.id] ?? 0}</span>
+                    <Link
+                      to={`/app/patients?center_id=${r.id}`}
+                      className={`${ui.btnGhost} ml-2 inline-flex py-1 text-xs no-underline`}
+                    >
+                      Directory
+                    </Link>
+                  </td>
+                ) : null}
                 {can('centers.manage') ? (
                   <td className={`${ui.td} text-right`}>
                     <button type="button" className={ui.btnGhost} onClick={() => setEdit(r)}>

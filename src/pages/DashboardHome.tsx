@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   LayoutDashboard,
   CalendarDays,
@@ -13,6 +14,7 @@ import {
   RefreshCw,
   FileText,
   HeartPulse,
+  UserCircle2,
 } from 'lucide-react'
 import { api } from '../api/client'
 import { todayLocalYmd } from '../utils/dateYmd'
@@ -32,6 +34,10 @@ type Summary = {
   center_id: number | null
   byStatus: Record<string, number>
   total: number
+  patients?: {
+    total_in_system: number
+    with_visit_on_date: number
+  }
 }
 
 function today() {
@@ -183,6 +189,47 @@ export function DashboardHome() {
 
       {summary ? (
         <>
+          {can('patients.read') && summary.patients ? (
+            <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-slate-800">
+                  <UserCircle2 className="size-5 text-cyan-600" strokeWidth={2} aria-hidden />
+                  <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">Patients</h2>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    to="/app/patients"
+                    className={`${ui.btnSecondary} no-underline`}
+                  >
+                    Patient directory
+                  </Link>
+                  {can('patients.manage') ? (
+                    <Link to="/app/patients?add=1" className={`${ui.btnPrimary} no-underline`}>
+                      Add patient
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3">
+                  <div className="text-xs font-medium uppercase tracking-wide text-slate-500">In system (all)</div>
+                  <div className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+                    {summary.patients.total_in_system}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3">
+                  <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                    With OPD visit on this date
+                    {summary.center_id != null ? ' (this center)' : ''}
+                  </div>
+                  <div className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+                    {summary.patients.with_visit_on_date}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {STATUS_ORDER.map(({ key, label, icon: Icon, iconWrap }) => (
               <div

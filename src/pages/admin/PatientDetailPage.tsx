@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, UserCircle2, RefreshCw } from 'lucide-react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { ArrowLeft, UserCircle2, RefreshCw, Pencil, Trash2 } from 'lucide-react'
 import { api } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import { toastError, toastSuccess } from '../../lib/toast'
@@ -35,13 +35,51 @@ function formatDob(d: string | null | undefined) {
   return s.length === 10 ? s : String(d)
 }
 
+type EditDraft = {
+  first_name: string
+  last_name: string
+  father_name: string
+  father_cnic: string
+  mother_cnic: string
+  phone: string
+  gender: string
+  date_of_birth: string
+  address: string
+  city: string
+  medical_record_number: string
+  preferred_language: string
+  status: string
+}
+
+function toDraft(p: PatientRow): EditDraft {
+  return {
+    first_name: p.first_name ?? '',
+    last_name: p.last_name ?? '',
+    father_name: p.father_name ?? '',
+    father_cnic: p.father_cnic ?? '',
+    mother_cnic: p.mother_cnic ?? '',
+    phone: p.phone ?? '',
+    gender: p.gender ?? '',
+    date_of_birth: p.date_of_birth ? String(p.date_of_birth).slice(0, 10) : '',
+    address: p.address ?? '',
+    city: p.city ?? '',
+    medical_record_number: p.medical_record_number ?? '',
+    preferred_language: p.preferred_language ?? 'en',
+    status: p.status ?? 'Active',
+  }
+}
+
 export function PatientDetailPage() {
   const { patientId } = useParams<{ patientId: string }>()
   const id = Number(patientId)
+  const navigate = useNavigate()
   const { can } = useAuth()
   const [patient, setPatient] = useState<PatientRow | null>(null)
   const [visits, setVisits] = useState<VisitRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [editOpen, setEditOpen] = useState(false)
+  const [draft, setDraft] = useState<EditDraft | null>(null)
+  const [saving, setSaving] = useState(false)
 
   async function load() {
     if (!Number.isFinite(id) || id < 1) {
@@ -78,6 +116,12 @@ export function PatientDetailPage() {
   useEffect(() => {
     if (can('patients.read')) void load()
   }, [can, id])
+
+  function openEdit() {
+    if (!patient) return
+    setDraft(toDraft(patient))
+    setEditOpen(true)
+  }
 
   if (!can('patients.read')) {
     return <p className={ui.muted}>No access to patient records.</p>
@@ -128,18 +172,46 @@ export function PatientDetailPage() {
           </h1>
           <p className={ui.lead}>Master demographic record; OPD visits are listed below when you have appointment access.</p>
         </div>
-        <button
-          type="button"
-          className={ui.btnSecondary}
-          onClick={() =>
-            void load()
-              .then(() => toastSuccess('Refreshed'))
-              .catch(() => {})
-          }
-        >
-          <RefreshCw className="size-4" strokeWidth={2} aria-hidden />
-          Refresh
-        </button>
+        <div className="flex flex-wrap gap-2">
+          {can('patients.manage') ? (
+            <>
+              <button type="button" className={ui.btnSecondary} onClick={openEdit}>
+                <Pencil className="size-4" strokeWidth={2} aria-hidden />
+                Edit
+              </button>
+              <button
+                type="button"
+                className={ui.btnDanger}
+                onClick={async () => {
+                  if (!window.confirm(`Delete patient #${patient.id}? This only works if there are no OPD visits.`)) return
+                  if (!window.confirm('This cannot be undone. Continue?')) return
+                  try {
+                    await api(`/patients/${patient.id}`, { method: 'DELETE' })
+                    toastSuccess('Patient deleted')
+                    navigate('/app/patients')
+                  } catch (e) {
+                    toastError(e, 'Could not delete patient')
+                  }
+                }}
+              >
+                <Trash2 className="size-4" strokeWidth={2} aria-hidden />
+                Delete
+              </button>
+            </>
+          ) : null}
+          <button
+            type="button"
+            className={ui.btnSecondary}
+            onClick={() =>
+              void load()
+                .then(() => toastSuccess('Refreshed'))
+                .catch(() => {})
+            }
+          >
+            <RefreshCw className="size-4" strokeWidth={2} aria-hidden />
+            Refresh
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -153,6 +225,14 @@ export function PatientDetailPage() {
             <div className="grid grid-cols-[8.5rem_1fr] gap-2 border-b border-slate-50 pb-2">
               <dt className={ui.muted}>Father&apos;s name</dt>
               <dd>{patient.father_name ?? '—'}</dd>
+            </div>
+            <div className="grid grid-cols-[8.5rem_1fr] gap-2 border-b border-slate-50 pb-2">
+              <dt className={ui.muted}>Father CNIC</dt>
+              <dd className="font-mono text-xs">{patient.father_cnic ?? '—'}</dd>
+            </div>
+            <div className="grid grid-cols-[8.5rem_1fr] gap-2 border-b border-slate-50 pb-2">
+              <dt className={ui.muted}>Mother CNIC</dt>
+              <dd className="font-mono text-xs">{patient.mother_cnic ?? '—'}</dd>
             </div>
             <div className="grid grid-cols-[8.5rem_1fr] gap-2 border-b border-slate-50 pb-2">
               <dt className={ui.muted}>Phone</dt>
@@ -247,6 +327,170 @@ export function PatientDetailPage() {
       ) : (
         <p className={`text-sm ${ui.muted}`}>You do not have permission to view appointment history.</p>
       )}
+
+      {editOpen && draft && can('patients.manage') ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 p-4 backdrop-blur-[2px]"
+          role="presentation"
+          onClick={() => setEditOpen(false)}
+        >
+          <div
+            className={`${ui.card} z-10 max-h-[90vh] w-full max-w-2xl overflow-y-auto shadow-xl`}
+            role="dialog"
+            aria-modal
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-semibold text-slate-900">Edit patient</h2>
+            <p className={`mt-1 text-sm ${ui.muted}`}>CNIC cannot be changed here. Requires patients.manage.</p>
+            <form
+              className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2"
+              onSubmit={async (e) => {
+                e.preventDefault()
+                setSaving(true)
+                try {
+                  const body = {
+                    first_name: draft.first_name.trim(),
+                    last_name: draft.last_name.trim() || null,
+                    father_name: draft.father_name.trim() || null,
+                    father_cnic: draft.father_cnic.trim() || null,
+                    mother_cnic: draft.mother_cnic.trim() || null,
+                    phone: draft.phone.trim() || null,
+                    gender: draft.gender.trim() || null,
+                    date_of_birth: draft.date_of_birth.trim() || null,
+                    address: draft.address.trim() || null,
+                    city: draft.city.trim() || null,
+                    medical_record_number: draft.medical_record_number.trim() || null,
+                    preferred_language: draft.preferred_language.trim() || 'en',
+                    status: draft.status.trim() || 'Active',
+                  }
+                  const updated = await api<PatientRow>(`/patients/${id}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify(body),
+                  })
+                  setPatient(updated)
+                  setEditOpen(false)
+                  toastSuccess('Patient updated')
+                } catch (err) {
+                  toastError(err, 'Could not update patient')
+                } finally {
+                  setSaving(false)
+                }
+              }}
+            >
+              <label className="flex flex-col gap-1 text-xs font-medium text-slate-600 sm:col-span-2">
+                First name
+                <input
+                  className={ui.input}
+                  value={draft.first_name}
+                  onChange={(e) => setDraft({ ...draft, first_name: e.target.value })}
+                  required
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+                Last name
+                <input
+                  className={ui.input}
+                  value={draft.last_name}
+                  onChange={(e) => setDraft({ ...draft, last_name: e.target.value })}
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+                Status
+                <select
+                  className={ui.select}
+                  value={draft.status}
+                  onChange={(e) => setDraft({ ...draft, status: e.target.value })}
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                  <option value="Suspended">Suspended</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-medium text-slate-600 sm:col-span-2">
+                Father&apos;s name
+                <input
+                  className={ui.input}
+                  value={draft.father_name}
+                  onChange={(e) => setDraft({ ...draft, father_name: e.target.value })}
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+                Father CNIC
+                <input
+                  className={ui.input}
+                  value={draft.father_cnic}
+                  onChange={(e) => setDraft({ ...draft, father_cnic: e.target.value })}
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+                Mother CNIC
+                <input
+                  className={ui.input}
+                  value={draft.mother_cnic}
+                  onChange={(e) => setDraft({ ...draft, mother_cnic: e.target.value })}
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+                Phone
+                <input
+                  className={ui.input}
+                  value={draft.phone}
+                  onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+                Gender
+                <input
+                  className={ui.input}
+                  value={draft.gender}
+                  onChange={(e) => setDraft({ ...draft, gender: e.target.value })}
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+                Date of birth
+                <input
+                  type="date"
+                  className={ui.input}
+                  value={draft.date_of_birth}
+                  onChange={(e) => setDraft({ ...draft, date_of_birth: e.target.value })}
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+                City
+                <input className={ui.input} value={draft.city} onChange={(e) => setDraft({ ...draft, city: e.target.value })} />
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-medium text-slate-600 sm:col-span-2">
+                Address
+                <input className={ui.input} value={draft.address} onChange={(e) => setDraft({ ...draft, address: e.target.value })} />
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+                MRN
+                <input
+                  className={ui.input}
+                  value={draft.medical_record_number}
+                  onChange={(e) => setDraft({ ...draft, medical_record_number: e.target.value })}
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+                Language
+                <input
+                  className={ui.input}
+                  value={draft.preferred_language}
+                  onChange={(e) => setDraft({ ...draft, preferred_language: e.target.value })}
+                />
+              </label>
+              <div className="flex justify-end gap-2 sm:col-span-2">
+                <button type="button" className={ui.btnSecondary} onClick={() => setEditOpen(false)} disabled={saving}>
+                  Cancel
+                </button>
+                <button type="submit" className={ui.btnPrimary} disabled={saving}>
+                  {saving ? 'Saving…' : 'Save'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

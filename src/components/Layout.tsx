@@ -121,9 +121,9 @@ export function Layout() {
   const { user, logout, can } = useAuth()
 
   return (
-    <div className="flex min-h-screen bg-[var(--app-canvas)] text-slate-900 antialiased">
-      <aside className="flex w-[272px] shrink-0 flex-col border-r border-slate-200/80 bg-white shadow-[4px_0_24px_-12px_rgba(15,23,42,0.12)]">
-        <div className="border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white px-4 py-5">
+    <div className="flex h-[100dvh] min-h-0 overflow-hidden bg-[var(--app-canvas)] text-slate-900 antialiased">
+      <aside className="flex h-full min-h-0 w-[272px] shrink-0 flex-col border-r border-slate-200/80 bg-white shadow-[4px_0_24px_-12px_rgba(15,23,42,0.12)]">
+        <div className="shrink-0 border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white px-4 py-5">
           <div className="flex items-start gap-3">
             <img
               src="/siut-logo.jpg"
@@ -147,7 +147,7 @@ export function Layout() {
           </p>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-0 overflow-y-auto px-3 py-4">
+        <nav className="flex min-h-0 flex-1 flex-col gap-0 overflow-y-auto overflow-x-hidden overscroll-contain px-3 py-4 [scrollbar-gutter:stable]">
           {(() => {
             let firstBlock = true
             return navSections.map((section) => {
@@ -223,7 +223,7 @@ export function Layout() {
           })()}
         </nav>
 
-        <div className="border-t border-slate-100 bg-slate-50/90 p-3">
+        <div className="shrink-0 border-t border-slate-100 bg-slate-50/90 p-3">
           <div className="rounded-xl border border-slate-200/80 bg-white px-3 py-3 shadow-sm">
             <div className="truncate text-sm font-semibold text-slate-900">{user?.username}</div>
             <div className="mt-0.5 truncate text-xs capitalize text-slate-500">
@@ -241,8 +241,8 @@ export function Layout() {
         </div>
       </aside>
 
-      <main className="min-w-0 flex-1 overflow-auto">
-        <div className="mx-auto min-h-full max-w-7xl px-5 py-8 sm:px-8 md:py-10 lg:px-10">
+      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain">
+        <div className="mx-auto min-h-min max-w-7xl px-5 py-8 sm:px-8 md:py-10 lg:px-10">
           <Outlet />
         </div>
       </main>
