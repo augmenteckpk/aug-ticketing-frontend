@@ -51,7 +51,6 @@ export function RegistrationPage() {
   const [gender, setGender] = useState('')
   const [dob, setDob] = useState('')
   const [mrn, setMrn] = useState('')
-  const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
