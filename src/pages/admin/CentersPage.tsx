@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { MapPin, Pencil, Plus, RefreshCw } from 'lucide-react'
 import { api } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
+import { toastError, toastSuccess } from '../../lib/toast'
 import { ui } from '../../ui/classes'
 
 type Hospital = { id: number; name: string }
@@ -28,7 +29,6 @@ export function CentersPage() {
   const [city, setCity] = useState('')
   const [address, setAddress] = useState('')
   const [edit, setEdit] = useState<Center | null>(null)
-  const [err, setErr] = useState<string | null>(null)
   const [departments, setDepartments] = useState<Department[]>([])
   const [routeCenterId, setRouteCenterId] = useState<number | ''>('')
   const [routeDeptByWeekday, setRouteDeptByWeekday] = useState<Record<number, number | ''>>({})
@@ -55,12 +55,12 @@ export function CentersPage() {
   }
 
   useEffect(() => {
-    if (can('centers.read')) void load().catch((e) => setErr(String(e)))
+    if (can('centers.read')) void load().catch((e) => toastError(e, 'Failed to load centers'))
   }, [can])
 
   useEffect(() => {
     if (!can('centers.manage') || routeCenterId === '') return
-    void loadWeekdayRoutes(routeCenterId).catch((e) => setErr(String(e)))
+    void loadWeekdayRoutes(routeCenterId).catch((e) => toastError(e, 'Failed to load weekday routes'))
   }, [routeCenterId, can])
 
   if (!can('centers.read')) {
@@ -74,7 +74,15 @@ export function CentersPage() {
           <h1 className={ui.h1}>Centers</h1>
           <p className={`mt-1 text-sm ${ui.muted}`}>OPD centers linked to hospitals.</p>
         </div>
-        <button type="button" className={ui.btnSecondary} onClick={() => void load().catch((e) => setErr(String(e)))}>
+        <button
+          type="button"
+          className={ui.btnSecondary}
+          onClick={() =>
+            void load()
+              .then(() => toastSuccess('List refreshed'))
+              .catch((e) => toastError(e, 'Failed to refresh'))
+          }
+        >
           <RefreshCw className="size-4" strokeWidth={2} aria-hidden />
           Refresh
         </button>
@@ -90,7 +98,6 @@ export function CentersPage() {
             className="flex flex-wrap items-end gap-3"
             onSubmit={async (e) => {
               e.preventDefault()
-              setErr(null)
               try {
                 await api('/centers', {
                   method: 'POST',
@@ -100,8 +107,9 @@ export function CentersPage() {
                 setCity('')
                 setAddress('')
                 await load()
-              } catch (e) {
-                setErr(String(e))
+                toastSuccess('Center created')
+              } catch (err) {
+                toastError(err, 'Could not create center')
               }
             }}
           >
@@ -133,8 +141,6 @@ export function CentersPage() {
           </form>
         </div>
       ) : null}
-
-      {err ? <div className={ui.alertError}>{err}</div> : null}
 
       <div className={ui.tableWrap}>
         <table className="min-w-full border-collapse text-left">
@@ -176,12 +182,12 @@ export function CentersPage() {
                       className={`${ui.btnDanger} ml-2`}
                       onClick={async () => {
                         if (!window.confirm(`Delete center "${r.name}"?`)) return
-                        setErr(null)
                         try {
                           await api(`/centers/${r.id}`, { method: 'DELETE' })
                           await load()
-                        } catch (e) {
-                          setErr(String(e))
+                          toastSuccess(`Center “${r.name}” deleted`)
+                        } catch (err) {
+                          toastError(err, 'Could not delete center')
                         }
                       }}
                     >
@@ -246,7 +252,6 @@ export function CentersPage() {
                 type="button"
                 className={`${ui.btnPrimary} mt-4`}
                 onClick={async () => {
-                  setErr(null)
                   try {
                     const body: { weekday: number; department_id: number }[] = []
                     for (let w = 0; w <= 6; w++) {
@@ -258,8 +263,9 @@ export function CentersPage() {
                       body: JSON.stringify(body),
                     })
                     await loadWeekdayRoutes(routeCenterId)
-                  } catch (e) {
-                    setErr(String(e))
+                    toastSuccess('Weekday routing saved')
+                  } catch (err) {
+                    toastError(err, 'Could not save routing')
                   }
                 }}
               >
@@ -282,7 +288,6 @@ export function CentersPage() {
               className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2"
               onSubmit={async (e) => {
                 e.preventDefault()
-                setErr(null)
                 try {
                   await api(`/centers/${edit.id}`, {
                     method: 'PATCH',
@@ -295,8 +300,9 @@ export function CentersPage() {
                   })
                   setEdit(null)
                   await load()
-                } catch (x) {
-                  setErr(String(x))
+                  toastSuccess('Center updated')
+                } catch (err) {
+                  toastError(err, 'Could not update center')
                 }
               }}
             >

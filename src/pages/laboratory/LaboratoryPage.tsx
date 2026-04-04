@@ -3,6 +3,7 @@ import { FlaskConical, RefreshCw } from 'lucide-react'
 import { api } from '../../api/client'
 import { todayLocalYmd } from '../../utils/dateYmd'
 import { useAuth } from '../../context/AuthContext'
+import { toastError, toastSuccess } from '../../lib/toast'
 import { ui } from '../../ui/classes'
 
 type WorklistRow = {
@@ -34,7 +35,6 @@ export function LaboratoryPage() {
   const [date, setDate] = useState(today)
   const [pendingOnly, setPendingOnly] = useState(true)
   const [rows, setRows] = useState<WorklistRow[]>([])
-  const [msg, setMsg] = useState<string | null>(null)
   const [uploadOrderId, setUploadOrderId] = useState<number | null>(null)
   const [summary, setSummary] = useState('')
   const [details, setDetails] = useState('')
@@ -46,11 +46,10 @@ export function LaboratoryPage() {
         setCenters(c)
         if (c[0]) setCenterId(c[0].id)
       })
-      .catch(() => {})
+      .catch((e) => toastError(e, 'Could not load centers'))
   }, [])
 
   async function load() {
-    setMsg(null)
     const q = new URLSearchParams({
       center_id: String(centerId),
       date,
@@ -61,14 +60,13 @@ export function LaboratoryPage() {
   }
 
   useEffect(() => {
-    if (can('lab.read')) void load().catch((e) => setMsg(String(e)))
+    if (can('lab.read')) void load().catch((e) => toastError(e, 'Failed to load worklist'))
   }, [centerId, date, pendingOnly, can])
 
   async function submitResult(e: React.FormEvent) {
     e.preventDefault()
     if (uploadOrderId == null || !can('lab.manage')) return
     setBusy(true)
-    setMsg(null)
     try {
       await api(`/appointments/lab-orders/${uploadOrderId}/result`, {
         method: 'PATCH',
@@ -80,10 +78,10 @@ export function LaboratoryPage() {
       setUploadOrderId(null)
       setSummary('')
       setDetails('')
-      setMsg('Result uploaded. Visible to doctors and staff — not on the patient mobile app.')
+      toastSuccess('Result uploaded — visible to clinical staff.')
       await load()
     } catch (e) {
-      setMsg(String(e))
+      toastError(e, 'Could not upload result')
     } finally {
       setBusy(false)
     }
@@ -106,7 +104,15 @@ export function LaboratoryPage() {
             app.
           </p>
         </div>
-        <button type="button" className={ui.btnSecondary} onClick={() => void load().catch((e) => setMsg(String(e)))}>
+        <button
+          type="button"
+          className={ui.btnSecondary}
+          onClick={() =>
+            void load()
+              .then(() => toastSuccess('Worklist refreshed'))
+              .catch((e) => toastError(e, 'Failed to refresh'))
+          }
+        >
           <RefreshCw className="size-4" strokeWidth={2} aria-hidden />
           Refresh
         </button>
@@ -137,10 +143,6 @@ export function LaboratoryPage() {
           Pending only
         </label>
       </div>
-
-      {msg ? (
-        <div className={msg.includes('uploaded') || msg.includes('Visible') ? ui.alertSuccess : ui.alertError}>{msg}</div>
-      ) : null}
 
       <div className={ui.tableWrap}>
         <table className="min-w-full border-collapse text-left text-sm">
@@ -177,7 +179,6 @@ export function LaboratoryPage() {
                           setUploadOrderId(r.order_id)
                           setSummary('')
                           setDetails('')
-                          setMsg(null)
                         }}
                       >
                         Enter result

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { UserPlus, Pencil, RefreshCw, Eye, EyeOff } from 'lucide-react'
 import { api } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
+import { toastError, toastSuccess } from '../../lib/toast'
 import { ui } from '../../ui/classes'
 
 type UserRow = {
@@ -24,7 +25,6 @@ export function UsersPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [roleName, setRoleName] = useState('registration_clerk')
-  const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   const [edit, setEdit] = useState<UserRow | null>(null)
@@ -44,7 +44,7 @@ export function UsersPage() {
   }
 
   useEffect(() => {
-    if (can('users.manage')) void load().catch((e) => setErr(String(e)))
+    if (can('users.manage')) void load().catch((e) => toastError(e, 'Failed to load users'))
   }, [can])
 
   useEffect(() => {
@@ -67,7 +67,15 @@ export function UsersPage() {
           <h1 className={ui.h1}>Users</h1>
           <p className={`mt-1 max-w-xl text-sm ${ui.muted}`}>Create staff accounts and update roles or status.</p>
         </div>
-        <button type="button" className={ui.btnSecondary} onClick={() => void load()}>
+        <button
+          type="button"
+          className={ui.btnSecondary}
+          onClick={() =>
+            void load()
+              .then(() => toastSuccess('List refreshed'))
+              .catch((e) => toastError(e, 'Failed to refresh'))
+          }
+        >
           <RefreshCw className="size-4" strokeWidth={2} aria-hidden />
           Refresh
         </button>
@@ -82,9 +90,9 @@ export function UsersPage() {
           className="flex flex-wrap items-end gap-3"
           onSubmit={async (e) => {
             e.preventDefault()
-            setErr(null)
             setBusy(true)
             try {
+              const createdAs = username
               await api('/users', {
                 method: 'POST',
                 body: JSON.stringify({ username, password, role_name: roleName }),
@@ -92,8 +100,9 @@ export function UsersPage() {
               setUsername('')
               setPassword('')
               await load()
-            } catch (e) {
-              setErr(String(e))
+              toastSuccess(`User “${createdAs}” created`)
+            } catch (err) {
+              toastError(err, 'Could not create user')
             } finally {
               setBusy(false)
             }
@@ -146,8 +155,6 @@ export function UsersPage() {
         </form>
       </div>
 
-      {err ? <div className={ui.alertError}>{err}</div> : null}
-
       <div className={ui.tableWrap}>
         <table className="min-w-full border-collapse text-left">
           <thead>
@@ -196,13 +203,13 @@ export function UsersPage() {
                     className={`${ui.btnDanger} ml-2`}
                     onClick={async () => {
                       if (!window.confirm(`Delete user "${r.username}"?`)) return
-                      setErr(null)
                       setBusy(true)
                       try {
                         await api(`/users/${r.id}`, { method: 'DELETE' })
                         await load()
-                      } catch (e) {
-                        setErr(String(e))
+                        toastSuccess(`User “${r.username}” deleted`)
+                      } catch (err) {
+                        toastError(err, 'Could not delete user')
                       } finally {
                         setBusy(false)
                       }
@@ -242,7 +249,6 @@ export function UsersPage() {
               className="mt-6 space-y-4"
               onSubmit={async (e) => {
                 e.preventDefault()
-                setErr(null)
                 setBusy(true)
                 try {
                   await api(`/users/${edit.id}`, {
@@ -256,8 +262,9 @@ export function UsersPage() {
                   })
                   setEdit(null)
                   await load()
+                  toastSuccess('User updated')
                 } catch (err) {
-                  setErr(String(err))
+                  toastError(err, 'Could not update user')
                 } finally {
                   setBusy(false)
                 }

@@ -4,6 +4,7 @@ import { Activity, ClipboardList, PlusCircle, RefreshCw, TicketPlus, Users } fro
 import { api } from '../../api/client'
 import { todayLocalYmd } from '../../utils/dateYmd'
 import { useAuth } from '../../context/AuthContext'
+import { toastError, toastSuccess, toastWarning } from '../../lib/toast'
 import { ui } from '../../ui/classes'
 
 type Appt = {
@@ -79,7 +80,7 @@ function openPrintPreScreening(p: {
     w.focus()
     w.print()
   } else {
-    window.alert('Allow pop-ups to print the pre-screening slip.')
+    toastWarning('Allow pop-ups to print the pre-screening slip.')
   }
 }
 
@@ -97,7 +98,6 @@ export function PreAssessmentPage() {
   const [sugar, setSugar] = useState('')
   const [symptoms, setSymptoms] = useState('')
   const [history, setHistory] = useState('')
-  const [msg, setMsg] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [printAfterSave, setPrintAfterSave] = useState(true)
 
@@ -107,18 +107,17 @@ export function PreAssessmentPage() {
         setCenters(c)
         if (c[0]) setCenterId(c[0].id)
       })
-      .catch(() => {})
+      .catch((e) => toastError(e, 'Could not load centers'))
   }, [])
 
   async function load() {
-    setMsg(null)
     const q = new URLSearchParams({ center_id: String(centerId), date, status: 'registered' })
     const list = await api<Appt[]>(`/appointments?${q.toString()}`)
     setRows(list)
   }
 
   useEffect(() => {
-    if (can('appointments.pre_assessment')) void load().catch((e) => setMsg(String(e)))
+    if (can('appointments.pre_assessment')) void load().catch((e) => toastError(e, 'Failed to load queue'))
   }, [centerId, date, can])
 
   if (!can('appointments.pre_assessment')) {
@@ -134,7 +133,6 @@ export function PreAssessmentPage() {
     setSugar('')
     setSymptoms('')
     setHistory('')
-    setMsg(null)
   }
 
   async function submitVitals(e: React.FormEvent) {
@@ -147,20 +145,19 @@ export function PreAssessmentPage() {
     const hCm = height === '' ? NaN : Number(height)
 
     if (!Number.isFinite(sys) || !Number.isFinite(dia)) {
-      setMsg('Enter blood pressure (systolic and diastolic).')
+      toastWarning('Enter blood pressure (systolic and diastolic).')
       return
     }
     if (!Number.isFinite(wKg) || wKg <= 0) {
-      setMsg('Enter weight (kg).')
+      toastWarning('Enter weight (kg).')
       return
     }
     if (!Number.isFinite(hCm) || hCm <= 0) {
-      setMsg('Enter height (cm).')
+      toastWarning('Enter height (cm).')
       return
     }
 
     setBusy(true)
-    setMsg(null)
     try {
       await api(`/appointments/${sel.id}/pre-assessment`, {
         method: 'PATCH',
@@ -202,12 +199,10 @@ export function PreAssessmentPage() {
       }
 
       setSel(null)
-      setMsg(
-        'Pre-screening saved. Visit is now ready — the coordinator can include this patient in batches only after this step.',
-      )
+      toastSuccess('Pre-screening saved — visit is now ready for coordinator batches.')
       await load()
     } catch (e) {
-      setMsg(String(e))
+      toastError(e, 'Could not save pre-screening')
     } finally {
       setBusy(false)
     }
@@ -238,7 +233,6 @@ export function PreAssessmentPage() {
             disabled={!rows.length}
             onClick={() => {
               if (rows[0]) {
-                setMsg(null)
                 openRow(rows[0])
               }
             }}
@@ -246,7 +240,15 @@ export function PreAssessmentPage() {
             <PlusCircle className="size-4" strokeWidth={2} aria-hidden />
             New pre-screening
           </button>
-          <button type="button" className={ui.btnSecondary} onClick={() => void load().catch((e) => setMsg(String(e)))}>
+          <button
+            type="button"
+            className={ui.btnSecondary}
+            onClick={() =>
+              void load()
+                .then(() => toastSuccess('Queue refreshed'))
+                .catch((e) => toastError(e, 'Failed to refresh'))
+            }
+          >
             <RefreshCw className="size-4" strokeWidth={2} aria-hidden />
             Refresh
           </button>
@@ -297,16 +299,6 @@ export function PreAssessmentPage() {
           <input type="date" className={ui.input} value={date} onChange={(e) => setDate(e.target.value)} />
         </label>
       </div>
-
-      {msg ? (
-        <div
-          className={
-            msg.includes('ready') || msg.includes('Pre-screening saved') ? ui.alertSuccess : ui.alertError
-          }
-        >
-          {msg}
-        </div>
-      ) : null}
 
       <div className={ui.tableWrap}>
         <p className={`border-b border-slate-100 px-4 py-2 text-xs font-medium text-slate-600`}>

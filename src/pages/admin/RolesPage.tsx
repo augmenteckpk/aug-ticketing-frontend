@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useState } from 'react'
 import { ChevronDown, ChevronRight, Pencil, Plus, RefreshCw, Shield } from 'lucide-react'
 import { api } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
+import { toastError, toastSuccess } from '../../lib/toast'
 import { ui } from '../../ui/classes'
 
 type Role = { id: number; name: string; description: string | null; permissions: string[] }
@@ -16,7 +17,6 @@ export function RolesPage() {
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([])
   const [edit, setEdit] = useState<Role | null>(null)
   const [editPermissions, setEditPermissions] = useState<string[]>([])
-  const [err, setErr] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<number | null>(null)
   const canManage = can('roles.manage') || can('users.manage')
 
@@ -42,9 +42,7 @@ export function RolesPage() {
 
   useEffect(() => {
     if (!can('roles.read')) return
-    void api<Role[]>('/rbac/roles')
-      .then(setRoles)
-      .catch((e) => setErr(String(e)))
+    void load().catch((e) => toastError(e, 'Failed to load roles'))
   }, [can])
 
   if (!can('roles.read')) {
@@ -60,7 +58,15 @@ export function RolesPage() {
             RBAC roles defined in the system. Expand a row to see permission codes.
           </p>
         </div>
-        <button type="button" className={ui.btnSecondary} onClick={() => void load().catch((e) => setErr(String(e)))}>
+        <button
+          type="button"
+          className={ui.btnSecondary}
+          onClick={() =>
+            void load()
+              .then(() => toastSuccess('List refreshed'))
+              .catch((e) => toastError(e, 'Failed to refresh'))
+          }
+        >
           <RefreshCw className="size-4" strokeWidth={2} aria-hidden />
           Refresh
         </button>
@@ -76,7 +82,6 @@ export function RolesPage() {
             className="space-y-4"
             onSubmit={async (e) => {
               e.preventDefault()
-              setErr(null)
               try {
                 await api('/rbac/roles', {
                   method: 'POST',
@@ -90,8 +95,9 @@ export function RolesPage() {
                 setDescription('')
                 setSelectedPermissions([])
                 await load()
-              } catch (x) {
-                setErr(String(x))
+                toastSuccess('Role created')
+              } catch (err) {
+                toastError(err, 'Could not create role')
               }
             }}
           >
@@ -133,8 +139,6 @@ export function RolesPage() {
           </form>
         </div>
       ) : null}
-
-      {err ? <div className={ui.alertError}>{err}</div> : null}
 
       <div className={ui.tableWrap}>
         <table className="min-w-full border-collapse text-left">
@@ -193,12 +197,12 @@ export function RolesPage() {
                           className={`${ui.btnDanger} ml-2`}
                           onClick={async () => {
                             if (!window.confirm(`Delete role "${r.name}"?`)) return
-                            setErr(null)
                             try {
                               await api(`/rbac/roles/${r.id}`, { method: 'DELETE' })
                               await load()
-                            } catch (e) {
-                              setErr(String(e))
+                              toastSuccess(`Role “${r.name}” deleted`)
+                            } catch (err) {
+                              toastError(err, 'Could not delete role')
                             }
                           }}
                         >
@@ -246,7 +250,6 @@ export function RolesPage() {
               className="mt-5 space-y-4"
               onSubmit={async (e) => {
                 e.preventDefault()
-                setErr(null)
                 try {
                   await api(`/rbac/roles/${edit.id}`, {
                     method: 'PATCH',
@@ -258,8 +261,9 @@ export function RolesPage() {
                   })
                   setEdit(null)
                   await load()
-                } catch (x) {
-                  setErr(String(x))
+                  toastSuccess('Role updated')
+                } catch (err) {
+                  toastError(err, 'Could not update role')
                 }
               }}
             >

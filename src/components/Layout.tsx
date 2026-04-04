@@ -8,6 +8,7 @@ import {
   Building2,
   MapPin,
   Stethoscope,
+  Layers2,
   NotebookPen,
   FlaskConical,
   Users,
@@ -102,6 +103,7 @@ const navSections: NavSection[] = [
       { to: '/app/hospitals', label: 'Hospitals', perm: 'hospitals.read', icon: Building2 },
       { to: '/app/centers', label: 'Centers', perm: 'centers.read', icon: MapPin },
       { to: '/app/departments', label: 'Departments', perm: 'departments.read', icon: Stethoscope },
+      { to: '/app/clinics', label: 'Clinics', description: 'OPD units by center', perm: 'departments.read', icon: Layers2 },
       {
         to: '/app/patients',
         label: 'Patients',

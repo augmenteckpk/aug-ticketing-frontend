@@ -3,6 +3,7 @@ import { RefreshCw, Layers, Send, Eye } from 'lucide-react'
 import { api } from '../../api/client'
 import { todayLocalYmd } from '../../utils/dateYmd'
 import { useAuth } from '../../context/AuthContext'
+import { toastError, toastSuccess } from '../../lib/toast'
 import { ui } from '../../ui/classes'
 
 type Appt = {
@@ -44,19 +45,16 @@ export function QueuePage() {
   const [batches, setBatches] = useState<Batch[]>([])
   const [selectedBatch, setSelectedBatch] = useState<BatchDetail | null>(null)
   const [batchSize, setBatchSize] = useState(20)
-  const [msg, setMsg] = useState<string | null>(null)
-
   useEffect(() => {
     api<Center[]>('/centers')
       .then((c) => {
         setCenters(c)
         if (c[0]) setCenterId(c[0].id)
       })
-      .catch(() => {})
+      .catch((e) => toastError(e, 'Could not load centers'))
   }, [])
 
-  async function refresh() {
-    setMsg(null)
+  async function refresh(notifyOk = false) {
     try {
       const q = `?center_id=${centerId}&date=${encodeURIComponent(date)}`
       const [r, n, b] = await Promise.all([
@@ -68,8 +66,9 @@ export function QueuePage() {
       setNotHere(n)
       setBatches(b)
       setSelectedBatch(null)
+      if (notifyOk) toastSuccess('Queue refreshed')
     } catch (e) {
-      setMsg(String(e))
+      toastError(e, 'Failed to refresh queue')
     }
   }
 
@@ -92,7 +91,7 @@ export function QueuePage() {
             — they must complete vitals first.
           </p>
         </div>
-        <button type="button" onClick={() => void refresh()} className={ui.btnSecondary}>
+        <button type="button" onClick={() => void refresh(true)} className={ui.btnSecondary}>
           <RefreshCw className="size-4" strokeWidth={2} aria-hidden />
           Refresh
         </button>
@@ -114,8 +113,6 @@ export function QueuePage() {
           <input type="date" className={ui.input} value={date} onChange={(e) => setDate(e.target.value)} />
         </label>
       </div>
-
-      {msg ? <div className={ui.alertError}>{msg}</div> : null}
 
       <div className={`rounded-xl border border-cyan-100 bg-cyan-50/80 px-4 py-3 text-xs text-slate-700`}>
         <p className="font-semibold text-cyan-900">HIS queue pools (status mapping)</p>
@@ -235,8 +232,9 @@ export function QueuePage() {
                     }),
                   })
                   await refresh()
+                  toastSuccess('Batch created')
                 } catch (e) {
-                  setMsg(String(e))
+                  toastError(e, 'Could not create batch')
                 }
               }}
             >
@@ -273,7 +271,7 @@ export function QueuePage() {
                             const detail = await api<BatchDetail>(`/queue/batches/${b.id}`)
                             setSelectedBatch(detail)
                           } catch (e) {
-                            setMsg(String(e))
+                            toastError(e, 'Could not load batch details')
                           }
                         }}
                       >
@@ -288,8 +286,9 @@ export function QueuePage() {
                             try {
                               await api(`/queue/batches/${b.id}/dispatch`, { method: 'POST' })
                               await refresh()
+                              toastSuccess('Batch dispatched')
                             } catch (e) {
-                              setMsg(String(e))
+                              toastError(e, 'Could not dispatch batch')
                             }
                           }}
                         >

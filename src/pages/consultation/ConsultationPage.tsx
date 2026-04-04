@@ -3,6 +3,7 @@ import { RefreshCw, Stethoscope } from 'lucide-react'
 import { api } from '../../api/client'
 import { todayLocalYmd } from '../../utils/dateYmd'
 import { useAuth } from '../../context/AuthContext'
+import { toastError, toastSuccess } from '../../lib/toast'
 import { ui } from '../../ui/classes'
 
 type Appt = {
@@ -61,7 +62,6 @@ export function ConsultationPage() {
   const [labOrders, setLabOrders] = useState<LabOrder[]>([])
   const [labTestCode, setLabTestCode] = useState('')
   const [labNotes, setLabNotes] = useState('')
-  const [msg, setMsg] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [labBusy, setLabBusy] = useState(false)
 
@@ -73,11 +73,10 @@ export function ConsultationPage() {
         setCenters(c)
         if (c[0]) setCenterId(c[0].id)
       })
-      .catch(() => {})
+      .catch((e) => toastError(e, 'Could not load centers'))
   }, [])
 
   async function load() {
-    setMsg(null)
     const q = new URLSearchParams({
       center_id: String(centerId),
       date,
@@ -89,7 +88,7 @@ export function ConsultationPage() {
   }
 
   useEffect(() => {
-    if (can('appointments.consult')) void load().catch((e) => setMsg(String(e)))
+    if (can('appointments.consult')) void load().catch((e) => toastError(e, 'Failed to load visits'))
   }, [centerId, date, can])
 
   async function loadLab(apptId: number) {
@@ -110,7 +109,6 @@ export function ConsultationPage() {
     )
     setLabTestCode('')
     setLabNotes('')
-    setMsg(null)
     void loadLab(a.id)
   }
 
@@ -118,7 +116,6 @@ export function ConsultationPage() {
     e.preventDefault()
     if (!sel) return
     setBusy(true)
-    setMsg(null)
     try {
       await api(`/appointments/${sel.id}/consultation`, {
         method: 'PATCH',
@@ -129,7 +126,7 @@ export function ConsultationPage() {
             outcome === 'follow_up' ? followUpDate || null : null,
         }),
       })
-      setMsg('Consultation record saved.')
+      toastSuccess('Consultation record saved.')
       await load()
       const updated = await api<Appt>(`/appointments/${sel.id}`)
       setSel(updated)
@@ -139,7 +136,7 @@ export function ConsultationPage() {
         updated.follow_up_advised_date ? String(updated.follow_up_advised_date).slice(0, 10) : '',
       )
     } catch (e) {
-      setMsg(String(e))
+      toastError(e, 'Could not save consultation')
     } finally {
       setBusy(false)
     }
@@ -149,7 +146,6 @@ export function ConsultationPage() {
     e.preventDefault()
     if (!sel || !canOrderLab) return
     setLabBusy(true)
-    setMsg(null)
     try {
       await api(`/appointments/${sel.id}/lab-orders`, {
         method: 'POST',
@@ -161,9 +157,9 @@ export function ConsultationPage() {
       setLabTestCode('')
       setLabNotes('')
       await loadLab(sel.id)
-      setMsg('Lab order created. Lab staff will process it; patients do not see results in the mobile app.')
+      toastSuccess('Lab order created.')
     } catch (e) {
-      setMsg(String(e))
+      toastError(e, 'Could not create lab order')
     } finally {
       setLabBusy(false)
     }
@@ -188,7 +184,15 @@ export function ConsultationPage() {
             <strong>Reception must record a consultation outcome here before using “Complete” on Appointments.</strong>
           </p>
         </div>
-        <button type="button" className={ui.btnSecondary} onClick={() => void load().catch((e) => setMsg(String(e)))}>
+        <button
+          type="button"
+          className={ui.btnSecondary}
+          onClick={() =>
+            void load()
+              .then(() => toastSuccess('List refreshed'))
+              .catch((e) => toastError(e, 'Failed to refresh'))
+          }
+        >
           <RefreshCw className="size-4" strokeWidth={2} aria-hidden />
           Refresh
         </button>
@@ -210,10 +214,6 @@ export function ConsultationPage() {
           <input type="date" className={ui.input} value={date} onChange={(e) => setDate(e.target.value)} />
         </label>
       </div>
-
-      {msg ? (
-        <div className={msg.includes('saved') || msg.includes('created') ? ui.alertSuccess : ui.alertError}>{msg}</div>
-      ) : null}
 
       <div className={ui.tableWrap}>
         <table className="min-w-full border-collapse text-left text-sm">

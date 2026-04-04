@@ -3,6 +3,7 @@ import { RefreshCw, CheckCircle, TicketPlus, X } from 'lucide-react'
 import { api } from '../../api/client'
 import { todayLocalYmd } from '../../utils/dateYmd'
 import { useAuth } from '../../context/AuthContext'
+import { toastError, toastSuccess, toastWarning } from '../../lib/toast'
 import { ui } from '../../ui/classes'
 
 type Appointment = {
@@ -40,7 +41,6 @@ export function AppointmentsPage() {
   const [centerId, setCenterId] = useState<number | ''>('')
   const [date, setDate] = useState(today)
   const [status, setStatus] = useState('')
-  const [msg, setMsg] = useState<string | null>(null)
   const [busyReceiptId, setBusyReceiptId] = useState<number | null>(null)
   const [busyCompleteId, setBusyCompleteId] = useState<number | null>(null)
 
@@ -65,7 +65,7 @@ export function AppointmentsPage() {
 
   useEffect(() => {
     if (!can('centers.read')) return
-    api<Center[]>('/centers').then(setCenters).catch(() => {})
+    api<Center[]>('/centers').then(setCenters).catch((e) => toastError(e, 'Could not load centers'))
   }, [can])
 
   const canIssueWalkIn = can('appointments.issue_token')
@@ -81,10 +81,9 @@ export function AppointmentsPage() {
       .catch(() => setWalkInDepartments([]))
   }, [walkInOpen, walkInForm.center_id, can])
 
-  async function load(override?: { centerId?: number | ''; date?: string; clearMsg?: boolean }) {
+  async function load(override?: { centerId?: number | ''; date?: string }) {
     const cid = override?.centerId !== undefined ? override.centerId : centerId
     const dt = override?.date !== undefined ? override.date : date
-    if (override?.clearMsg !== false) setMsg(null)
     try {
       const q = new URLSearchParams()
       if (cid !== '') q.set('center_id', String(cid))
@@ -93,7 +92,7 @@ export function AppointmentsPage() {
       const list = await api<Appointment[]>(`/appointments?${q.toString()}`)
       setRows(list)
     } catch (e) {
-      setMsg(String(e))
+      toastError(e, 'Failed to load appointments')
     }
   }
 
@@ -107,11 +106,10 @@ export function AppointmentsPage() {
 
   async function submitWalkIn() {
     if (walkInForm.center_id === '') {
-      setMsg('Select a center.')
+      toastWarning('Select a center.')
       return
     }
     setWalkInBusy(true)
-    setMsg(null)
     try {
       const savedCenterId = Number(walkInForm.center_id)
       const savedDate = walkInForm.appointment_date
@@ -155,10 +153,10 @@ export function AppointmentsPage() {
       })
       setCenterId(savedCenterId)
       setDate(savedDate)
-      await load({ centerId: savedCenterId, date: savedDate, clearMsg: false })
-      setMsg(`Walk-in ticket issued: token #${created.token_number} (appointment ID ${created.id}).`)
+      await load({ centerId: savedCenterId, date: savedDate })
+      toastSuccess(`Walk-in ticket issued: token #${created.token_number} (appointment ${created.id})`)
     } catch (err) {
-      setMsg(String(err))
+      toastError(err, 'Walk-in issue failed')
     } finally {
       setWalkInBusy(false)
     }
@@ -176,7 +174,6 @@ export function AppointmentsPage() {
             type="button"
             className={`${ui.btnPrimary} shrink-0 cursor-pointer`}
             onClick={() => {
-              setMsg(null)
               setWalkInOpen(true)
             }}
           >
@@ -226,15 +223,15 @@ export function AppointmentsPage() {
             ))}
           </select>
         </label>
-        <button type="button" onClick={() => void load()} className={ui.btnPrimary}>
+        <button
+          type="button"
+          onClick={() => void load().then(() => toastSuccess('List refreshed'))}
+          className={ui.btnPrimary}
+        >
           <RefreshCw className="size-4" strokeWidth={2} aria-hidden />
           Refresh
         </button>
       </div>
-
-      {msg ? (
-        <div className={msg.startsWith('Walk-in ticket issued') ? ui.alertSuccess : ui.alertError}>{msg}</div>
-      ) : null}
 
       {walkInOpen && canIssueWalkIn ? (
         <div
@@ -513,7 +510,6 @@ export function AppointmentsPage() {
                         className={`${ui.btnSecondary} mr-2 py-1.5 text-xs`}
                         disabled={busyReceiptId === r.id}
                         onClick={async () => {
-                          setMsg(null)
                           setBusyReceiptId(r.id)
                           try {
                             await api(`/appointments/${r.id}/receipt/generate`, { method: 'POST' })
@@ -540,11 +536,12 @@ export function AppointmentsPage() {
                               w.document.close()
                               w.focus()
                               w.print()
+                              toastSuccess(`Receipt ${receipt.receipt.receipt_number} — print dialog opened`)
                             } else {
-                              window.alert(`Receipt generated: ${receipt.receipt.receipt_number}`)
+                              toastWarning(`Receipt ${receipt.receipt.receipt_number} generated — allow pop-ups to print`)
                             }
                           } catch (e) {
-                            setMsg(String(e))
+                            toastError(e, 'Receipt failed')
                           } finally {
                             setBusyReceiptId(null)
                           }
@@ -558,13 +555,13 @@ export function AppointmentsPage() {
                           className={`${ui.btnPrimary} py-1.5 text-xs`}
                           disabled={busyCompleteId === r.id}
                           onClick={async () => {
-                            setMsg(null)
                             setBusyCompleteId(r.id)
                             try {
                               await api(`/appointments/${r.id}/complete`, { method: 'POST' })
                               await load()
+                              toastSuccess(`Visit #${r.token_number} marked complete`)
                             } catch (e) {
-                              setMsg(String(e))
+                              toastError(e, 'Could not complete visit')
                             } finally {
                               setBusyCompleteId(null)
                             }

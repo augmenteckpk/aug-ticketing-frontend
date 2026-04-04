@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { Activity, Lock, User, AlertCircle, Eye, EyeOff } from 'lucide-react'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Activity, Lock, User, Eye, EyeOff } from 'lucide-react'
 import { ApiError } from '../api/client'
 import { useAuth } from '../context/AuthContext'
+import { toastError, toastSuccess } from '../lib/toast'
 
 import backgroundImage from '../assets/56438.jpeg'
 
@@ -13,7 +14,6 @@ export function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [err, setErr] = useState<string | null>(null)
 
   if (!loading && user && user.role !== 'patient') {
     const to = loc.state?.from && loc.state.from !== '/login' ? loc.state.from : '/app'
@@ -22,17 +22,17 @@ export function LoginPage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setErr(null)
     try {
       const me = await login(username, password)
       if (me.role === 'patient') {
         logout()
-        setErr('Patients use the mobile app. Staff accounts only here.')
+        toastError('Patients use the mobile app. Staff accounts only here.')
         return
       }
+      toastSuccess('Signed in')
       nav('/app', { replace: true })
     } catch (e) {
-      setErr(e instanceof ApiError ? e.message : 'Login failed')
+      toastError(e instanceof ApiError ? e : new Error('Login failed'))
     }
   }
 
@@ -102,13 +102,6 @@ export function LoginPage() {
           </div>
         </label>
 
-        {err ? (
-          <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800">
-            <AlertCircle className="mt-0.5 size-4 shrink-0" strokeWidth={2} aria-hidden />
-            <span>{err}</span>
-          </div>
-        ) : null}
-
         <button
           type="submit"
           className="mt-6 w-full rounded-xl bg-gradient-to-r from-cyan-600 to-cyan-500 py-3 text-sm font-semibold text-white shadow-md shadow-cyan-900/10 transition hover:from-cyan-500 hover:to-cyan-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600"
@@ -119,6 +112,14 @@ export function LoginPage() {
         <p className="mt-6 text-center text-xs leading-relaxed text-slate-500">
           Demo: <span className="text-slate-700">admin / Admin@123</span> · greeter/Greeter@123 · clerk/Clerk@123 ·
           coordinator/Coordinator@123 · physician/Physician@123 · labtech/LabTech@123
+        </p>
+        <p className="mt-3 text-center text-xs">
+          <Link
+            to="/display/waiting"
+            className="font-medium text-cyan-700 underline decoration-cyan-400/60 underline-offset-2 hover:text-cyan-800"
+          >
+            Waiting-area LED display (no login)
+          </Link>
         </p>
       </form>
     </div>

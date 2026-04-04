@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { Toaster } from 'sonner'
 import { Layout } from './components/Layout'
 import { RequireAuth } from './components/RequireAuth'
 import { AuthProvider } from './context/AuthContext'
@@ -7,6 +8,7 @@ import { DashboardHome } from './pages/DashboardHome'
 import { HospitalsPage } from './pages/admin/HospitalsPage'
 import { CentersPage } from './pages/admin/CentersPage'
 import { DepartmentsPage } from './pages/admin/DepartmentsPage'
+import { ClinicsPage } from './pages/admin/ClinicsPage'
 import { UsersPage } from './pages/admin/UsersPage'
 import { RolesPage } from './pages/admin/RolesPage'
 import { PatientsListPage } from './pages/admin/PatientsListPage'
@@ -18,13 +20,21 @@ import { LaboratoryPage } from './pages/laboratory/LaboratoryPage'
 import { QueuePage } from './pages/queue/QueuePage'
 import { AppointmentsPage } from './pages/appointments/AppointmentsPage'
 import { ReportsPage } from './pages/ReportsPage'
+import { WaitingBoardPage } from './pages/display/WaitingBoardPage'
 
 export default function App() {
   return (
     <AuthProvider>
+      <Toaster
+        richColors
+        closeButton
+        position="top-right"
+        toastOptions={{ classNames: { toast: 'text-sm shadow-lg' } }}
+      />
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/display/waiting" element={<WaitingBoardPage />} />
           <Route
             path="/app"
             element={
@@ -45,6 +55,7 @@ export default function App() {
             <Route path="hospitals" element={<HospitalsPage />} />
             <Route path="centers" element={<CentersPage />} />
             <Route path="departments" element={<DepartmentsPage />} />
+            <Route path="clinics" element={<ClinicsPage />} />
             <Route path="patients" element={<PatientsListPage />} />
             <Route path="patients/:patientId" element={<PatientDetailPage />} />
             <Route path="users" element={<UsersPage />} />

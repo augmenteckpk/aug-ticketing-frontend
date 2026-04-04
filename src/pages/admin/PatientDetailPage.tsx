@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, UserCircle2, RefreshCw } from 'lucide-react'
 import { api } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
+import { toastError, toastSuccess } from '../../lib/toast'
 import { ui } from '../../ui/classes'
 import type { PatientRow } from './PatientsListPage'
 
@@ -40,55 +41,68 @@ export function PatientDetailPage() {
   const { can } = useAuth()
   const [patient, setPatient] = useState<PatientRow | null>(null)
   const [visits, setVisits] = useState<VisitRow[]>([])
-  const [err, setErr] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
   async function load() {
     if (!Number.isFinite(id) || id < 1) {
-      setErr('Invalid patient id')
+      toastError('Invalid patient id')
+      setPatient(null)
+      setVisits([])
+      setLoading(false)
       return
     }
-    setErr(null)
-    const p = await api<PatientRow>(`/patients/${id}`)
-    setPatient(p)
-    if (can('appointments.read')) {
-      try {
-        const list = await api<VisitRow[]>(`/appointments?patient_id=${id}`)
-        setVisits(list)
-      } catch {
+    setLoading(true)
+    try {
+      const p = await api<PatientRow>(`/patients/${id}`)
+      setPatient(p)
+      if (can('appointments.read')) {
+        try {
+          const list = await api<VisitRow[]>(`/appointments?patient_id=${id}`)
+          setVisits(list)
+        } catch {
+          setVisits([])
+          toastError('Could not load visit history')
+        }
+      } else {
         setVisits([])
       }
-    } else {
+    } catch (e) {
+      setPatient(null)
       setVisits([])
+      toastError(e, 'Failed to load patient')
+    } finally {
+      setLoading(false)
     }
   }
 
   useEffect(() => {
-    if (can('patients.read')) void load().catch((e) => setErr(String(e)))
+    if (can('patients.read')) void load()
   }, [can, id])
 
   if (!can('patients.read')) {
     return <p className={ui.muted}>No access to patient records.</p>
   }
 
-  if (err && !patient) {
+  if (loading) {
+    return (
+      <p className={`${ui.muted} ${ui.page}`}>
+        <Link to="/app/patients" className="text-cyan-700 hover:underline">
+          ← Patients
+        </Link>
+        <span className="mt-4 block">Loading…</span>
+      </p>
+    )
+  }
+
+  if (!patient) {
     return (
       <div className={`space-y-4 ${ui.page}`}>
         <Link to="/app/patients" className={`${ui.btnGhost} inline-flex items-center gap-2 no-underline`}>
           <ArrowLeft className="size-4" strokeWidth={2} aria-hidden />
           Back to patients
         </Link>
-        <div className={ui.alertError}>{err}</div>
+        <p className={ui.muted}>Patient could not be loaded.</p>
       </div>
-    )
-  }
-
-  if (!patient) {
-    return (
-      <p className={`${ui.muted} ${ui.page}`}>
-        <Link to="/app/patients" className="text-cyan-700 hover:underline">
-          ← Patients
-        </Link>
-      </p>
     )
   }
 
@@ -114,13 +128,19 @@ export function PatientDetailPage() {
           </h1>
           <p className={ui.lead}>Master demographic record; OPD visits are listed below when you have appointment access.</p>
         </div>
-        <button type="button" className={ui.btnSecondary} onClick={() => void load().catch((e) => setErr(String(e)))}>
+        <button
+          type="button"
+          className={ui.btnSecondary}
+          onClick={() =>
+            void load()
+              .then(() => toastSuccess('Refreshed'))
+              .catch(() => {})
+          }
+        >
           <RefreshCw className="size-4" strokeWidth={2} aria-hidden />
           Refresh
         </button>
       </div>
-
-      {err ? <div className={ui.alertError}>{err}</div> : null}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className={ui.card}>

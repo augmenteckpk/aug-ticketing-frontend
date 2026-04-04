@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { UserCircle2, RefreshCw, Search, Eye } from 'lucide-react'
 import { api } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
+import { toastError, toastSuccess } from '../../lib/toast'
 import { ui } from '../../ui/classes'
 
 export type PatientRow = {
@@ -31,16 +32,13 @@ export function PatientsListPage() {
   const { can } = useAuth()
   const [rows, setRows] = useState<PatientRow[]>([])
   const [q, setQ] = useState('')
-  const [err, setErr] = useState<string | null>(null)
-
   async function load() {
-    setErr(null)
     const data = await api<PatientRow[]>('/patients')
     setRows(data)
   }
 
   useEffect(() => {
-    if (can('patients.read')) void load().catch((e) => setErr(String(e)))
+    if (can('patients.read')) void load().catch((e) => toastError(e, 'Failed to load patients'))
   }, [can])
 
   const filtered = useMemo(() => {
@@ -73,7 +71,15 @@ export function PatientsListPage() {
             Master patient list from registration and walk-in. Open a record for full demographics and recent OPD visits.
           </p>
         </div>
-        <button type="button" className={ui.btnSecondary} onClick={() => void load().catch((e) => setErr(String(e)))}>
+        <button
+          type="button"
+          className={ui.btnSecondary}
+          onClick={() =>
+            void load()
+              .then(() => toastSuccess('List refreshed'))
+              .catch((e) => toastError(e, 'Failed to refresh'))
+          }
+        >
           <RefreshCw className="size-4" strokeWidth={2} aria-hidden />
           Refresh
         </button>
@@ -97,8 +103,6 @@ export function PatientsListPage() {
           Showing <strong className="text-slate-800">{filtered.length}</strong> of {rows.length}
         </p>
       </div>
-
-      {err ? <div className={ui.alertError}>{err}</div> : null}
 
       <div className={ui.tableWrap}>
         <table className="min-w-full border-collapse text-left text-sm">

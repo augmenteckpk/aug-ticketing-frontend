@@ -3,6 +3,7 @@ import { BarChart3, RefreshCw } from 'lucide-react'
 import { api } from '../api/client'
 import { todayLocalYmd } from '../utils/dateYmd'
 import { useAuth } from '../context/AuthContext'
+import { toastError, toastSuccess, toastWarning } from '../lib/toast'
 import { ui } from '../ui/classes'
 import { getToken } from '../api/client'
 
@@ -54,20 +55,14 @@ export function ReportsPage() {
   const [departmentId, setDepartmentId] = useState<number | ''>('')
   const [data, setData] = useState<Report | null>(null)
   const [rangeData, setRangeData] = useState<RangeReport | null>(null)
-  const [err, setErr] = useState<string | null>(null)
 
   async function load() {
-    setErr(null)
-    try {
-      const q = new URLSearchParams()
-      q.set('date', date)
-      if (centerId !== '') q.set('center_id', String(centerId))
-      if (departmentId !== '') q.set('department_id', String(departmentId))
-      const out = await api<Report>(`/reports/daily?${q.toString()}`)
-      setData(out)
-    } catch (e) {
-      setErr(String(e))
-    }
+    const q = new URLSearchParams()
+    q.set('date', date)
+    if (centerId !== '') q.set('center_id', String(centerId))
+    if (departmentId !== '') q.set('department_id', String(departmentId))
+    const out = await api<Report>(`/reports/daily?${q.toString()}`)
+    setData(out)
   }
 
   useEffect(() => {
@@ -77,22 +72,22 @@ export function ReportsPage() {
   }, [can])
 
   useEffect(() => {
-    if (can('reports.read')) void load()
-  }, [date, centerId, departmentId])
+    if (!can('reports.read')) return
+    void load().catch((e) => {
+      setData(null)
+      toastError(e, 'Failed to load daily report')
+    })
+  }, [date, centerId, departmentId, can])
 
   async function loadRange() {
-    setErr(null)
-    try {
-      const q = new URLSearchParams()
-      q.set('from_date', fromDate)
-      q.set('to_date', toDate)
-      if (centerId !== '') q.set('center_id', String(centerId))
-      if (departmentId !== '') q.set('department_id', String(departmentId))
-      const out = await api<RangeReport>(`/reports/range?${q.toString()}`)
-      setRangeData(out)
-    } catch (e) {
-      setErr(String(e))
-    }
+    const q = new URLSearchParams()
+    q.set('from_date', fromDate)
+    q.set('to_date', toDate)
+    if (centerId !== '') q.set('center_id', String(centerId))
+    if (departmentId !== '') q.set('department_id', String(departmentId))
+    const out = await api<RangeReport>(`/reports/range?${q.toString()}`)
+    setRangeData(out)
+    toastSuccess('Range report loaded')
   }
 
   if (!can('reports.read')) return <p className={ui.muted}>No reporting permission.</p>
@@ -107,7 +102,18 @@ export function ReportsPage() {
           </div>
           <p className={`mt-1 text-sm ${ui.muted}`}>Operational report by status, center, and department.</p>
         </div>
-        <button type="button" className={ui.btnSecondary} onClick={() => void load()}>
+        <button
+          type="button"
+          className={ui.btnSecondary}
+          onClick={() =>
+            void load()
+              .then(() => toastSuccess('Report refreshed'))
+              .catch((e) => {
+                setData(null)
+                toastError(e, 'Failed to refresh report')
+              })
+          }
+        >
           <RefreshCw className="size-4" strokeWidth={2} aria-hidden />
           Refresh
         </button>
@@ -164,6 +170,7 @@ export function ReportsPage() {
             a.download = `opd-report-${data.date}.csv`
             a.click()
             URL.revokeObjectURL(url)
+            toastSuccess('Daily CSV exported')
           }}
         >
           Export Daily CSV
@@ -172,21 +179,30 @@ export function ReportsPage() {
           type="button"
           className={ui.btnSecondary}
           onClick={async () => {
-            const q = new URLSearchParams()
-            q.set('date', date)
-            if (centerId !== '') q.set('center_id', String(centerId))
-            if (departmentId !== '') q.set('department_id', String(departmentId))
-            const token = getToken()
-            const res = await fetch(`${(import.meta.env.VITE_API_URL ?? 'http://localhost:3001').replace(/\/$/, '')}/api/v1/reports/daily.csv?${q.toString()}`, {
-              headers: token ? { Authorization: `Bearer ${token}` } : {},
-            })
-            const blob = await res.blob()
-            const url = URL.createObjectURL(blob)
-            const a = document.createElement('a')
-            a.href = url
-            a.download = `opd-daily-${date}.csv`
-            a.click()
-            URL.revokeObjectURL(url)
+            try {
+              const q = new URLSearchParams()
+              q.set('date', date)
+              if (centerId !== '') q.set('center_id', String(centerId))
+              if (departmentId !== '') q.set('department_id', String(departmentId))
+              const token = getToken()
+              const res = await fetch(`${(import.meta.env.VITE_API_URL ?? 'http://localhost:3001').replace(/\/$/, '')}/api/v1/reports/daily.csv?${q.toString()}`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+              })
+              if (!res.ok) {
+                toastError(`Export failed (${res.status})`)
+                return
+              }
+              const blob = await res.blob()
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `opd-daily-${date}.csv`
+              a.click()
+              URL.revokeObjectURL(url)
+              toastSuccess('Daily CSV downloaded')
+            } catch (e) {
+              toastError(e, 'Export failed')
+            }
           }}
         >
           Export Daily CSV (Server)
@@ -197,7 +213,10 @@ export function ReportsPage() {
           onClick={() => {
             if (!data) return
             const w = window.open('', '_blank', 'width=900,height=1000')
-            if (!w) return
+            if (!w) {
+              toastWarning('Allow pop-ups to print the report')
+              return
+            }
             const statusRows = Object.entries(data.by_status)
               .map(([k, v]) => `<tr><td>${k}</td><td style="text-align:right">${v}</td></tr>`)
               .join('')
@@ -216,6 +235,7 @@ export function ReportsPage() {
             w.document.close()
             w.focus()
             w.print()
+            toastSuccess('Print dialog opened')
           }}
         >
           Print Daily
@@ -231,36 +251,52 @@ export function ReportsPage() {
           To
           <input type="date" className={ui.input} value={toDate} onChange={(e) => setToDate(e.target.value)} />
         </label>
-        <button type="button" className={ui.btnPrimary} onClick={() => void loadRange()}>
+        <button
+          type="button"
+          className={ui.btnPrimary}
+          onClick={() =>
+            void loadRange().catch((e) => {
+              setRangeData(null)
+              toastError(e, 'Failed to load range report')
+            })
+          }
+        >
           Load Range
         </button>
         <button
           type="button"
           className={ui.btnSecondary}
           onClick={async () => {
-            const q = new URLSearchParams()
-            q.set('from_date', fromDate)
-            q.set('to_date', toDate)
-            if (centerId !== '') q.set('center_id', String(centerId))
-            if (departmentId !== '') q.set('department_id', String(departmentId))
-            const token = getToken()
-            const res = await fetch(`${(import.meta.env.VITE_API_URL ?? 'http://localhost:3001').replace(/\/$/, '')}/api/v1/reports/range.csv?${q.toString()}`, {
-              headers: token ? { Authorization: `Bearer ${token}` } : {},
-            })
-            const blob = await res.blob()
-            const url = URL.createObjectURL(blob)
-            const a = document.createElement('a')
-            a.href = url
-            a.download = `opd-range-${fromDate}-to-${toDate}.csv`
-            a.click()
-            URL.revokeObjectURL(url)
+            try {
+              const q = new URLSearchParams()
+              q.set('from_date', fromDate)
+              q.set('to_date', toDate)
+              if (centerId !== '') q.set('center_id', String(centerId))
+              if (departmentId !== '') q.set('department_id', String(departmentId))
+              const token = getToken()
+              const res = await fetch(`${(import.meta.env.VITE_API_URL ?? 'http://localhost:3001').replace(/\/$/, '')}/api/v1/reports/range.csv?${q.toString()}`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+              })
+              if (!res.ok) {
+                toastError(`Export failed (${res.status})`)
+                return
+              }
+              const blob = await res.blob()
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `opd-range-${fromDate}-to-${toDate}.csv`
+              a.click()
+              URL.revokeObjectURL(url)
+              toastSuccess('Range CSV downloaded')
+            } catch (e) {
+              toastError(e, 'Export failed')
+            }
           }}
         >
           Export Range CSV
         </button>
       </div>
-
-      {err ? <div className={ui.alertError}>{err}</div> : null}
 
       {data ? (
         <>

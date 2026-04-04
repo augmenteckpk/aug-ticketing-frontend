@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Building2, Pencil, Plus, RefreshCw } from 'lucide-react'
 import { api } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
+import { toastError, toastSuccess } from '../../lib/toast'
 import { ui } from '../../ui/classes'
 
 type Row = { id: number; name: string; code: string; status: string }
@@ -12,7 +13,6 @@ export function HospitalsPage() {
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
   const [edit, setEdit] = useState<Row | null>(null)
-  const [err, setErr] = useState<string | null>(null)
 
   async function load() {
     const data = await api<Row[]>('/hospitals')
@@ -20,7 +20,7 @@ export function HospitalsPage() {
   }
 
   useEffect(() => {
-    if (can('hospitals.read')) void load().catch((e) => setErr(String(e)))
+    if (can('hospitals.read')) void load().catch((e) => toastError(e, 'Failed to load hospitals'))
   }, [can])
 
   if (!can('hospitals.read')) {
@@ -34,7 +34,15 @@ export function HospitalsPage() {
           <h1 className={ui.h1}>Hospitals</h1>
           <p className={`mt-1 text-sm ${ui.muted}`}>Register hospital sites and codes.</p>
         </div>
-        <button type="button" className={ui.btnSecondary} onClick={() => void load().catch((e) => setErr(String(e)))}>
+        <button
+          type="button"
+          className={ui.btnSecondary}
+          onClick={() =>
+            void load()
+              .then(() => toastSuccess('List refreshed'))
+              .catch((e) => toastError(e, 'Failed to refresh'))
+          }
+        >
           <RefreshCw className="size-4" strokeWidth={2} aria-hidden />
           Refresh
         </button>
@@ -50,14 +58,14 @@ export function HospitalsPage() {
             className="flex flex-wrap items-end gap-3"
             onSubmit={async (e) => {
               e.preventDefault()
-              setErr(null)
               try {
                 await api('/hospitals', { method: 'POST', body: JSON.stringify({ name, code }) })
                 setName('')
                 setCode('')
                 await load()
-              } catch (e) {
-                setErr(String(e))
+                toastSuccess('Hospital created')
+              } catch (err) {
+                toastError(err, 'Could not create hospital')
               }
             }}
           >
@@ -75,8 +83,6 @@ export function HospitalsPage() {
           </form>
         </div>
       ) : null}
-
-      {err ? <div className={ui.alertError}>{err}</div> : null}
 
       <div className={ui.tableWrap}>
         <table className="min-w-full border-collapse text-left">
@@ -116,12 +122,12 @@ export function HospitalsPage() {
                       className={`${ui.btnDanger} ml-2`}
                       onClick={async () => {
                         if (!window.confirm(`Delete hospital "${r.name}"?`)) return
-                        setErr(null)
                         try {
                           await api(`/hospitals/${r.id}`, { method: 'DELETE' })
                           await load()
-                        } catch (e) {
-                          setErr(String(e))
+                          toastSuccess(`Hospital “${r.name}” deleted`)
+                        } catch (err) {
+                          toastError(err, 'Could not delete hospital')
                         }
                       }}
                     >
@@ -153,7 +159,6 @@ export function HospitalsPage() {
               className="mt-5 space-y-4"
               onSubmit={async (e) => {
                 e.preventDefault()
-                setErr(null)
                 try {
                   await api(`/hospitals/${edit.id}`, {
                     method: 'PATCH',
@@ -165,8 +170,9 @@ export function HospitalsPage() {
                   })
                   setEdit(null)
                   await load()
-                } catch (x) {
-                  setErr(String(x))
+                  toastSuccess('Hospital updated')
+                } catch (err) {
+                  toastError(err, 'Could not update hospital')
                 }
               }}
             >

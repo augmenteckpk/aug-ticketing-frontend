@@ -3,6 +3,7 @@ import { ClipboardList, Search } from 'lucide-react'
 import { api } from '../../api/client'
 import { todayLocalYmd } from '../../utils/dateYmd'
 import { useAuth } from '../../context/AuthContext'
+import { toastError, toastSuccess } from '../../lib/toast'
 import { ui } from '../../ui/classes'
 
 type Center = { id: number; name: string; city: string; hospital_name?: string }
@@ -68,7 +69,6 @@ export function RegistrationPage() {
 
   async function doLookup(e: React.FormEvent) {
     e.preventDefault()
-    setErr(null)
     setLookup(null)
     setBusy(true)
     try {
@@ -79,6 +79,7 @@ export function RegistrationPage() {
       })
       const res = await api<LookupResponse>(`/appointments/lookup-booked?${q.toString()}`)
       setLookup(res)
+      toastSuccess('Booked visit found')
       setFirstName(res.patient.first_name ?? '')
       setLastName(res.patient.last_name ?? '')
       setFatherName(res.patient.father_name ?? '')
@@ -89,7 +90,7 @@ export function RegistrationPage() {
       setDob(res.patient.date_of_birth ? String(res.patient.date_of_birth).slice(0, 10) : '')
       setMrn(res.patient.medical_record_number ?? '')
     } catch (e) {
-      setErr(String(e))
+      toastError(e, 'Lookup failed')
     } finally {
       setBusy(false)
     }
@@ -98,7 +99,6 @@ export function RegistrationPage() {
   async function doRegister(e: React.FormEvent) {
     e.preventDefault()
     if (!lookup) return
-    setErr(null)
     setBusy(true)
     try {
       await api('/appointments/register', {
@@ -120,10 +120,9 @@ export function RegistrationPage() {
       })
       setLookup(null)
       setCnic('')
-      setErr(null)
-      alert('Registration saved. W number assigned. Patient can proceed to pre-assessment.')
+      toastSuccess('Registration saved. W number assigned — patient can proceed to pre-assessment.')
     } catch (e) {
-      setErr(String(e))
+      toastError(e, 'Registration failed')
     } finally {
       setBusy(false)
     }
@@ -177,8 +176,6 @@ export function RegistrationPage() {
           {busy ? 'Searching…' : 'Find booked token'}
         </button>
       </form>
-
-      {err ? <div className={ui.alertError}>{err}</div> : null}
 
       {lookup ? (
         <form onSubmit={doRegister} className={`${ui.card} space-y-4 border-cyan-200`}>

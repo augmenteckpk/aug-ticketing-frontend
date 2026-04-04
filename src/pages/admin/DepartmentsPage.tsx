@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Pencil, Plus, RefreshCw } from 'lucide-react'
 import { api } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
+import { toastError, toastSuccess } from '../../lib/toast'
 import { ui } from '../../ui/classes'
 
 type Department = {
@@ -17,7 +18,6 @@ export function DepartmentsPage() {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [edit, setEdit] = useState<Department | null>(null)
-  const [err, setErr] = useState<string | null>(null)
 
   async function load() {
     const data = await api<Department[]>('/departments')
@@ -25,7 +25,7 @@ export function DepartmentsPage() {
   }
 
   useEffect(() => {
-    if (can('departments.read')) void load().catch((e) => setErr(String(e)))
+    if (can('departments.read')) void load().catch((e) => toastError(e, 'Failed to load departments'))
   }, [can])
 
   if (!can('departments.read')) return <p className={ui.muted}>No department permission.</p>
@@ -37,7 +37,15 @@ export function DepartmentsPage() {
           <h1 className={ui.h1}>Departments</h1>
           <p className={`mt-1 text-sm ${ui.muted}`}>Manage OPD departments assignable to bookings.</p>
         </div>
-        <button type="button" className={ui.btnSecondary} onClick={() => void load().catch((e) => setErr(String(e)))}>
+        <button
+          type="button"
+          className={ui.btnSecondary}
+          onClick={() =>
+            void load()
+              .then(() => toastSuccess('List refreshed'))
+              .catch((e) => toastError(e, 'Failed to refresh'))
+          }
+        >
           <RefreshCw className="size-4" strokeWidth={2} aria-hidden />
           Refresh
         </button>
@@ -53,7 +61,6 @@ export function DepartmentsPage() {
             className="flex flex-wrap items-end gap-3"
             onSubmit={async (e) => {
               e.preventDefault()
-              setErr(null)
               try {
                 await api('/departments', {
                   method: 'POST',
@@ -62,8 +69,9 @@ export function DepartmentsPage() {
                 setName('')
                 setDescription('')
                 await load()
-              } catch (x) {
-                setErr(String(x))
+                toastSuccess('Department created')
+              } catch (err) {
+                toastError(err, 'Could not create department')
               }
             }}
           >
@@ -81,8 +89,6 @@ export function DepartmentsPage() {
           </form>
         </div>
       ) : null}
-
-      {err ? <div className={ui.alertError}>{err}</div> : null}
 
       <div className={ui.tableWrap}>
         <table className="min-w-full border-collapse text-left text-sm">
@@ -115,12 +121,12 @@ export function DepartmentsPage() {
                       className={`${ui.btnDanger} ml-2`}
                       onClick={async () => {
                         if (!window.confirm(`Delete department "${r.name}"?`)) return
-                        setErr(null)
                         try {
                           await api(`/departments/${r.id}`, { method: 'DELETE' })
                           await load()
-                        } catch (e) {
-                          setErr(String(e))
+                          toastSuccess(`Department “${r.name}” deleted`)
+                        } catch (err) {
+                          toastError(err, 'Could not delete department')
                         }
                       }}
                     >
@@ -146,7 +152,6 @@ export function DepartmentsPage() {
               className="mt-5 space-y-4"
               onSubmit={async (e) => {
                 e.preventDefault()
-                setErr(null)
                 try {
                   await api(`/departments/${edit.id}`, {
                     method: 'PATCH',
@@ -158,8 +163,9 @@ export function DepartmentsPage() {
                   })
                   setEdit(null)
                   await load()
-                } catch (x) {
-                  setErr(String(x))
+                  toastSuccess('Department updated')
+                } catch (err) {
+                  toastError(err, 'Could not update department')
                 }
               }}
             >

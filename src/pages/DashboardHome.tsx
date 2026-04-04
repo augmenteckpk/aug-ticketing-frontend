@@ -17,6 +17,7 @@ import {
 import { api } from '../api/client'
 import { todayLocalYmd } from '../utils/dateYmd'
 import { useAuth } from '../context/AuthContext'
+import { toastError, toastSuccess } from '../lib/toast'
 import { ui } from '../ui/classes'
 
 type Center = {
@@ -54,7 +55,6 @@ export function DashboardHome() {
   const [centerId, setCenterId] = useState<number | ''>('')
   const [centers, setCenters] = useState<Center[]>([])
   const [summary, setSummary] = useState<Summary | null>(null)
-  const [err, setErr] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -82,11 +82,13 @@ export function DashboardHome() {
       .then((s) => {
         if (!off) {
           setSummary(s)
-          setErr(null)
         }
       })
       .catch((e) => {
-        if (!off) setErr(String(e))
+        if (!off) {
+          setSummary(null)
+          toastError(e, 'Could not load dashboard summary')
+        }
       })
       .finally(() => {
         if (!off) setLoading(false)
@@ -129,9 +131,12 @@ export function DashboardHome() {
             api<Summary>(`/dashboard/summary${q}`)
               .then((s) => {
                 setSummary(s)
-                setErr(null)
+                toastSuccess('Dashboard refreshed')
               })
-              .catch((e) => setErr(String(e)))
+              .catch((e) => {
+                setSummary(null)
+                toastError(e, 'Could not refresh dashboard')
+              })
               .finally(() => setLoading(false))
           }}
           className={`${ui.btnSecondary} shrink-0 self-start`}
@@ -176,13 +181,6 @@ export function DashboardHome() {
         ) : null}
       </div>
 
-      {err ? (
-        <div className={`flex items-center gap-2 ${ui.alertError}`}>
-          <AlertCircle className="size-4 shrink-0" strokeWidth={2} aria-hidden />
-          {err}
-        </div>
-      ) : null}
-
       {summary ? (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -225,11 +223,9 @@ export function DashboardHome() {
           </div>
         </>
       ) : (
-        !err && (
-          <div className="flex items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white py-16 text-slate-500">
-            {loading ? 'Loading summary…' : 'No data'}
-          </div>
-        )
+        <div className="flex items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white py-16 text-slate-500">
+          {loading ? 'Loading summary…' : 'No data'}
+        </div>
       )}
     </div>
   )
