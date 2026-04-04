@@ -26,6 +26,8 @@ type LookupResponse = {
     date_of_birth: string | null
     address: string | null
     father_name?: string | null
+    father_cnic?: string | null
+    mother_cnic?: string | null
     city?: string | null
     medical_record_number?: string | null
   }
@@ -51,6 +53,8 @@ export function RegistrationPage() {
   const [gender, setGender] = useState('')
   const [dob, setDob] = useState('')
   const [mrn, setMrn] = useState('')
+  const [fatherCnic, setFatherCnic] = useState('')
+  const [motherCnic, setMotherCnic] = useState('')
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -88,6 +92,8 @@ export function RegistrationPage() {
       setGender(res.patient.gender ?? '')
       setDob(res.patient.date_of_birth ? String(res.patient.date_of_birth).slice(0, 10) : '')
       setMrn(res.patient.medical_record_number ?? '')
+      setFatherCnic(res.patient.father_cnic ?? '')
+      setMotherCnic(res.patient.mother_cnic ?? '')
     } catch (e) {
       toastError(e, 'Lookup failed')
     } finally {
@@ -108,6 +114,8 @@ export function RegistrationPage() {
             first_name: firstName.trim(),
             last_name: lastName.trim() || null,
             father_name: fatherName.trim() || null,
+            father_cnic: fatherCnic.replace(/\D/g, '') || null,
+            mother_cnic: motherCnic.replace(/\D/g, '') || null,
             phone: phone.trim() || null,
             address: address.trim() || null,
             city: city.trim() || null,
@@ -197,6 +205,32 @@ export function RegistrationPage() {
               Father&apos;s name
               <input className={`${ui.input} mt-1.5 w-full`} value={fatherName} onChange={(e) => setFatherName(e.target.value)} />
             </label>
+            <div className="sm:col-span-2 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-3">
+              <p className="text-xs font-medium text-slate-700">Guardian CNIC (optional — e.g. minors)</p>
+              <p className={`mt-0.5 text-xs ${ui.muted}`}>Digits only; at least one may be recorded for dependents.</p>
+              <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                <label className="block text-sm font-medium text-slate-700">
+                  Father&apos;s CNIC
+                  <input
+                    className={`${ui.input} mt-1.5 w-full font-mono text-sm`}
+                    value={fatherCnic}
+                    onChange={(e) => setFatherCnic(e.target.value)}
+                    placeholder="Optional"
+                    inputMode="numeric"
+                  />
+                </label>
+                <label className="block text-sm font-medium text-slate-700">
+                  Mother&apos;s CNIC
+                  <input
+                    className={`${ui.input} mt-1.5 w-full font-mono text-sm`}
+                    value={motherCnic}
+                    onChange={(e) => setMotherCnic(e.target.value)}
+                    placeholder="Optional"
+                    inputMode="numeric"
+                  />
+                </label>
+              </div>
+            </div>
             <label className="block text-sm font-medium text-slate-700">
               Phone
               <input className={`${ui.input} mt-1.5 w-full`} value={phone} onChange={(e) => setPhone(e.target.value)} />
