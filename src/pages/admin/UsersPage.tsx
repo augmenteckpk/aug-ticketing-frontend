@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { UserPlus, Pencil, RefreshCw, Eye, EyeOff } from 'lucide-react'
+import { SpeechInput } from '../../components/speech'
 import { api } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import { toastError, toastSuccess } from '../../lib/toast'
@@ -110,7 +111,7 @@ export function UsersPage() {
         >
           <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
             Username
-            <input
+            <SpeechInput
               className={ui.input}
               placeholder="jdoe"
               value={username}
@@ -121,7 +122,7 @@ export function UsersPage() {
           <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
             Password
             <div className="relative">
-              <input
+              <SpeechInput
                 type={showPassword ? 'text' : 'password'}
                 className={`${ui.input} pr-10`}
                 placeholder="••••••••"
@@ -292,11 +293,11 @@ export function UsersPage() {
               </label>
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                 Email
-                <input className={ui.input} type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} />
+                <SpeechInput className={ui.input} type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} />
               </label>
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                 Phone
-                <input className={ui.input} value={editPhone} onChange={(e) => setEditPhone(e.target.value)} />
+                <SpeechInput className={ui.input} value={editPhone} onChange={(e) => setEditPhone(e.target.value)} />
               </label>
               <div className="flex flex-wrap justify-end gap-2 pt-2">
                 <button type="button" className={ui.btnSecondary} onClick={() => setEdit(null)}>

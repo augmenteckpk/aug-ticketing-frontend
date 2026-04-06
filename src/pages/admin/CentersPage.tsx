@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { MapPin, Pencil, Plus, RefreshCw, UserCircle2 } from 'lucide-react'
+import { SpeechInput } from '../../components/speech'
 import { api } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import { toastError, toastSuccess } from '../../lib/toast'
@@ -153,15 +154,15 @@ export function CentersPage() {
             </label>
             <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
               Center name
-              <input className={ui.input} placeholder="OPD Block A" value={name} onChange={(e) => setName(e.target.value)} required />
+              <SpeechInput className={ui.input} placeholder="OPD Block A" value={name} onChange={(e) => setName(e.target.value)} required />
             </label>
             <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
               City
-              <input className={ui.input} placeholder="Georgetown" value={city} onChange={(e) => setCity(e.target.value)} required />
+              <SpeechInput className={ui.input} placeholder="Georgetown" value={city} onChange={(e) => setCity(e.target.value)} required />
             </label>
             <label className="flex min-w-[240px] flex-1 flex-col gap-1 text-xs font-medium text-slate-600">
               Address
-              <input className={ui.input} placeholder="Street / block" value={address} onChange={(e) => setAddress(e.target.value)} />
+              <SpeechInput className={ui.input} placeholder="Street / block" value={address} onChange={(e) => setAddress(e.target.value)} />
             </label>
             <button type="submit" className={ui.btnPrimary}>
               Add
@@ -355,11 +356,11 @@ export function CentersPage() {
             >
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600 md:col-span-2">
                 Name
-                <input className={ui.input} value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} required />
+                <SpeechInput className={ui.input} value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} required />
               </label>
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                 City
-                <input className={ui.input} value={edit.city} onChange={(e) => setEdit({ ...edit, city: e.target.value })} required />
+                <SpeechInput className={ui.input} value={edit.city} onChange={(e) => setEdit({ ...edit, city: e.target.value })} required />
               </label>
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                 Status
@@ -370,7 +371,7 @@ export function CentersPage() {
               </label>
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600 md:col-span-2">
                 Address
-                <input className={ui.input} value={edit.address ?? ''} onChange={(e) => setEdit({ ...edit, address: e.target.value })} />
+                <SpeechInput className={ui.input} value={edit.address ?? ''} onChange={(e) => setEdit({ ...edit, address: e.target.value })} />
               </label>
               <div className="flex justify-end gap-2 md:col-span-2">
                 <button type="button" className={ui.btnSecondary} onClick={() => setEdit(null)}>

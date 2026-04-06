@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Building2, Pencil, Plus, RefreshCw } from 'lucide-react'
+import { SpeechInput } from '../../components/speech'
 import { api } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import { toastError, toastSuccess } from '../../lib/toast'
@@ -71,11 +72,11 @@ export function HospitalsPage() {
           >
             <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
               Name
-              <input className={ui.input} placeholder="General Hospital" value={name} onChange={(e) => setName(e.target.value)} required />
+              <SpeechInput className={ui.input} placeholder="General Hospital" value={name} onChange={(e) => setName(e.target.value)} required />
             </label>
             <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
               Code
-              <input className={ui.input} placeholder="GH-01" value={code} onChange={(e) => setCode(e.target.value)} required />
+              <SpeechInput className={ui.input} placeholder="GH-01" value={code} onChange={(e) => setCode(e.target.value)} required />
             </label>
             <button type="submit" className={ui.btnPrimary}>
               Add
@@ -178,11 +179,11 @@ export function HospitalsPage() {
             >
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                 Name
-                <input className={ui.input} value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} required />
+                <SpeechInput className={ui.input} value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} required />
               </label>
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                 Code
-                <input className={ui.input} value={edit.code} onChange={(e) => setEdit({ ...edit, code: e.target.value })} required />
+                <SpeechInput className={ui.input} value={edit.code} onChange={(e) => setEdit({ ...edit, code: e.target.value })} required />
               </label>
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                 Status

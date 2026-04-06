@@ -16,6 +16,7 @@ import {
   HeartPulse,
   UserCircle2,
 } from 'lucide-react'
+import { SpeechInput } from '../components/speech'
 import { api } from '../api/client'
 import { todayLocalYmd } from '../utils/dateYmd'
 import { useAuth } from '../context/AuthContext'
@@ -158,7 +159,7 @@ export function DashboardHome() {
             <CalendarDays className="size-4 text-cyan-600" strokeWidth={2} aria-hidden />
             Date
           </span>
-          <input
+          <SpeechInput
             type="date"
             className={ui.input}
             value={date}

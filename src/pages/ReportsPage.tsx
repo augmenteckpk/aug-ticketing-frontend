@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { BarChart3, RefreshCw } from 'lucide-react'
+import { SpeechInput } from '../components/speech'
 import { api } from '../api/client'
 import { todayLocalYmd } from '../utils/dateYmd'
 import { useAuth } from '../context/AuthContext'
@@ -122,7 +123,7 @@ export function ReportsPage() {
       <div className={`${ui.card} flex flex-wrap items-end gap-3`}>
         <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
           Date
-          <input type="date" className={ui.input} value={date} onChange={(e) => setDate(e.target.value)} />
+          <SpeechInput type="date" className={ui.input} value={date} onChange={(e) => setDate(e.target.value)} />
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
           Center
@@ -245,11 +246,11 @@ export function ReportsPage() {
       <div className={`${ui.card} flex flex-wrap items-end gap-3`}>
         <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
           From
-          <input type="date" className={ui.input} value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+          <SpeechInput type="date" className={ui.input} value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
           To
-          <input type="date" className={ui.input} value={toDate} onChange={(e) => setToDate(e.target.value)} />
+          <SpeechInput type="date" className={ui.input} value={toDate} onChange={(e) => setToDate(e.target.value)} />
         </label>
         <button
           type="button"

@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { ChevronDown, ChevronRight, Pencil, Plus, RefreshCw, Shield } from 'lucide-react'
+import { SpeechInput } from '../../components/speech'
 import { api } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import { toastError, toastSuccess } from '../../lib/toast'
@@ -104,11 +105,11 @@ export function RolesPage() {
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                 Role name
-                <input className={ui.input} placeholder="lab_manager" value={name} onChange={(e) => setName(e.target.value)} required />
+                <SpeechInput className={ui.input} placeholder="lab_manager" value={name} onChange={(e) => setName(e.target.value)} required />
               </label>
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                 Description
-                <input className={ui.input} value={description} onChange={(e) => setDescription(e.target.value)} />
+                <SpeechInput className={ui.input} value={description} onChange={(e) => setDescription(e.target.value)} />
               </label>
             </div>
             <div>
@@ -270,11 +271,11 @@ export function RolesPage() {
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                   Name
-                  <input className={ui.input} value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} required />
+                  <SpeechInput className={ui.input} value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} required />
                 </label>
                 <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                   Description
-                  <input className={ui.input} value={edit.description ?? ''} onChange={(e) => setEdit({ ...edit, description: e.target.value })} />
+                  <SpeechInput className={ui.input} value={edit.description ?? ''} onChange={(e) => setEdit({ ...edit, description: e.target.value })} />
                 </label>
               </div>
               <div>

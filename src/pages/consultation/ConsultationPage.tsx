@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { RefreshCw, Stethoscope } from 'lucide-react'
+import { SpeechInput, SpeechTextarea } from '../../components/speech'
 import { api } from '../../api/client'
 import { todayLocalYmd } from '../../utils/dateYmd'
 import { useAuth } from '../../context/AuthContext'
@@ -211,7 +212,7 @@ export function ConsultationPage() {
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
           Date
-          <input type="date" className={ui.input} value={date} onChange={(e) => setDate(e.target.value)} />
+          <SpeechInput type="date" className={ui.input} value={date} onChange={(e) => setDate(e.target.value)} />
         </label>
       </div>
 
@@ -318,7 +319,7 @@ export function ConsultationPage() {
               {outcome === 'follow_up' ? (
                 <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                   Follow-up advised date (patient books center / department)
-                  <input
+                  <SpeechInput
                     type="date"
                     className={ui.input}
                     required
@@ -329,7 +330,7 @@ export function ConsultationPage() {
               ) : null}
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                 Doctor notes
-                <textarea
+                <SpeechTextarea
                   className={`${ui.input} min-h-[88px]`}
                   value={doctorNotes}
                   onChange={(e) => setDoctorNotes(e.target.value)}
@@ -369,7 +370,7 @@ export function ConsultationPage() {
                   <form className="mt-3 grid gap-2 sm:grid-cols-2" onSubmit={(e) => void addLabOrder(e)}>
                     <label className="text-xs font-medium text-slate-600 sm:col-span-2">
                       Test code (optional)
-                      <input
+                      <SpeechInput
                         className={ui.input}
                         value={labTestCode}
                         onChange={(e) => setLabTestCode(e.target.value)}
@@ -378,7 +379,7 @@ export function ConsultationPage() {
                     </label>
                     <label className="text-xs font-medium text-slate-600 sm:col-span-2">
                       Order notes
-                      <input className={ui.input} value={labNotes} onChange={(e) => setLabNotes(e.target.value)} />
+                      <SpeechInput className={ui.input} value={labNotes} onChange={(e) => setLabNotes(e.target.value)} />
                     </label>
                     <div className="sm:col-span-2">
                       <button type="submit" className={ui.btnSecondary} disabled={labBusy}>

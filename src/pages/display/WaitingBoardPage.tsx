@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { SpeechInput } from '../../components/speech'
 import { todayLocalYmd } from '../../utils/dateYmd'
 
 const API_BASE = (import.meta.env.VITE_API_URL ?? 'http://localhost:3001').replace(/\/$/, '')
@@ -249,7 +250,7 @@ export function WaitingBoardPage() {
           </label>
           <label className="flex flex-col gap-1 text-[10px] font-semibold tracking-wide text-slate-600">
             {t.date}
-            <input
+            <SpeechInput
               type="date"
               className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
               dir="ltr"

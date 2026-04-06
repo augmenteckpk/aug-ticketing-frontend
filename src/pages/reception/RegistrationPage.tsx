@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ClipboardList, Search } from 'lucide-react'
+import { SpeechInput } from '../../components/speech'
 import { api } from '../../api/client'
 import { todayLocalYmd } from '../../utils/dateYmd'
 import { useAuth } from '../../context/AuthContext'
@@ -152,7 +153,7 @@ export function RegistrationPage() {
         <h2 className="text-sm font-semibold text-slate-800">Find booked visit</h2>
         <label className="block text-sm font-medium text-slate-700">
           CNIC
-          <input
+          <SpeechInput
             className={`${ui.input} mt-1.5 w-full`}
             value={cnic}
             onChange={(e) => setCnic(e.target.value)}
@@ -176,7 +177,7 @@ export function RegistrationPage() {
         </label>
         <label className="block text-sm font-medium text-slate-700">
           Visit date
-          <input type="date" className={`${ui.input} mt-1.5 w-full`} value={date} onChange={(e) => setDate(e.target.value)} />
+          <SpeechInput type="date" className={`${ui.input} mt-1.5 w-full`} value={date} onChange={(e) => setDate(e.target.value)} />
         </label>
         <button type="submit" className={`${ui.btnPrimary} w-full`} disabled={busy}>
           <Search className="size-4" strokeWidth={2} aria-hidden />
@@ -195,15 +196,15 @@ export function RegistrationPage() {
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block text-sm font-medium text-slate-700">
               First name *
-              <input className={`${ui.input} mt-1.5 w-full`} value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+              <SpeechInput className={`${ui.input} mt-1.5 w-full`} value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
             </label>
             <label className="block text-sm font-medium text-slate-700">
               Last name
-              <input className={`${ui.input} mt-1.5 w-full`} value={lastName} onChange={(e) => setLastName(e.target.value)} />
+              <SpeechInput className={`${ui.input} mt-1.5 w-full`} value={lastName} onChange={(e) => setLastName(e.target.value)} />
             </label>
             <label className="block text-sm font-medium text-slate-700 sm:col-span-2">
               Father&apos;s name
-              <input className={`${ui.input} mt-1.5 w-full`} value={fatherName} onChange={(e) => setFatherName(e.target.value)} />
+              <SpeechInput className={`${ui.input} mt-1.5 w-full`} value={fatherName} onChange={(e) => setFatherName(e.target.value)} />
             </label>
             <div className="sm:col-span-2 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-3">
               <p className="text-xs font-medium text-slate-700">Guardian CNIC (optional — e.g. minors)</p>
@@ -211,7 +212,7 @@ export function RegistrationPage() {
               <div className="mt-2 grid gap-3 sm:grid-cols-2">
                 <label className="block text-sm font-medium text-slate-700">
                   Father&apos;s CNIC
-                  <input
+                  <SpeechInput
                     className={`${ui.input} mt-1.5 w-full font-mono text-sm`}
                     value={fatherCnic}
                     onChange={(e) => setFatherCnic(e.target.value)}
@@ -221,7 +222,7 @@ export function RegistrationPage() {
                 </label>
                 <label className="block text-sm font-medium text-slate-700">
                   Mother&apos;s CNIC
-                  <input
+                  <SpeechInput
                     className={`${ui.input} mt-1.5 w-full font-mono text-sm`}
                     value={motherCnic}
                     onChange={(e) => setMotherCnic(e.target.value)}
@@ -233,27 +234,27 @@ export function RegistrationPage() {
             </div>
             <label className="block text-sm font-medium text-slate-700">
               Phone
-              <input className={`${ui.input} mt-1.5 w-full`} value={phone} onChange={(e) => setPhone(e.target.value)} />
+              <SpeechInput className={`${ui.input} mt-1.5 w-full`} value={phone} onChange={(e) => setPhone(e.target.value)} />
             </label>
             <label className="block text-sm font-medium text-slate-700">
               Gender
-              <input className={`${ui.input} mt-1.5 w-full`} value={gender} onChange={(e) => setGender(e.target.value)} />
+              <SpeechInput className={`${ui.input} mt-1.5 w-full`} value={gender} onChange={(e) => setGender(e.target.value)} />
             </label>
             <label className="block text-sm font-medium text-slate-700">
               Date of birth
-              <input type="date" className={`${ui.input} mt-1.5 w-full`} value={dob} onChange={(e) => setDob(e.target.value)} />
+              <SpeechInput type="date" className={`${ui.input} mt-1.5 w-full`} value={dob} onChange={(e) => setDob(e.target.value)} />
             </label>
             <label className="block text-sm font-medium text-slate-700 sm:col-span-2">
               Address
-              <input className={`${ui.input} mt-1.5 w-full`} value={address} onChange={(e) => setAddress(e.target.value)} />
+              <SpeechInput className={`${ui.input} mt-1.5 w-full`} value={address} onChange={(e) => setAddress(e.target.value)} />
             </label>
             <label className="block text-sm font-medium text-slate-700 sm:col-span-2">
               City
-              <input className={`${ui.input} mt-1.5 w-full`} value={city} onChange={(e) => setCity(e.target.value)} />
+              <SpeechInput className={`${ui.input} mt-1.5 w-full`} value={city} onChange={(e) => setCity(e.target.value)} />
             </label>
             <label className="block text-sm font-medium text-slate-700 sm:col-span-2">
               MRN (optional — long-term chart)
-              <input className={`${ui.input} mt-1.5 w-full`} value={mrn} onChange={(e) => setMrn(e.target.value)} />
+              <SpeechInput className={`${ui.input} mt-1.5 w-full`} value={mrn} onChange={(e) => setMrn(e.target.value)} />
             </label>
           </div>
           <button type="submit" className={`${ui.btnPrimary} w-full bg-emerald-600 hover:bg-emerald-700`} disabled={busy}>

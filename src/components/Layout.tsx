@@ -139,12 +139,6 @@ export function Layout() {
               </div>
             </div>
           </div>
-          <p className="mt-3 text-[11px] leading-snug text-slate-500">
-            Flow:{' '}
-            <span className="text-slate-600">
-              token → registration → vitals → queue → doctor → lab → complete
-            </span>
-          </p>
         </div>
 
         <nav className="flex min-h-0 flex-1 flex-col gap-0 overflow-y-auto overflow-x-hidden overscroll-contain px-3 py-4 [scrollbar-gutter:stable]">

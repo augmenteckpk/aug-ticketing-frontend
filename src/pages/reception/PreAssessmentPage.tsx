@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Activity, ClipboardList, PlusCircle, RefreshCw, TicketPlus, Users } from 'lucide-react'
+import { SpeechInput, SpeechTextarea } from '../../components/speech'
 import { api } from '../../api/client'
 import { todayLocalYmd } from '../../utils/dateYmd'
 import { useAuth } from '../../context/AuthContext'
@@ -296,7 +297,7 @@ export function PreAssessmentPage() {
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
           Visit date
-          <input type="date" className={ui.input} value={date} onChange={(e) => setDate(e.target.value)} />
+          <SpeechInput type="date" className={ui.input} value={date} onChange={(e) => setDate(e.target.value)} />
         </label>
       </div>
 
@@ -360,7 +361,7 @@ export function PreAssessmentPage() {
               <div className="grid grid-cols-2 gap-3">
                 <label className="text-xs font-medium text-slate-600">
                   BP systolic (mmHg) <span className="text-red-600">*</span>
-                  <input
+                  <SpeechInput
                     className={ui.input}
                     type="number"
                     required
@@ -371,7 +372,7 @@ export function PreAssessmentPage() {
                 </label>
                 <label className="text-xs font-medium text-slate-600">
                   BP diastolic (mmHg) <span className="text-red-600">*</span>
-                  <input
+                  <SpeechInput
                     className={ui.input}
                     type="number"
                     required
@@ -382,7 +383,7 @@ export function PreAssessmentPage() {
                 </label>
                 <label className="text-xs font-medium text-slate-600">
                   Weight (kg) <span className="text-red-600">*</span>
-                  <input
+                  <SpeechInput
                     className={ui.input}
                     type="number"
                     step="0.1"
@@ -394,7 +395,7 @@ export function PreAssessmentPage() {
                 </label>
                 <label className="text-xs font-medium text-slate-600">
                   Height (cm) <span className="text-red-600">*</span>
-                  <input
+                  <SpeechInput
                     className={ui.input}
                     type="number"
                     step="0.1"
@@ -406,7 +407,7 @@ export function PreAssessmentPage() {
                 </label>
                 <label className="text-xs font-medium text-slate-600 sm:col-span-2">
                   Blood sugar (mg/dL) — optional
-                  <input
+                  <SpeechInput
                     className={ui.input}
                     type="number"
                     step="0.1"
@@ -418,11 +419,11 @@ export function PreAssessmentPage() {
               </div>
               <label className="text-xs font-medium text-slate-600">
                 Symptoms / chief complaint
-                <textarea className={`${ui.input} min-h-[72px]`} value={symptoms} onChange={(e) => setSymptoms(e.target.value)} />
+                <SpeechTextarea className={`${ui.input} min-h-[72px]`} value={symptoms} onChange={(e) => setSymptoms(e.target.value)} />
               </label>
               <label className="text-xs font-medium text-slate-600">
                 Medical history notes
-                <textarea className={`${ui.input} min-h-[72px]`} value={history} onChange={(e) => setHistory(e.target.value)} />
+                <SpeechTextarea className={`${ui.input} min-h-[72px]`} value={history} onChange={(e) => setHistory(e.target.value)} />
               </label>
               <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-600">
                 <input type="checkbox" checked={printAfterSave} onChange={(e) => setPrintAfterSave(e.target.checked)} />

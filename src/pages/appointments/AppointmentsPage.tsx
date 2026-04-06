@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { RefreshCw, CheckCircle, TicketPlus, X } from 'lucide-react'
+import { SpeechInput } from '../../components/speech'
 import { api } from '../../api/client'
 import { todayLocalYmd } from '../../utils/dateYmd'
 import { useAuth } from '../../context/AuthContext'
@@ -201,7 +202,7 @@ export function AppointmentsPage() {
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
           Date
-          <input type="date" className={ui.input} value={date} onChange={(e) => setDate(e.target.value)} />
+          <SpeechInput type="date" className={ui.input} value={date} onChange={(e) => setDate(e.target.value)} />
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
           Status
@@ -271,7 +272,7 @@ export function AppointmentsPage() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                   Visit date
-                  <input
+                  <SpeechInput
                     type="date"
                     required
                     className={ui.input}
@@ -342,7 +343,7 @@ export function AppointmentsPage() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="flex flex-col gap-1 text-xs font-medium text-slate-600 sm:col-span-2">
                   Location / ward note (optional)
-                  <input
+                  <SpeechInput
                     type="text"
                     className={ui.input}
                     value={walkInForm.location}
@@ -356,7 +357,7 @@ export function AppointmentsPage() {
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   <label className="flex flex-col gap-1 text-xs font-medium text-slate-600 sm:col-span-2">
                     CNIC <span className="text-red-600">*</span>
-                    <input
+                    <SpeechInput
                       type="text"
                       required
                       className={ui.input}
@@ -367,7 +368,7 @@ export function AppointmentsPage() {
                   </label>
                   <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                     First name <span className="text-red-600">*</span>
-                    <input
+                    <SpeechInput
                       type="text"
                       required
                       className={ui.input}
@@ -377,7 +378,7 @@ export function AppointmentsPage() {
                   </label>
                   <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                     Last name
-                    <input
+                    <SpeechInput
                       type="text"
                       className={ui.input}
                       value={walkInForm.last_name}
@@ -386,7 +387,7 @@ export function AppointmentsPage() {
                   </label>
                   <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                     Phone
-                    <input
+                    <SpeechInput
                       type="text"
                       className={ui.input}
                       value={walkInForm.phone}
@@ -395,7 +396,7 @@ export function AppointmentsPage() {
                   </label>
                   <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                     Gender
-                    <input
+                    <SpeechInput
                       type="text"
                       className={ui.input}
                       value={walkInForm.gender}
@@ -404,7 +405,7 @@ export function AppointmentsPage() {
                   </label>
                   <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                     Date of birth
-                    <input
+                    <SpeechInput
                       type="date"
                       className={ui.input}
                       value={walkInForm.date_of_birth}
@@ -413,7 +414,7 @@ export function AppointmentsPage() {
                   </label>
                   <label className="flex flex-col gap-1 text-xs font-medium text-slate-600 sm:col-span-2">
                     Address
-                    <input
+                    <SpeechInput
                       type="text"
                       className={ui.input}
                       value={walkInForm.address}
@@ -424,7 +425,7 @@ export function AppointmentsPage() {
               </div>
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                 Notes (optional)
-                <input
+                <SpeechInput
                   type="text"
                   className={ui.input}
                   value={walkInForm.notes}

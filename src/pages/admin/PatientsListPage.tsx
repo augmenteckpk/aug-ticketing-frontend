@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { UserCircle2, RefreshCw, Search, Eye, Plus, X } from 'lucide-react'
+import { SpeechInput } from '../../components/speech'
 import { api } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import { toastError, toastSuccess } from '../../lib/toast'
@@ -225,7 +226,7 @@ export function PatientsListPage() {
           >
             <label className="flex min-w-[140px] flex-col gap-1 text-xs font-medium text-slate-600">
               CNIC
-              <input
+              <SpeechInput
                 className={ui.input}
                 value={newCnic}
                 onChange={(e) => setNewCnic(e.target.value)}
@@ -235,7 +236,7 @@ export function PatientsListPage() {
             </label>
             <label className="flex min-w-[140px] flex-col gap-1 text-xs font-medium text-slate-600">
               First name
-              <input
+              <SpeechInput
                 className={ui.input}
                 value={newFirst}
                 onChange={(e) => setNewFirst(e.target.value)}
@@ -244,11 +245,11 @@ export function PatientsListPage() {
             </label>
             <label className="flex min-w-[120px] flex-col gap-1 text-xs font-medium text-slate-600">
               Last name
-              <input className={ui.input} value={newLast} onChange={(e) => setNewLast(e.target.value)} />
+              <SpeechInput className={ui.input} value={newLast} onChange={(e) => setNewLast(e.target.value)} />
             </label>
             <label className="flex min-w-[140px] flex-col gap-1 text-xs font-medium text-slate-600">
               Phone
-              <input className={ui.input} value={newPhone} onChange={(e) => setNewPhone(e.target.value)} />
+              <SpeechInput className={ui.input} value={newPhone} onChange={(e) => setNewPhone(e.target.value)} />
             </label>
             <button type="submit" className={ui.btnPrimary} disabled={creating}>
               {creating ? 'Saving…' : 'Create'}
@@ -263,7 +264,7 @@ export function PatientsListPage() {
             <Search className="size-3.5 text-slate-400" strokeWidth={2} aria-hidden />
             Search name, CNIC, phone, or ID
           </span>
-          <input
+          <SpeechInput
             className={ui.input}
             value={q}
             onChange={(e) => setQ(e.target.value)}

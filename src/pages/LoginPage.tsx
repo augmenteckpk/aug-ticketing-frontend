@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { Activity, Lock, User, Eye, EyeOff } from 'lucide-react'
+import { SpeechInput } from '../components/speech'
 import { ApiError } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { toastError, toastSuccess } from '../lib/toast'
@@ -68,8 +69,9 @@ export function LoginPage() {
             <User className="size-3.5 text-slate-500" strokeWidth={2} aria-hidden />
             Username
           </span>
-          <input
-            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 shadow-sm outline-none ring-cyan-500/0 transition-shadow placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
+          <SpeechInput
+            shellClassName="rounded-xl shadow-sm"
+            className="!px-4 !py-3 text-base outline-none placeholder:text-slate-400"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             autoComplete="username"

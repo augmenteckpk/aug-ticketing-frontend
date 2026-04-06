@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { FlaskConical, RefreshCw } from 'lucide-react'
+import { SpeechInput, SpeechTextarea } from '../../components/speech'
 import { api } from '../../api/client'
 import { todayLocalYmd } from '../../utils/dateYmd'
 import { useAuth } from '../../context/AuthContext'
@@ -131,7 +132,7 @@ export function LaboratoryPage() {
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
           Date
-          <input type="date" className={ui.input} value={date} onChange={(e) => setDate(e.target.value)} />
+          <SpeechInput type="date" className={ui.input} value={date} onChange={(e) => setDate(e.target.value)} />
         </label>
         <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-600">
           <input
@@ -208,11 +209,11 @@ export function LaboratoryPage() {
             <form className="mt-4 space-y-3" onSubmit={(e) => void submitResult(e)}>
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                 Summary
-                <input className={ui.input} value={summary} onChange={(e) => setSummary(e.target.value)} />
+                <SpeechInput className={ui.input} value={summary} onChange={(e) => setSummary(e.target.value)} />
               </label>
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                 Details (optional)
-                <textarea className={`${ui.input} min-h-[100px]`} value={details} onChange={(e) => setDetails(e.target.value)} />
+                <SpeechTextarea className={`${ui.input} min-h-[100px]`} value={details} onChange={(e) => setDetails(e.target.value)} />
               </label>
               <div className="flex justify-end gap-2 pt-2">
                 <button type="button" className={ui.btnSecondary} onClick={() => setUploadOrderId(null)}>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { RefreshCw, Layers, Send, Eye, Flag, ArrowLeftRight } from 'lucide-react'
+import { SpeechInput, SpeechTextarea } from '../../components/speech'
 import { api } from '../../api/client'
 import { todayLocalYmd } from '../../utils/dateYmd'
 import { useAuth } from '../../context/AuthContext'
@@ -178,25 +179,10 @@ export function QueuePage() {
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
           Date
-          <input type="date" className={ui.input} value={date} onChange={(e) => setDate(e.target.value)} />
+          <SpeechInput type="date" className={ui.input} value={date} onChange={(e) => setDate(e.target.value)} />
         </label>
       </div>
 
-      <div className={`rounded-xl border border-amber-100 bg-amber-50/80 px-4 py-3 text-xs text-slate-700`}>
-        <p className="font-semibold text-amber-900">Critical / flagged pool (workflow)</p>
-        <ul className={`mt-2 list-inside list-disc space-y-1 ${ui.muted}`}>
-          <li>
-            <strong>Physician</strong> (permission <code className="rounded bg-white px-1">appointments.priority_flag</code>
-            ) flags a <code className="rounded bg-white px-1">ready</code> patient; the system records <strong>which user</strong>{' '}
-            and <strong>when</strong>.
-          </li>
-          <li>
-            <strong>MSO</strong> opens a <strong>draft</strong> batch → <strong>Replace slot</strong> → confirm swapping e.g.
-            token 16 out for flagged token 35. Removed patient returns to the ready pool; added patient keeps the same seat
-            order in the batch; flag is cleared on entry.
-          </li>
-        </ul>
-      </div>
 
       {flaggedPool.length > 0 ? (
         <section className={ui.card}>
@@ -392,7 +378,7 @@ export function QueuePage() {
           <div className="mt-4 flex flex-wrap items-end gap-3">
             <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
               Batch size
-              <input
+              <SpeechInput
                 type="number"
                 min={1}
                 max={200}
@@ -588,7 +574,7 @@ export function QueuePage() {
               </label>
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                 Notes (visible to queue staff)
-                <textarea
+                <SpeechTextarea
                   className={ui.input}
                   rows={3}
                   value={priorityNotes}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, UserCircle2, RefreshCw, Pencil, Trash2 } from 'lucide-react'
+import { SpeechInput } from '../../components/speech'
 import { api } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import { toastError, toastSuccess } from '../../lib/toast'
@@ -379,7 +380,7 @@ export function PatientDetailPage() {
             >
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600 sm:col-span-2">
                 First name
-                <input
+                <SpeechInput
                   className={ui.input}
                   value={draft.first_name}
                   onChange={(e) => setDraft({ ...draft, first_name: e.target.value })}
@@ -388,7 +389,7 @@ export function PatientDetailPage() {
               </label>
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                 Last name
-                <input
+                <SpeechInput
                   className={ui.input}
                   value={draft.last_name}
                   onChange={(e) => setDraft({ ...draft, last_name: e.target.value })}
@@ -408,7 +409,7 @@ export function PatientDetailPage() {
               </label>
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600 sm:col-span-2">
                 Father&apos;s name
-                <input
+                <SpeechInput
                   className={ui.input}
                   value={draft.father_name}
                   onChange={(e) => setDraft({ ...draft, father_name: e.target.value })}
@@ -416,7 +417,7 @@ export function PatientDetailPage() {
               </label>
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                 Father CNIC
-                <input
+                <SpeechInput
                   className={ui.input}
                   value={draft.father_cnic}
                   onChange={(e) => setDraft({ ...draft, father_cnic: e.target.value })}
@@ -424,7 +425,7 @@ export function PatientDetailPage() {
               </label>
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                 Mother CNIC
-                <input
+                <SpeechInput
                   className={ui.input}
                   value={draft.mother_cnic}
                   onChange={(e) => setDraft({ ...draft, mother_cnic: e.target.value })}
@@ -432,7 +433,7 @@ export function PatientDetailPage() {
               </label>
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                 Phone
-                <input
+                <SpeechInput
                   className={ui.input}
                   value={draft.phone}
                   onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
@@ -440,7 +441,7 @@ export function PatientDetailPage() {
               </label>
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                 Gender
-                <input
+                <SpeechInput
                   className={ui.input}
                   value={draft.gender}
                   onChange={(e) => setDraft({ ...draft, gender: e.target.value })}
@@ -448,7 +449,7 @@ export function PatientDetailPage() {
               </label>
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                 Date of birth
-                <input
+                <SpeechInput
                   type="date"
                   className={ui.input}
                   value={draft.date_of_birth}
@@ -457,15 +458,15 @@ export function PatientDetailPage() {
               </label>
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                 City
-                <input className={ui.input} value={draft.city} onChange={(e) => setDraft({ ...draft, city: e.target.value })} />
+                <SpeechInput className={ui.input} value={draft.city} onChange={(e) => setDraft({ ...draft, city: e.target.value })} />
               </label>
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600 sm:col-span-2">
                 Address
-                <input className={ui.input} value={draft.address} onChange={(e) => setDraft({ ...draft, address: e.target.value })} />
+                <SpeechInput className={ui.input} value={draft.address} onChange={(e) => setDraft({ ...draft, address: e.target.value })} />
               </label>
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                 MRN
-                <input
+                <SpeechInput
                   className={ui.input}
                   value={draft.medical_record_number}
                   onChange={(e) => setDraft({ ...draft, medical_record_number: e.target.value })}
@@ -473,7 +474,7 @@ export function PatientDetailPage() {
               </label>
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                 Language
-                <input
+                <SpeechInput
                   className={ui.input}
                   value={draft.preferred_language}
                   onChange={(e) => setDraft({ ...draft, preferred_language: e.target.value })}
