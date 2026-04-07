@@ -66,7 +66,6 @@ export function AppointmentsPage() {
     appointment_date: today(),
     center_id: '' as number | '',
     department_id: '' as number | '',
-    visit_type: 'first_visit' as 'first_visit' | 'follow_up',
     location: '',
     notes: '',
     cnic: '',
@@ -154,7 +153,6 @@ export function AppointmentsPage() {
       const body = {
         center_id: savedCenterId,
         appointment_date: savedDate,
-        visit_type: walkInForm.visit_type,
         department_id:
           walkInForm.department_id === '' ? null : Number(walkInForm.department_id),
         location: walkInForm.location.trim() || null,
@@ -179,7 +177,6 @@ export function AppointmentsPage() {
         appointment_date: today(),
         center_id: '',
         department_id: '',
-        visit_type: 'first_visit',
         location: '',
         notes: '',
         cnic: '',
@@ -355,22 +352,6 @@ export function AppointmentsPage() {
                     ))}
                   </select>
                   <FieldError message={walkInErr.center_id} />
-                </label>
-                <label className="flex flex-col gap-1 text-xs font-medium text-slate-600 sm:col-span-2">
-                  Visit type
-                  <select
-                    className={ui.select}
-                    value={walkInForm.visit_type}
-                    onChange={(e) =>
-                      setWalkInForm((f) => ({
-                        ...f,
-                        visit_type: e.target.value === 'follow_up' ? 'follow_up' : 'first_visit',
-                      }))
-                    }
-                  >
-                    <option value="first_visit">First visit</option>
-                    <option value="follow_up">Follow-up</option>
-                  </select>
                 </label>
               </div>
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
