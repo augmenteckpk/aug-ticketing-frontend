@@ -20,6 +20,15 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.urdu-display-font {
+  font-family:
+    'Noto Nastaliq Urdu',
+    'Noto Naskh Arabic',
+    'Segoe UI',
+    Tahoma,
+    sans-serif;
+}
+
 button,
 [role='button'],
 summary,

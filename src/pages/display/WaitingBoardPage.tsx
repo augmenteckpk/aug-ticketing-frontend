@@ -1,39 +1,39 @@
-﻿import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { SpeechInput } from '../../components/speech'
 import { todayLocalYmd } from '../../utils/dateYmd'
 
 const API_BASE = (import.meta.env.VITE_API_URL ?? 'http://localhost:3001').replace(/\/$/, '')
 
-/** Ø§Ø±Ø¯Ùˆ â€” Ø§Ù†ØªØ¸Ø§Ø± Ú¯Ø§Û LED Ø³Ú©Ø±ÛŒÙ† */
+/** اردو — انتظار گاہ LED اسکرین */
 const t = {
-  displayEyebrow: 'Ø§Ùˆ Ù¾ÛŒ ÚˆÛŒ Â· Ø§Ù†ØªØ¸Ø§Ø± Ú©ÛŒ Ø³Ú©Ø±ÛŒÙ†',
-  displayTitle: 'Ù„Ø§Ø¦ÛŒÙˆ Ù‚Ø·Ø§Ø± Ø§ÙˆØ± Ø¨ÛŒÚ†',
-  selectCenter: 'Ø³ÛŒÙ†Ù¹Ø± Ù…Ù†ØªØ®Ø¨ Ú©Ø±ÛŒÚº',
-  localTime: 'Ù…Ù‚Ø§Ù…ÛŒ ÙˆÙ‚Øª',
-  liveSse: 'Ø¨Ø±Ø§Û Ø±Ø§Ø³Øª (SSE)',
-  polling: 'ÙˆÙ‚ÙÛ’ Ø³Û’ ØªØ§Ø²Û',
-  center: 'Ú©Ù„ÛŒÙ†Ú© Ø³ÛŒÙ†Ù¹Ø±',
-  date: 'ØªØ§Ø±ÛŒØ®',
-  applyBookmark: 'Ù„Ø§Ú¯Ùˆ Ú©Ø±ÛŒÚº Ø§ÙˆØ± Ù„Ù†Ú© Ù…Ø­ÙÙˆØ¸ Ú©Ø±ÛŒÚº',
-  loading: 'Ù„ÙˆÚˆ ÛÙˆ Ø±ÛØ§ ÛÛ’â€¦',
-  readyLaneTitle: 'ØªÛŒØ§Ø± Ù‚Ø·Ø§Ø± â€” Ø§Ú¯Ù„Ø§ Ø¨ÛŒÚ† Ù…ÛŒÚº',
+  displayEyebrow: 'او پی ڈی · انتظار کی اسکرین',
+  displayTitle: 'موجودہ قطار اور گروپ',
+  selectCenter: 'سینٹر منتخب کریں',
+  localTime: 'مقامی وقت',
+  liveSse: 'براہ راست (SSE)',
+  polling: 'وقفے سے تازہ',
+  center: 'کلینک سینٹر',
+  date: 'تاریخ',
+  applyBookmark: 'لاگو کریں اور لنک محفوظ کریں',
+  loading: 'لوڈ ہو رہا ہے…',
+  readyLaneTitle: 'تیار قطار — اگلے گروپ میں',
   readyLaneBody:
-    'Ù¾ÛŒØ´Ú¯ÛŒ Ù…Ø¹Ø§Ø¦Ù†Û Ù…Ú©Ù…Ù„Û” ÛŒÛ Ù¹ÙˆÚ©Ù† Ø§Ø¨Ú¾ÛŒ Ú©Ø³ÛŒ Ø¨ÛŒÚ† Ù…ÛŒÚº Ù†ÛÛŒÚºÛ” Ø¹Ù…Ù„Û Ø§Ú¯Ù„Ø§ Ø¨ÛŒÚ† Ø¨Ù†Ø§ØªÛ’ ÙˆÙ‚Øª Ø§Ø³ ÙÛØ±Ø³Øª Ú©Û’ Ø§ÙˆÙ¾Ø± Ø³Û’ Ù„ÛŒØªØ§ ÛÛ’Û”',
-  noReady: 'ØªÛŒØ§Ø± Ù‚Ø·Ø§Ø± Ù…ÛŒÚº Ø§Ø³ ÙˆÙ‚Øª Ú©ÙˆØ¦ÛŒ Ù†ÛÛŒÚºÛ”',
-  nextBatchesTitle: 'Ø§Ú¯Ù„Û’ Ø¨ÛŒÚ† (ØªÛŒØ§Ø±ØŒ Ø¨Ú¾ÛŒØ¬Ù†Û’ Ú©Û’ Ù…Ù†ØªØ¸Ø±)',
-  batchSeats: (batchIndex: number, count: number) => `Ø¨ÛŒÚ† Ù†Ù…Ø¨Ø± ${batchIndex} Â· ${count} Ù†Ø´Ø³ØªÛŒÚº`,
+    'پیشگی معائنہ مکمل۔ یہ ٹوکن ابھی کسی گروپ میں نہیں۔ عملہ اگلا گروپ بناتے وقت اس فہرست کے اوپر سے لیتا ہے۔',
+  noReady: 'تیار قطار میں اس وقت کوئی نہیں۔',
+  nextBatchesTitle: 'اگلے گروپس (تیار، بھیجنے کے منتظر)',
+  batchSeats: (batchIndex: number, count: number) => `گروپ نمبر ${batchIndex} · ${count} نشستیں`,
   noDraftBatches:
-    'Ø§Ø¨Ú¾ÛŒ Ú©ÙˆØ¦ÛŒ ÚˆØ±Ø§ÙÙ¹ Ø¨ÛŒÚ† Ù†ÛÛŒÚº â€” Ø³Ø³Ù¹Ù… Ù…ÛŒÚº Â«Ù‚Ø·Ø§Ø± Ø§ÙˆØ± Ø¨ÛŒÚ†Â» Ø³Û’ ØªÛŒØ§Ø± Ù‚Ø·Ø§Ø± Ø³Û’ Ø¨ÛŒÚ† Ø¨Ù†Ø§Ø¦ÛŒÚºÛ”',
-  nextBatchesShort: 'Ø§Ú¯Ù„Û’ Ø¨ÛŒÚ†',
-  earlierToday: 'Ø¢Ø¬ Ù¾ÛÙ„Û’',
-  batchList: (batchIndex: number, tokens: string) => `Ø¨ÛŒÚ† ${batchIndex}: ${tokens}`,
-  withDoctorTitle: 'Ø§Ø¨ ÚˆØ§Ú©Ù¹Ø± Ú©Û’ Ù¾Ø§Ø³',
-  batchNumber: (n: number) => `(Ø¨ÛŒÚ† Ù†Ù…Ø¨Ø± ${n})`,
-  noDispatchYet: 'â€” Ø§Ø¨Ú¾ÛŒ Ú©ÙˆØ¦ÛŒ Ø¨ÛŒÚ† Ù†ÛÛŒÚº Ø¨Ú¾ÛŒØ¬Ø§ Ú¯ÛŒØ§',
-  whenDispatch: 'Ø¬Ø¨ Ú©ÙˆØ¢Ø±ÚˆÛŒÙ†ÛŒÙ¹Ø± Ø¨ÛŒÚ† Ø¨Ú¾ÛŒØ¬ÛŒÚº Ú¯Û’ ØªÙˆ Ù¹ÙˆÚ©Ù† Ù†Ù…Ø¨Ø± ÛŒÛØ§Úº Ø¯Ú©Ú¾Ø§Ø¦ÛŒ Ø¯ÛŒÚº Ú¯Û’Û”',
-  invalidPayload: 'Ø¨ÙˆØ±Úˆ Ú©Ø§ ÚˆÛŒÙ¹Ø§ Ø¯Ø±Ø³Øª Ù†ÛÛŒÚºÛ”',
-  failedLoad: 'Ù„ÙˆÚˆ Ù†ÛÛŒÚº ÛÙˆ Ø³Ú©Ø§Û”',
+    'ابھی کوئی ڈرافٹ گروپ نہیں — سسٹم میں «قطار اور گروپ» سے تیار قطار سے گروپ بنائیں۔',
+  nextBatchesShort: 'اگلے گروپس',
+  earlierToday: 'آج پہلے',
+  batchList: (batchIndex: number, tokens: string) => `گروپ ${batchIndex}: ${tokens}`,
+  withDoctorTitle: 'اب ڈاکٹر کے پاس',
+  batchNumber: (n: number) => `(گروپ نمبر ${n})`,
+  noDispatchYet: '— ابھی کوئی گروپ نہیں بھیجا گیا',
+  whenDispatch: 'جب کوآرڈینیٹر گروپ بھیجیں گے تو ٹوکن نمبر یہاں دکھائی دیں گے۔',
+  invalidPayload: 'بورڈ کا ڈیٹا درست نہیں۔',
+  failedLoad: 'لوڈ نہیں ہو سکا۔',
 } as const
 
 type PublicCenter = { id: number; name: string; city: string; hospital_name?: string | null }
@@ -97,7 +97,7 @@ function SeatGrid({
               tok != null ? ring : empty
             }`}
           >
-            {tok != null ? tok : 'â€”'}
+            {tok != null ? tok : '—'}
           </div>
         )
       })}
@@ -117,6 +117,7 @@ export function WaitingBoardPage() {
   const [err, setErr] = useState<string | null>(null)
   const [liveClock, setLiveClock] = useState(() => new Date())
   const [sseOk, setSseOk] = useState(false)
+  const [showControls, setShowControls] = useState(false)
 
   useEffect(() => {
     const id = window.setInterval(() => setLiveClock(new Date()), 1000)
@@ -198,13 +199,13 @@ export function WaitingBoardPage() {
 
   const subtitle = useMemo(() => {
     if (!board) return ''
-    return `${board.center.hospital_name ? `${board.center.hospital_name} Â· ` : ''}${board.center.name} Â· ${board.center.city}`
+    return `${board.center.hospital_name ? `${board.center.hospital_name} · ` : ''}${board.center.name} · ${board.center.city}`
   }, [board])
 
   return (
-    <div className="min-h-screen bg-white text-slate-900" dir="rtl" lang="ur">
-      <header className="border-b border-slate-200 bg-slate-50 px-4 py-4 shadow-sm sm:px-8">
-        <div className="mx-auto flex max-w-[1600px] flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className="urdu-display-font min-h-screen bg-white text-slate-900" dir="rtl" lang="ur">
+      <header className="border-b border-slate-200 bg-slate-50 px-4 py-5 shadow-sm sm:px-8">
+        <div className="mx-auto flex max-w-[1600px] flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="text-right lg:text-right">
             <p className="text-xs font-semibold tracking-wide text-red-700">{t.displayEyebrow}</p>
             <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900 sm:text-4xl">{t.displayTitle}</h1>
@@ -228,47 +229,60 @@ export function WaitingBoardPage() {
             >
               {sseOk ? t.liveSse : t.polling}
             </div>
+            <button
+              type="button"
+              onClick={() => setShowControls((v) => !v)}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 shadow-sm hover:bg-slate-100"
+            >
+              <span aria-hidden>☰</span>
+              {showControls ? 'اختیارات بند کریں' : 'اختیارات کھولیں'}
+            </button>
           </div>
         </div>
 
-        <div className="mx-auto mt-4 flex max-w-[1600px] flex-wrap items-end justify-end gap-3">
-          <label className="flex flex-col gap-1 text-[10px] font-semibold tracking-wide text-slate-600">
-            {t.center}
-            <select
-              className="min-w-[220px] rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
-              value={centerId || ''}
-              onChange={(e) => setCenterId(Number(e.target.value))}
-            >
-              <option value="">â€”</option>
-              {centers.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.hospital_name ? `${c.hospital_name} â€” ` : ''}
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-[10px] font-semibold tracking-wide text-slate-600">
-            {t.date}
-            <SpeechInput
-              type="date"
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
-              dir="ltr"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
-          </label>
-          <button
-            type="button"
-            onClick={() => {
-              syncUrl()
-              void pollOnce()
-            }}
-            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-700"
-          >
-            {t.applyBookmark}
-          </button>
-        </div>
+        {showControls ? (
+          <div className="mx-auto mt-4 max-w-[1600px] rounded-xl border border-slate-200 bg-white/90 p-4 shadow-sm">
+            <div className="flex flex-wrap items-end justify-end gap-3">
+              <label className="flex flex-col gap-1 text-[10px] font-semibold tracking-wide text-slate-600">
+                {t.center}
+                <select
+                  className="min-w-[220px] rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
+                  value={centerId || ''}
+                  onChange={(e) => setCenterId(Number(e.target.value))}
+                >
+                  <option value="">—</option>
+                  {centers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.hospital_name ? `${c.hospital_name} — ` : ''}
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-[10px] font-semibold tracking-wide text-slate-600">
+                {t.date}
+                <SpeechInput
+                  type="date"
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
+                  dir="ltr"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  syncUrl()
+                  void pollOnce()
+                  setShowControls(false)
+                }}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-700"
+              >
+                {t.applyBookmark}
+              </button>
+            </div>
+          </div>
+        ) : null}
       </header>
 
       {err ? (
@@ -279,12 +293,12 @@ export function WaitingBoardPage() {
         </div>
       ) : null}
 
-      <main className="mx-auto max-w-[1600px] space-y-10 px-4 py-8 sm:px-8">
+      <main className="mx-auto max-w-[1600px] space-y-8 px-4 py-8 sm:px-8">
         {!board && !err ? <p className="text-right text-slate-600">{t.loading}</p> : null}
 
         {board ? (
           <>
-            <section className="text-right">
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 text-right shadow-sm sm:p-6">
               <h2 className="mb-2 text-lg font-bold text-violet-800">{t.readyLaneTitle}</h2>
               <p className="mb-3 text-sm leading-relaxed text-slate-600">{t.readyLaneBody}</p>
               {board.ready_queue.token_numbers.length ? (
@@ -299,7 +313,7 @@ export function WaitingBoardPage() {
             </section>
 
             {board.draft_batches.length > 0 ? (
-              <section className="space-y-8 text-right">
+              <section className="space-y-8 rounded-2xl border border-slate-200 bg-white p-5 text-right shadow-sm sm:p-6">
                 <h2 className="text-lg font-bold text-red-800">{t.nextBatchesTitle}</h2>
                 {board.draft_batches.map((b) => (
                   <div key={b.id}>
@@ -311,14 +325,14 @@ export function WaitingBoardPage() {
                 ))}
               </section>
             ) : (
-              <section className="text-right">
+              <section className="rounded-2xl border border-slate-200 bg-white p-5 text-right shadow-sm sm:p-6">
                 <h2 className="mb-2 text-lg font-bold text-red-800">{t.nextBatchesShort}</h2>
                 <p className="text-slate-600">{t.noDraftBatches}</p>
               </section>
             )}
 
             {board.dispatched_earlier.length > 0 ? (
-              <section className="text-right">
+              <section className="rounded-2xl border border-slate-200 bg-white p-5 text-right shadow-sm sm:p-6">
                 <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-600">{t.earlierToday}</h2>
                 <ul className="flex flex-wrap justify-end gap-2">
                   {board.dispatched_earlier.map((b) => (
@@ -334,7 +348,7 @@ export function WaitingBoardPage() {
               </section>
             ) : null}
 
-            <section className="text-right">
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 text-right shadow-sm sm:p-6">
               <h2 className="mb-3 flex flex-row-reverse flex-wrap items-center justify-end gap-2 text-lg font-bold text-amber-800">
                 <span className="inline-block size-2 animate-pulse rounded-full bg-amber-500" aria-hidden />
                 {t.withDoctorTitle}
