@@ -5,6 +5,8 @@ import { api } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import { toastError, toastSuccess } from '../../lib/toast'
 import { ui } from '../../ui/classes'
+import { FieldError } from '../../components/FieldError'
+import { optionalEmail, optionalPhone, registerPassword, registerUsername } from '../../lib/fieldValidation'
 
 type UserRow = {
   id: number
@@ -33,6 +35,8 @@ export function UsersPage() {
   const [editStatus, setEditStatus] = useState<(typeof statuses)[number]>('Active')
   const [editEmail, setEditEmail] = useState('')
   const [editPhone, setEditPhone] = useState('')
+  const [createErr, setCreateErr] = useState<Partial<Record<'username' | 'password', string>>>({})
+  const [editContactErr, setEditContactErr] = useState<Partial<Record<'email' | 'phone', string>>>({})
 
   async function load() {
     const [users, roleRows] = await Promise.all([api<UserRow[]>('/users'), api<RoleRow[]>('/rbac/roles')])
@@ -55,6 +59,7 @@ export function UsersPage() {
     setEditStatus(statuses.includes(s) ? s : 'Active')
     setEditEmail(edit.email ?? '')
     setEditPhone(edit.phone ?? '')
+    setEditContactErr({})
   }, [edit])
 
   if (!can('users.manage')) {
@@ -88,9 +93,16 @@ export function UsersPage() {
           <h2 className="text-lg font-semibold">Create staff user</h2>
         </div>
         <form
-          className="flex flex-wrap items-end gap-3"
+          className="flex flex-wrap items-end gap-4"
           onSubmit={async (e) => {
             e.preventDefault()
+            const ce: Partial<Record<'username' | 'password', string>> = {}
+            const u = registerUsername(username)
+            if (!u.ok) ce.username = u.message
+            const pw = registerPassword(password)
+            if (!pw.ok) ce.password = pw.message
+            setCreateErr(ce)
+            if (Object.keys(ce).length) return
             setBusy(true)
             try {
               const createdAs = username
@@ -100,6 +112,7 @@ export function UsersPage() {
               })
               setUsername('')
               setPassword('')
+              setCreateErr({})
               await load()
               toastSuccess(`User “${createdAs}” created`)
             } catch (err) {
@@ -109,26 +122,37 @@ export function UsersPage() {
             }
           }}
         >
-          <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+          <label className="flex min-w-[140px] flex-col gap-1 text-xs font-medium text-slate-600">
             Username
             <SpeechInput
               className={ui.input}
+              shellClassName={createErr.username ? '!border-red-400 ring-1 ring-red-400' : ''}
               placeholder="jdoe"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => {
+                setUsername(e.target.value)
+                if (createErr.username) setCreateErr((c) => ({ ...c, username: undefined }))
+              }}
               required
+              aria-invalid={createErr.username ? true : undefined}
             />
+            <FieldError message={createErr.username} />
           </label>
-          <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+          <label className="flex min-w-[160px] flex-col gap-1 text-xs font-medium text-slate-600">
             Password
             <div className="relative">
               <SpeechInput
                 type={showPassword ? 'text' : 'password'}
                 className={`${ui.input} pr-10`}
+                shellClassName={createErr.password ? '!border-red-400 ring-1 ring-red-400' : ''}
                 placeholder="••••••••"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value)
+                  if (createErr.password) setCreateErr((c) => ({ ...c, password: undefined }))
+                }}
                 required
+                aria-invalid={createErr.password ? true : undefined}
               />
               <button
                 type="button"
@@ -139,6 +163,7 @@ export function UsersPage() {
                 {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
             </div>
+            <FieldError message={createErr.password} />
           </label>
           <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
             Role
@@ -150,7 +175,7 @@ export function UsersPage() {
               ))}
             </select>
           </label>
-          <button type="submit" className={ui.btnPrimary} disabled={busy}>
+          <button type="submit" className={`${ui.btnPrimary} self-end`} disabled={busy}>
             {busy ? 'Saving…' : 'Create user'}
           </button>
         </form>
@@ -250,6 +275,13 @@ export function UsersPage() {
               className="mt-6 space-y-4"
               onSubmit={async (e) => {
                 e.preventDefault()
+                const cnt: Partial<Record<'email' | 'phone', string>> = {}
+                const em = optionalEmail(editEmail)
+                if (!em.ok) cnt.email = em.message
+                const ph = optionalPhone(editPhone)
+                if (!ph.ok) cnt.phone = ph.message
+                setEditContactErr(cnt)
+                if (Object.keys(cnt).length) return
                 setBusy(true)
                 try {
                   await api(`/users/${edit.id}`, {
@@ -293,11 +325,32 @@ export function UsersPage() {
               </label>
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                 Email
-                <SpeechInput className={ui.input} type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} />
+                <SpeechInput
+                  className={ui.input}
+                  type="email"
+                  shellClassName={editContactErr.email ? '!border-red-400 ring-1 ring-red-400' : ''}
+                  value={editEmail}
+                  onChange={(e) => {
+                    setEditEmail(e.target.value)
+                    if (editContactErr.email) setEditContactErr((c) => ({ ...c, email: undefined }))
+                  }}
+                  aria-invalid={editContactErr.email ? true : undefined}
+                />
+                <FieldError message={editContactErr.email} />
               </label>
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                 Phone
-                <SpeechInput className={ui.input} value={editPhone} onChange={(e) => setEditPhone(e.target.value)} />
+                <SpeechInput
+                  className={ui.input}
+                  shellClassName={editContactErr.phone ? '!border-red-400 ring-1 ring-red-400' : ''}
+                  value={editPhone}
+                  onChange={(e) => {
+                    setEditPhone(e.target.value)
+                    if (editContactErr.phone) setEditContactErr((c) => ({ ...c, phone: undefined }))
+                  }}
+                  aria-invalid={editContactErr.phone ? true : undefined}
+                />
+                <FieldError message={editContactErr.phone} />
               </label>
               <div className="flex flex-wrap justify-end gap-2 pt-2">
                 <button type="button" className={ui.btnSecondary} onClick={() => setEdit(null)}>

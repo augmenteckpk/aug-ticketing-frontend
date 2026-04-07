@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { Activity, Lock, User, Eye, EyeOff } from 'lucide-react'
 import { SpeechInput } from '../components/speech'
+import { FieldError } from '../components/FieldError'
 import { ApiError } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { toastError, toastSuccess } from '../lib/toast'
+import { loginPassword, loginUsername } from '../lib/fieldValidation'
 
 import backgroundImage from '../assets/56438.jpeg'
 
@@ -15,6 +17,7 @@ export function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [fieldErr, setFieldErr] = useState<{ username?: string; password?: string }>({})
 
   if (!loading && user && user.role !== 'patient') {
     const to = loc.state?.from && loc.state.from !== '/login' ? loc.state.from : '/app'
@@ -23,6 +26,13 @@ export function LoginPage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
+    const u = loginUsername(username)
+    const p = loginPassword(password)
+    const next: { username?: string; password?: string } = {}
+    if (!u.ok) next.username = u.message
+    if (!p.ok) next.password = p.message
+    setFieldErr(next)
+    if (Object.keys(next).length) return
     try {
       const me = await login(username, password)
       if (me.role === 'patient') {
@@ -70,13 +80,19 @@ export function LoginPage() {
             Username
           </span>
           <SpeechInput
-            shellClassName="rounded-xl shadow-sm"
+            shellClassName={`rounded-xl shadow-sm${fieldErr.username ? ' !border-red-400 ring-1 ring-red-400' : ''}`}
             className="!px-4 !py-3 text-base outline-none placeholder:text-slate-400"
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            onChange={(e) => {
+              setUsername(e.target.value)
+              if (fieldErr.username) setFieldErr((f) => ({ ...f, username: undefined }))
+            }}
             autoComplete="username"
             placeholder="e.g. admin"
+            aria-invalid={fieldErr.username ? true : undefined}
+            aria-describedby={fieldErr.username ? 'login-username-err' : undefined}
           />
+          <FieldError id="login-username-err" message={fieldErr.username} />
         </label>
 
         <label className="mt-5 block text-sm font-medium text-slate-700">
@@ -87,11 +103,18 @@ export function LoginPage() {
           <div className="relative">
             <input
               type={showPassword ? 'text' : 'password'}
-              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 pr-11 text-slate-900 shadow-sm outline-none transition-shadow placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
+              className={`w-full rounded-xl border bg-white px-4 py-3 pr-11 text-slate-900 shadow-sm outline-none transition-shadow placeholder:text-slate-400 focus:ring-2 ${
+                fieldErr.password ? 'border-red-400 focus:border-red-500 focus:ring-red-500/20' : 'border-slate-300 focus:border-cyan-500 focus:ring-cyan-500/20'
+              }`}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value)
+                if (fieldErr.password) setFieldErr((f) => ({ ...f, password: undefined }))
+              }}
               autoComplete="current-password"
               placeholder="••••••••"
+              aria-invalid={fieldErr.password ? true : undefined}
+              aria-describedby={fieldErr.password ? 'login-password-err' : undefined}
             />
             <button
               type="button"
@@ -102,6 +125,7 @@ export function LoginPage() {
               {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
             </button>
           </div>
+          <FieldError id="login-password-err" message={fieldErr.password} />
         </label>
 
         <button

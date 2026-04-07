@@ -1,10 +1,24 @@
 import { useEffect, useState } from 'react'
 import { ClipboardList, Search } from 'lucide-react'
 import { SpeechInput } from '../../components/speech'
+import { FieldError } from '../../components/FieldError'
 import { api } from '../../api/client'
 import { todayLocalYmd } from '../../utils/dateYmd'
 import { useAuth } from '../../context/AuthContext'
 import { toastError, toastSuccess } from '../../lib/toast'
+import {
+  appointmentDateYmd,
+  cnicLookupMin,
+  firstNameRequired,
+  optionalAddress,
+  optionalCity,
+  optionalDobYmd,
+  optionalGenderText,
+  optionalGuardianCnicDigits,
+  optionalMrn,
+  optionalPersonName,
+  optionalPhone,
+} from '../../lib/fieldValidation'
 import { ui } from '../../ui/classes'
 
 type Center = { id: number; name: string; city: string; hospital_name?: string }
@@ -57,6 +71,8 @@ export function RegistrationPage() {
   const [fatherCnic, setFatherCnic] = useState('')
   const [motherCnic, setMotherCnic] = useState('')
   const [busy, setBusy] = useState(false)
+  const [lookupErr, setLookupErr] = useState<{ cnic?: string; date?: string }>({})
+  const [regErr, setRegErr] = useState<Partial<Record<string, string>>>({})
 
   useEffect(() => {
     api<Center[]>('/centers')
@@ -74,6 +90,13 @@ export function RegistrationPage() {
   async function doLookup(e: React.FormEvent) {
     e.preventDefault()
     setLookup(null)
+    const cn = cnicLookupMin(cnic)
+    const dt = appointmentDateYmd(date)
+    const le: { cnic?: string; date?: string } = {}
+    if (!cn.ok) le.cnic = cn.message
+    if (!dt.ok) le.date = dt.message
+    setLookupErr(le)
+    if (Object.keys(le).length) return
     setBusy(true)
     try {
       const q = new URLSearchParams({
@@ -105,6 +128,31 @@ export function RegistrationPage() {
   async function doRegister(e: React.FormEvent) {
     e.preventDefault()
     if (!lookup) return
+    const checks: Partial<Record<string, string>> = {}
+    const fn = firstNameRequired(firstName)
+    if (!fn.ok) checks.first_name = fn.message
+    const ln = optionalPersonName(lastName, 50, 'Last name')
+    if (!ln.ok) checks.last_name = ln.message
+    const fan = optionalPersonName(fatherName, 50, "Father's name")
+    if (!fan.ok) checks.father_name = fan.message
+    const fcn = optionalGuardianCnicDigits(fatherCnic)
+    if (!fcn.ok) checks.father_cnic = fcn.message
+    const mcn = optionalGuardianCnicDigits(motherCnic)
+    if (!mcn.ok) checks.mother_cnic = mcn.message
+    const ph = optionalPhone(phone)
+    if (!ph.ok) checks.phone = ph.message
+    const g = optionalGenderText(gender)
+    if (!g.ok) checks.gender = g.message
+    const db = optionalDobYmd(dob)
+    if (!db.ok) checks.date_of_birth = db.message
+    const ad = optionalAddress(address)
+    if (!ad.ok) checks.address = ad.message
+    const ct = optionalCity(city)
+    if (!ct.ok) checks.city = ct.message
+    const mr = optionalMrn(mrn)
+    if (!mr.ok) checks.medical_record_number = mr.message
+    setRegErr(checks)
+    if (Object.keys(checks).length) return
     setBusy(true)
     try {
       await api('/appointments/register', {
@@ -154,12 +202,18 @@ export function RegistrationPage() {
         <label className="block text-sm font-medium text-slate-700">
           CNIC
           <SpeechInput
+            shellClassName={lookupErr.cnic ? '!border-red-400 ring-1 ring-red-400' : ''}
             className={`${ui.input} mt-1.5 w-full`}
             value={cnic}
-            onChange={(e) => setCnic(e.target.value)}
- placeholder="Required"
-            required
+            onChange={(e) => {
+              setCnic(e.target.value)
+              if (lookupErr.cnic) setLookupErr((x) => ({ ...x, cnic: undefined }))
+            }}
+            placeholder="Required"
+            inputMode="numeric"
+            aria-invalid={lookupErr.cnic ? true : undefined}
           />
+          <FieldError message={lookupErr.cnic} />
         </label>
         <label className="block text-sm font-medium text-slate-700">
           Center
@@ -177,7 +231,18 @@ export function RegistrationPage() {
         </label>
         <label className="block text-sm font-medium text-slate-700">
           Visit date
-          <SpeechInput type="date" className={`${ui.input} mt-1.5 w-full`} value={date} onChange={(e) => setDate(e.target.value)} />
+          <SpeechInput
+            type="date"
+            shellClassName={lookupErr.date ? '!border-red-400 ring-1 ring-red-400' : ''}
+            className={`${ui.input} mt-1.5 w-full`}
+            value={date}
+            onChange={(e) => {
+              setDate(e.target.value)
+              if (lookupErr.date) setLookupErr((x) => ({ ...x, date: undefined }))
+            }}
+            aria-invalid={lookupErr.date ? true : undefined}
+          />
+          <FieldError message={lookupErr.date} />
         </label>
         <button type="submit" className={`${ui.btnPrimary} w-full`} disabled={busy}>
           <Search className="size-4" strokeWidth={2} aria-hidden />
@@ -196,15 +261,43 @@ export function RegistrationPage() {
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block text-sm font-medium text-slate-700">
               First name *
-              <SpeechInput className={`${ui.input} mt-1.5 w-full`} value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+              <SpeechInput
+                shellClassName={regErr.first_name ? '!border-red-400 ring-1 ring-red-400' : ''}
+                className={`${ui.input} mt-1.5 w-full`}
+                value={firstName}
+                onChange={(e) => {
+                  setFirstName(e.target.value)
+                  if (regErr.first_name) setRegErr((r) => ({ ...r, first_name: undefined }))
+                }}
+                required
+              />
+              <FieldError message={regErr.first_name} />
             </label>
             <label className="block text-sm font-medium text-slate-700">
               Last name
-              <SpeechInput className={`${ui.input} mt-1.5 w-full`} value={lastName} onChange={(e) => setLastName(e.target.value)} />
+              <SpeechInput
+                shellClassName={regErr.last_name ? '!border-red-400 ring-1 ring-red-400' : ''}
+                className={`${ui.input} mt-1.5 w-full`}
+                value={lastName}
+                onChange={(e) => {
+                  setLastName(e.target.value)
+                  if (regErr.last_name) setRegErr((r) => ({ ...r, last_name: undefined }))
+                }}
+              />
+              <FieldError message={regErr.last_name} />
             </label>
             <label className="block text-sm font-medium text-slate-700 sm:col-span-2">
               Father&apos;s name
-              <SpeechInput className={`${ui.input} mt-1.5 w-full`} value={fatherName} onChange={(e) => setFatherName(e.target.value)} />
+              <SpeechInput
+                shellClassName={regErr.father_name ? '!border-red-400 ring-1 ring-red-400' : ''}
+                className={`${ui.input} mt-1.5 w-full`}
+                value={fatherName}
+                onChange={(e) => {
+                  setFatherName(e.target.value)
+                  if (regErr.father_name) setRegErr((r) => ({ ...r, father_name: undefined }))
+                }}
+              />
+              <FieldError message={regErr.father_name} />
             </label>
             <div className="sm:col-span-2 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-3">
               <p className="text-xs font-medium text-slate-700">Guardian CNIC (optional — e.g. minors)</p>
@@ -213,48 +306,114 @@ export function RegistrationPage() {
                 <label className="block text-sm font-medium text-slate-700">
                   Father&apos;s CNIC
                   <SpeechInput
+                    shellClassName={regErr.father_cnic ? '!border-red-400 ring-1 ring-red-400' : ''}
                     className={`${ui.input} mt-1.5 w-full font-mono text-sm`}
                     value={fatherCnic}
-                    onChange={(e) => setFatherCnic(e.target.value)}
+                    onChange={(e) => {
+                      setFatherCnic(e.target.value)
+                      if (regErr.father_cnic) setRegErr((r) => ({ ...r, father_cnic: undefined }))
+                    }}
                     placeholder="Optional"
                     inputMode="numeric"
                   />
+                  <FieldError message={regErr.father_cnic} />
                 </label>
                 <label className="block text-sm font-medium text-slate-700">
                   Mother&apos;s CNIC
                   <SpeechInput
+                    shellClassName={regErr.mother_cnic ? '!border-red-400 ring-1 ring-red-400' : ''}
                     className={`${ui.input} mt-1.5 w-full font-mono text-sm`}
                     value={motherCnic}
-                    onChange={(e) => setMotherCnic(e.target.value)}
+                    onChange={(e) => {
+                      setMotherCnic(e.target.value)
+                      if (regErr.mother_cnic) setRegErr((r) => ({ ...r, mother_cnic: undefined }))
+                    }}
                     placeholder="Optional"
                     inputMode="numeric"
                   />
+                  <FieldError message={regErr.mother_cnic} />
                 </label>
               </div>
             </div>
             <label className="block text-sm font-medium text-slate-700">
               Phone
-              <SpeechInput className={`${ui.input} mt-1.5 w-full`} value={phone} onChange={(e) => setPhone(e.target.value)} />
+              <SpeechInput
+                shellClassName={regErr.phone ? '!border-red-400 ring-1 ring-red-400' : ''}
+                className={`${ui.input} mt-1.5 w-full`}
+                value={phone}
+                onChange={(e) => {
+                  setPhone(e.target.value)
+                  if (regErr.phone) setRegErr((r) => ({ ...r, phone: undefined }))
+                }}
+                inputMode="tel"
+              />
+              <FieldError message={regErr.phone} />
             </label>
             <label className="block text-sm font-medium text-slate-700">
               Gender
-              <SpeechInput className={`${ui.input} mt-1.5 w-full`} value={gender} onChange={(e) => setGender(e.target.value)} />
+              <SpeechInput
+                shellClassName={regErr.gender ? '!border-red-400 ring-1 ring-red-400' : ''}
+                className={`${ui.input} mt-1.5 w-full`}
+                value={gender}
+                onChange={(e) => {
+                  setGender(e.target.value)
+                  if (regErr.gender) setRegErr((r) => ({ ...r, gender: undefined }))
+                }}
+              />
+              <FieldError message={regErr.gender} />
             </label>
             <label className="block text-sm font-medium text-slate-700">
               Date of birth
-              <SpeechInput type="date" className={`${ui.input} mt-1.5 w-full`} value={dob} onChange={(e) => setDob(e.target.value)} />
+              <SpeechInput
+                type="date"
+                shellClassName={regErr.date_of_birth ? '!border-red-400 ring-1 ring-red-400' : ''}
+                className={`${ui.input} mt-1.5 w-full`}
+                value={dob}
+                onChange={(e) => {
+                  setDob(e.target.value)
+                  if (regErr.date_of_birth) setRegErr((r) => ({ ...r, date_of_birth: undefined }))
+                }}
+              />
+              <FieldError message={regErr.date_of_birth} />
             </label>
             <label className="block text-sm font-medium text-slate-700 sm:col-span-2">
               Address
-              <SpeechInput className={`${ui.input} mt-1.5 w-full`} value={address} onChange={(e) => setAddress(e.target.value)} />
+              <SpeechInput
+                shellClassName={regErr.address ? '!border-red-400 ring-1 ring-red-400' : ''}
+                className={`${ui.input} mt-1.5 w-full`}
+                value={address}
+                onChange={(e) => {
+                  setAddress(e.target.value)
+                  if (regErr.address) setRegErr((r) => ({ ...r, address: undefined }))
+                }}
+              />
+              <FieldError message={regErr.address} />
             </label>
             <label className="block text-sm font-medium text-slate-700 sm:col-span-2">
               City
-              <SpeechInput className={`${ui.input} mt-1.5 w-full`} value={city} onChange={(e) => setCity(e.target.value)} />
+              <SpeechInput
+                shellClassName={regErr.city ? '!border-red-400 ring-1 ring-red-400' : ''}
+                className={`${ui.input} mt-1.5 w-full`}
+                value={city}
+                onChange={(e) => {
+                  setCity(e.target.value)
+                  if (regErr.city) setRegErr((r) => ({ ...r, city: undefined }))
+                }}
+              />
+              <FieldError message={regErr.city} />
             </label>
             <label className="block text-sm font-medium text-slate-700 sm:col-span-2">
               MRN (optional — long-term chart)
-              <SpeechInput className={`${ui.input} mt-1.5 w-full`} value={mrn} onChange={(e) => setMrn(e.target.value)} />
+              <SpeechInput
+                shellClassName={regErr.medical_record_number ? '!border-red-400 ring-1 ring-red-400' : ''}
+                className={`${ui.input} mt-1.5 w-full`}
+                value={mrn}
+                onChange={(e) => {
+                  setMrn(e.target.value)
+                  if (regErr.medical_record_number) setRegErr((r) => ({ ...r, medical_record_number: undefined }))
+                }}
+              />
+              <FieldError message={regErr.medical_record_number} />
             </label>
           </div>
           <button type="submit" className={`${ui.btnPrimary} w-full bg-emerald-600 hover:bg-emerald-700`} disabled={busy}>

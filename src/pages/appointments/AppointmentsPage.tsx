@@ -6,6 +6,19 @@ import { todayLocalYmd } from '../../utils/dateYmd'
 import { useAuth } from '../../context/AuthContext'
 import { toastError, toastSuccess, toastWarning } from '../../lib/toast'
 import { ui } from '../../ui/classes'
+import { FieldError } from '../../components/FieldError'
+import {
+  appointmentDateYmd,
+  locationMax100,
+  notesMax255,
+  optionalAddress,
+  optionalDobYmd,
+  optionalGenderText,
+  optionalPersonName,
+  optionalPhone,
+  personNameRequired,
+  staffPatientCnic,
+} from '../../lib/fieldValidation'
 
 type Appointment = {
   id: number
@@ -47,6 +60,7 @@ export function AppointmentsPage() {
 
   const [walkInOpen, setWalkInOpen] = useState(false)
   const [walkInBusy, setWalkInBusy] = useState(false)
+  const [walkInErr, setWalkInErr] = useState<Partial<Record<string, string>>>({})
   const [walkInDepartments, setWalkInDepartments] = useState<Department[]>([])
   const [walkInForm, setWalkInForm] = useState({
     appointment_date: today(),
@@ -106,8 +120,31 @@ export function AppointmentsPage() {
   }
 
   async function submitWalkIn() {
-    if (walkInForm.center_id === '') {
-      toastWarning('Select a center.')
+    const checks: Partial<Record<string, string>> = {}
+    const dt = appointmentDateYmd(walkInForm.appointment_date)
+    if (!dt.ok) checks.appointment_date = dt.message
+    if (walkInForm.center_id === '') checks.center_id = 'Select a center.'
+    const cid = staffPatientCnic(walkInForm.cnic)
+    if (!cid.ok) checks.cnic = cid.message
+    const fn = personNameRequired(walkInForm.first_name, 'First name')
+    if (!fn.ok) checks.first_name = fn.message
+    const ln = optionalPersonName(walkInForm.last_name, 50, 'Last name')
+    if (!ln.ok) checks.last_name = ln.message
+    const ph = optionalPhone(walkInForm.phone)
+    if (!ph.ok) checks.phone = ph.message
+    const g = optionalGenderText(walkInForm.gender)
+    if (!g.ok) checks.gender = g.message
+    const db = optionalDobYmd(walkInForm.date_of_birth)
+    if (!db.ok) checks.date_of_birth = db.message
+    const ad = optionalAddress(walkInForm.address)
+    if (!ad.ok) checks.address = ad.message
+    const loc = locationMax100(walkInForm.location)
+    if (!loc.ok) checks.location = loc.message
+    const nt = notesMax255(walkInForm.notes)
+    if (!nt.ok) checks.notes = nt.message
+    setWalkInErr(checks)
+    if (Object.keys(checks).length) {
+      if (checks.center_id) toastWarning(checks.center_id)
       return
     }
     setWalkInBusy(true)
@@ -137,6 +174,7 @@ export function AppointmentsPage() {
         body: JSON.stringify(body),
       })
       setWalkInOpen(false)
+      setWalkInErr({})
       setWalkInForm({
         appointment_date: today(),
         center_id: '',
@@ -175,6 +213,7 @@ export function AppointmentsPage() {
             type="button"
             className={`${ui.btnPrimary} shrink-0 cursor-pointer`}
             onClick={() => {
+              setWalkInErr({})
               setWalkInOpen(true)
             }}
           >
@@ -239,7 +278,10 @@ export function AppointmentsPage() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 cursor-pointer"
           role="presentation"
           onClick={(e) => {
-            if (e.target === e.currentTarget) setWalkInOpen(false)
+            if (e.target === e.currentTarget) {
+              setWalkInErr({})
+              setWalkInOpen(false)
+            }
           }}
         >
           <div
@@ -250,7 +292,10 @@ export function AppointmentsPage() {
             <button
               type="button"
               className={`absolute right-4 top-4 rounded-lg p-1 text-slate-500 hover:bg-slate-100 cursor-pointer`}
-              onClick={() => setWalkInOpen(false)}
+              onClick={() => {
+                setWalkInErr({})
+                setWalkInOpen(false)
+              }}
               aria-label="Close"
             >
               <X className="size-5" />
@@ -275,24 +320,32 @@ export function AppointmentsPage() {
                   <SpeechInput
                     type="date"
                     required
+                    shellClassName={walkInErr.appointment_date ? '!border-red-400 ring-1 ring-red-400' : ''}
                     className={ui.input}
                     value={walkInForm.appointment_date}
-                    onChange={(e) => setWalkInForm((f) => ({ ...f, appointment_date: e.target.value }))}
+                    onChange={(e) => {
+                      setWalkInForm((f) => ({ ...f, appointment_date: e.target.value }))
+                      if (walkInErr.appointment_date) setWalkInErr((w) => ({ ...w, appointment_date: undefined }))
+                    }}
+                    aria-invalid={walkInErr.appointment_date ? true : undefined}
                   />
+                  <FieldError message={walkInErr.appointment_date} />
                 </label>
                 <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                   Center <span className="text-red-600">*</span>
                   <select
                     required
-                    className={ui.select}
+                    className={`${ui.select}${walkInErr.center_id ? ' !border-red-400 ring-1 ring-red-400' : ''}`}
                     value={walkInForm.center_id === '' ? '' : String(walkInForm.center_id)}
-                    onChange={(e) =>
+                    onChange={(e) => {
                       setWalkInForm((f) => ({
                         ...f,
                         center_id: e.target.value === '' ? '' : Number(e.target.value),
                         department_id: '',
                       }))
-                    }
+                      if (walkInErr.center_id) setWalkInErr((w) => ({ ...w, center_id: undefined }))
+                    }}
+                    aria-invalid={walkInErr.center_id ? true : undefined}
                   >
                     <option value="">Select center</option>
                     {centers.map((c) => (
@@ -301,6 +354,7 @@ export function AppointmentsPage() {
                       </option>
                     ))}
                   </select>
+                  <FieldError message={walkInErr.center_id} />
                 </label>
                 <label className="flex flex-col gap-1 text-xs font-medium text-slate-600 sm:col-span-2">
                   Visit type
@@ -346,10 +400,16 @@ export function AppointmentsPage() {
                   <SpeechInput
                     type="text"
                     className={ui.input}
+                    shellClassName={walkInErr.location ? '!border-red-400 ring-1 ring-red-400' : ''}
                     value={walkInForm.location}
-                    onChange={(e) => setWalkInForm((f) => ({ ...f, location: e.target.value }))}
+                    onChange={(e) => {
+                      setWalkInForm((f) => ({ ...f, location: e.target.value }))
+                      if (walkInErr.location) setWalkInErr((w) => ({ ...w, location: undefined }))
+                    }}
                     placeholder="e.g. OPD desk"
+                    aria-invalid={walkInErr.location ? true : undefined}
                   />
+                  <FieldError message={walkInErr.location} />
                 </label>
               </div>
               <div className="border-t border-slate-200 pt-4">
@@ -361,10 +421,16 @@ export function AppointmentsPage() {
                       type="text"
                       required
                       className={ui.input}
+                      shellClassName={walkInErr.cnic ? '!border-red-400 ring-1 ring-red-400' : ''}
                       value={walkInForm.cnic}
-                      onChange={(e) => setWalkInForm((f) => ({ ...f, cnic: e.target.value }))}
+                      onChange={(e) => {
+                        setWalkInForm((f) => ({ ...f, cnic: e.target.value }))
+                        if (walkInErr.cnic) setWalkInErr((w) => ({ ...w, cnic: undefined }))
+                      }}
                       placeholder="Without dashes or with dashes"
+                      aria-invalid={walkInErr.cnic ? true : undefined}
                     />
+                    <FieldError message={walkInErr.cnic} />
                   </label>
                   <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                     First name <span className="text-red-600">*</span>
@@ -372,54 +438,90 @@ export function AppointmentsPage() {
                       type="text"
                       required
                       className={ui.input}
+                      shellClassName={walkInErr.first_name ? '!border-red-400 ring-1 ring-red-400' : ''}
                       value={walkInForm.first_name}
-                      onChange={(e) => setWalkInForm((f) => ({ ...f, first_name: e.target.value }))}
+                      onChange={(e) => {
+                        setWalkInForm((f) => ({ ...f, first_name: e.target.value }))
+                        if (walkInErr.first_name) setWalkInErr((w) => ({ ...w, first_name: undefined }))
+                      }}
+                      aria-invalid={walkInErr.first_name ? true : undefined}
                     />
+                    <FieldError message={walkInErr.first_name} />
                   </label>
                   <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                     Last name
                     <SpeechInput
                       type="text"
                       className={ui.input}
+                      shellClassName={walkInErr.last_name ? '!border-red-400 ring-1 ring-red-400' : ''}
                       value={walkInForm.last_name}
-                      onChange={(e) => setWalkInForm((f) => ({ ...f, last_name: e.target.value }))}
+                      onChange={(e) => {
+                        setWalkInForm((f) => ({ ...f, last_name: e.target.value }))
+                        if (walkInErr.last_name) setWalkInErr((w) => ({ ...w, last_name: undefined }))
+                      }}
+                      aria-invalid={walkInErr.last_name ? true : undefined}
                     />
+                    <FieldError message={walkInErr.last_name} />
                   </label>
                   <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                     Phone
                     <SpeechInput
                       type="text"
                       className={ui.input}
+                      shellClassName={walkInErr.phone ? '!border-red-400 ring-1 ring-red-400' : ''}
                       value={walkInForm.phone}
-                      onChange={(e) => setWalkInForm((f) => ({ ...f, phone: e.target.value }))}
+                      onChange={(e) => {
+                        setWalkInForm((f) => ({ ...f, phone: e.target.value }))
+                        if (walkInErr.phone) setWalkInErr((w) => ({ ...w, phone: undefined }))
+                      }}
+                      aria-invalid={walkInErr.phone ? true : undefined}
                     />
+                    <FieldError message={walkInErr.phone} />
                   </label>
                   <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                     Gender
                     <SpeechInput
                       type="text"
                       className={ui.input}
+                      shellClassName={walkInErr.gender ? '!border-red-400 ring-1 ring-red-400' : ''}
                       value={walkInForm.gender}
-                      onChange={(e) => setWalkInForm((f) => ({ ...f, gender: e.target.value }))}
+                      onChange={(e) => {
+                        setWalkInForm((f) => ({ ...f, gender: e.target.value }))
+                        if (walkInErr.gender) setWalkInErr((w) => ({ ...w, gender: undefined }))
+                      }}
+                      aria-invalid={walkInErr.gender ? true : undefined}
                     />
+                    <FieldError message={walkInErr.gender} />
                   </label>
                   <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                     Date of birth
                     <SpeechInput
                       type="date"
                       className={ui.input}
+                      shellClassName={walkInErr.date_of_birth ? '!border-red-400 ring-1 ring-red-400' : ''}
                       value={walkInForm.date_of_birth}
-                      onChange={(e) => setWalkInForm((f) => ({ ...f, date_of_birth: e.target.value }))}
+                      onChange={(e) => {
+                        setWalkInForm((f) => ({ ...f, date_of_birth: e.target.value }))
+                        if (walkInErr.date_of_birth) setWalkInErr((w) => ({ ...w, date_of_birth: undefined }))
+                      }}
+                      aria-invalid={walkInErr.date_of_birth ? true : undefined}
                     />
+                    <FieldError message={walkInErr.date_of_birth} />
                   </label>
                   <label className="flex flex-col gap-1 text-xs font-medium text-slate-600 sm:col-span-2">
                     Address
                     <SpeechInput
                       type="text"
                       className={ui.input}
+                      shellClassName={walkInErr.address ? '!border-red-400 ring-1 ring-red-400' : ''}
                       value={walkInForm.address}
-                      onChange={(e) => setWalkInForm((f) => ({ ...f, address: e.target.value }))}
+                      onChange={(e) => {
+                        setWalkInForm((f) => ({ ...f, address: e.target.value }))
+                        if (walkInErr.address) setWalkInErr((w) => ({ ...w, address: undefined }))
+                      }}
+                      aria-invalid={walkInErr.address ? true : undefined}
                     />
+                    <FieldError message={walkInErr.address} />
                   </label>
                 </div>
               </div>
@@ -428,16 +530,25 @@ export function AppointmentsPage() {
                 <SpeechInput
                   type="text"
                   className={ui.input}
+                  shellClassName={walkInErr.notes ? '!border-red-400 ring-1 ring-red-400' : ''}
                   value={walkInForm.notes}
-                  onChange={(e) => setWalkInForm((f) => ({ ...f, notes: e.target.value }))}
+                  onChange={(e) => {
+                    setWalkInForm((f) => ({ ...f, notes: e.target.value }))
+                    if (walkInErr.notes) setWalkInErr((w) => ({ ...w, notes: undefined }))
+                  }}
+                  aria-invalid={walkInErr.notes ? true : undefined}
                 />
+                <FieldError message={walkInErr.notes} />
               </label>
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   className={`${ui.btnSecondary} cursor-pointer`}
                   disabled={walkInBusy}
-                  onClick={() => setWalkInOpen(false)}
+                  onClick={() => {
+                    setWalkInErr({})
+                    setWalkInOpen(false)
+                  }}
                 >
                   Cancel
                 </button>

@@ -6,6 +6,8 @@ import { api } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import { toastError, toastSuccess } from '../../lib/toast'
 import { ui } from '../../ui/classes'
+import { FieldError } from '../../components/FieldError'
+import { optionalPersonName, optionalPhone, personNameRequired, staffPatientCnic } from '../../lib/fieldValidation'
 
 export type PatientRow = {
   id: number
@@ -51,6 +53,7 @@ export function PatientsListPage() {
   const [newFirst, setNewFirst] = useState('')
   const [newLast, setNewLast] = useState('')
   const [newPhone, setNewPhone] = useState('')
+  const [addErr, setAddErr] = useState<Partial<Record<string, string>>>({})
 
   useEffect(() => {
     if (searchParams.get('add') === '1') setShowAdd(true)
@@ -99,6 +102,7 @@ export function PatientsListPage() {
 
   function closeAddPanel() {
     setShowAdd(false)
+    setAddErr({})
     setNewCnic('')
     setNewFirst('')
     setNewLast('')
@@ -200,9 +204,20 @@ export function PatientsListPage() {
             Creates a master record (<code className="text-xs">patients.manage</code>). CNIC must be unique.
           </p>
           <form
-            className="flex flex-wrap items-end gap-3"
+            className="flex flex-wrap items-end gap-4"
             onSubmit={async (e) => {
               e.preventDefault()
+              const checks: Partial<Record<string, string>> = {}
+              const cid = staffPatientCnic(newCnic)
+              if (!cid.ok) checks.cnic = cid.message
+              const fn = personNameRequired(newFirst, 'First name')
+              if (!fn.ok) checks.first_name = fn.message
+              const ln = optionalPersonName(newLast, 50, 'Last name')
+              if (!ln.ok) checks.last_name = ln.message
+              const ph = optionalPhone(newPhone)
+              if (!ph.ok) checks.phone = ph.message
+              setAddErr(checks)
+              if (Object.keys(checks).length) return
               setCreating(true)
               try {
                 const row = await api<PatientRow>('/patients', {
@@ -224,34 +239,66 @@ export function PatientsListPage() {
               }
             }}
           >
-            <label className="flex min-w-[140px] flex-col gap-1 text-xs font-medium text-slate-600">
+            <label className="flex min-w-[160px] flex-col gap-1 text-xs font-medium text-slate-600">
               CNIC
               <SpeechInput
                 className={ui.input}
+                shellClassName={addErr.cnic ? '!border-red-400 ring-1 ring-red-400' : ''}
                 value={newCnic}
-                onChange={(e) => setNewCnic(e.target.value)}
-                placeholder="13 digits"
+                onChange={(e) => {
+                  setNewCnic(e.target.value)
+                  if (addErr.cnic) setAddErr((a) => ({ ...a, cnic: undefined }))
+                }}
+                placeholder="13 digits or #####-#######-#"
                 required
+                aria-invalid={addErr.cnic ? true : undefined}
               />
+              <FieldError message={addErr.cnic} />
             </label>
             <label className="flex min-w-[140px] flex-col gap-1 text-xs font-medium text-slate-600">
               First name
               <SpeechInput
                 className={ui.input}
+                shellClassName={addErr.first_name ? '!border-red-400 ring-1 ring-red-400' : ''}
                 value={newFirst}
-                onChange={(e) => setNewFirst(e.target.value)}
+                onChange={(e) => {
+                  setNewFirst(e.target.value)
+                  if (addErr.first_name) setAddErr((a) => ({ ...a, first_name: undefined }))
+                }}
                 required
+                aria-invalid={addErr.first_name ? true : undefined}
               />
+              <FieldError message={addErr.first_name} />
             </label>
             <label className="flex min-w-[120px] flex-col gap-1 text-xs font-medium text-slate-600">
               Last name
-              <SpeechInput className={ui.input} value={newLast} onChange={(e) => setNewLast(e.target.value)} />
+              <SpeechInput
+                className={ui.input}
+                shellClassName={addErr.last_name ? '!border-red-400 ring-1 ring-red-400' : ''}
+                value={newLast}
+                onChange={(e) => {
+                  setNewLast(e.target.value)
+                  if (addErr.last_name) setAddErr((a) => ({ ...a, last_name: undefined }))
+                }}
+                aria-invalid={addErr.last_name ? true : undefined}
+              />
+              <FieldError message={addErr.last_name} />
             </label>
             <label className="flex min-w-[140px] flex-col gap-1 text-xs font-medium text-slate-600">
               Phone
-              <SpeechInput className={ui.input} value={newPhone} onChange={(e) => setNewPhone(e.target.value)} />
+              <SpeechInput
+                className={ui.input}
+                shellClassName={addErr.phone ? '!border-red-400 ring-1 ring-red-400' : ''}
+                value={newPhone}
+                onChange={(e) => {
+                  setNewPhone(e.target.value)
+                  if (addErr.phone) setAddErr((a) => ({ ...a, phone: undefined }))
+                }}
+                aria-invalid={addErr.phone ? true : undefined}
+              />
+              <FieldError message={addErr.phone} />
             </label>
-            <button type="submit" className={ui.btnPrimary} disabled={creating}>
+            <button type="submit" className={`${ui.btnPrimary} self-end`} disabled={creating}>
               {creating ? 'Saving…' : 'Create'}
             </button>
           </form>
