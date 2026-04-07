@@ -124,7 +124,7 @@ export function DashboardHome() {
           </div>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">Dashboard</h1>
           <p className="mt-1 max-w-lg text-sm leading-relaxed text-slate-600">
-            Daily OPD ticketing snapshot â€” filter by date and center to match operations.
+            Daily OPD ticketing snapshot — filter by date and center to match operations.
           </p>
         </div>
         <button
@@ -180,7 +180,7 @@ export function DashboardHome() {
               <option value="">All centers</option>
               {centers.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.hospital_name} â€” {c.name} ({c.city})
+                  {c.hospital_name} — {c.name} ({c.city})
                 </option>
               ))}
             </select>
@@ -265,17 +265,18 @@ export function DashboardHome() {
               </div>
               <p className="max-w-sm text-right text-sm text-slate-600">
                 For <span className="font-medium text-slate-900">{summary.date}</span>
-                {summary.center_id != null ? ` Â· center #${summary.center_id}` : ' Â· all centers'}.
+                {summary.center_id != null ? ` · center #${summary.center_id}` : ' · all centers'}.
               </p>
             </div>
           </div>
         </>
       ) : (
         <div className="flex items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white py-16 text-slate-500">
-          {loading ? 'Loading summaryâ€¦' : 'No data'}
+          {loading ? 'Loading summary…' : 'No data'}
         </div>
       )}
     </div>
   )
 }
+
 

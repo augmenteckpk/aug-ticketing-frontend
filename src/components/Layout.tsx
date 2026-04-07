@@ -1,4 +1,4 @@
-﻿import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet } from 'react-router-dom'
 import {
   LayoutDashboard,
   Calendar,
@@ -75,7 +75,7 @@ const navSections: NavSection[] = [
       {
         to: '/app/queue',
         label: 'Queue & batches',
-        description: 'Ready pool â†’ batches â†’ dispatch',
+        description: 'Ready pool → batches → dispatch',
         perm: 'queue.read',
         icon: Layers,
       },

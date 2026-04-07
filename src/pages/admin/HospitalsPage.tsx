@@ -126,7 +126,7 @@ export function HospitalsPage() {
                         try {
                           await api(`/hospitals/${r.id}`, { method: 'DELETE' })
                           await load()
-                          toastSuccess(`Hospital â€œ${r.name}â€ deleted`)
+                          toastSuccess(`Hospital “${r.name}” deleted`)
                         } catch (err) {
                           toastError(err, 'Could not delete hospital')
                         }
@@ -207,4 +207,5 @@ export function HospitalsPage() {
     </div>
   )
 }
+
 

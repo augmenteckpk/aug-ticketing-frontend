@@ -114,7 +114,7 @@ export function UsersPage() {
               setPassword('')
               setCreateErr({})
               await load()
-              toastSuccess(`User â€œ${createdAs}â€ created`)
+              toastSuccess(`User “${createdAs}” created`)
             } catch (err) {
               toastError(err, 'Could not create user')
             } finally {
@@ -145,7 +145,7 @@ export function UsersPage() {
                 type={showPassword ? 'text' : 'password'}
                 className={`${ui.input} pr-10`}
                 shellClassName={createErr.password ? '!border-red-400 ring-1 ring-red-400' : ''}
-                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                placeholder="••••••••"
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value)
@@ -176,7 +176,7 @@ export function UsersPage() {
             </select>
           </label>
           <button type="submit" className={`${ui.btnPrimary} self-end`} disabled={busy}>
-            {busy ? 'Savingâ€¦' : 'Create user'}
+            {busy ? 'Saving…' : 'Create user'}
           </button>
         </form>
       </div>
@@ -204,10 +204,10 @@ export function UsersPage() {
                   {r.username}
                 </td>
                 <td className={`${ui.td} text-slate-600`} data-label="Email">
-                  {r.email ?? 'â€”'}
+                  {r.email ?? '—'}
                 </td>
                 <td className={`${ui.td} text-slate-600`} data-label="Phone">
-                  {r.phone ?? 'â€”'}
+                  {r.phone ?? '—'}
                 </td>
                 <td className={ui.td} data-label="Role">
                   <span className={ui.badge}>{r.role}</span>
@@ -233,7 +233,7 @@ export function UsersPage() {
                       try {
                         await api(`/users/${r.id}`, { method: 'DELETE' })
                         await load()
-                        toastSuccess(`User â€œ${r.username}â€ deleted`)
+                        toastSuccess(`User “${r.username}” deleted`)
                       } catch (err) {
                         toastError(err, 'Could not delete user')
                       } finally {
@@ -367,4 +367,5 @@ export function UsersPage() {
     </div>
   )
 }
+
 

@@ -299,7 +299,7 @@ export function PatientsListPage() {
               <FieldError message={addErr.phone} />
             </label>
             <button type="submit" className={`${ui.btnPrimary} self-end`} disabled={creating}>
-              {creating ? 'Savingâ€¦' : 'Create'}
+              {creating ? 'Saving…' : 'Create'}
             </button>
           </form>
         </div>
@@ -315,7 +315,7 @@ export function PatientsListPage() {
             className={ui.input}
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Type to filterâ€¦"
+            placeholder="Type to filter…"
             aria-label="Filter patients"
           />
         </label>
@@ -344,9 +344,9 @@ export function PatientsListPage() {
                 <td className={ui.td}>{p.id}</td>
                 <td className={`${ui.td} font-medium text-slate-900`}>{displayName(p)}</td>
                 <td className={`${ui.td} font-mono text-xs`}>{p.cnic}</td>
-                <td className={`${ui.td} font-mono text-xs`}>{p.phone ?? 'â€”'}</td>
-                <td className={ui.td}>{p.city ?? 'â€”'}</td>
-                <td className={`${ui.td} font-mono text-xs`}>{p.medical_record_number ?? 'â€”'}</td>
+                <td className={`${ui.td} font-mono text-xs`}>{p.phone ?? '—'}</td>
+                <td className={ui.td}>{p.city ?? '—'}</td>
+                <td className={`${ui.td} font-mono text-xs`}>{p.medical_record_number ?? '—'}</td>
                 <td className={ui.td}>
                   <span className={ui.badge}>{p.status}</span>
                 </td>
@@ -372,4 +372,5 @@ export function PatientsListPage() {
     </div>
   )
 }
+
 

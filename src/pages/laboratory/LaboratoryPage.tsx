@@ -79,7 +79,7 @@ export function LaboratoryPage() {
       setUploadOrderId(null)
       setSummary('')
       setDetails('')
-      toastSuccess('Result uploaded â€” visible to clinical staff.')
+      toastSuccess('Result uploaded — visible to clinical staff.')
       await load()
     } catch (e) {
       toastError(e, 'Could not upload result')
@@ -125,7 +125,7 @@ export function LaboratoryPage() {
           <select className={ui.select} value={centerId} onChange={(e) => setCenterId(Number(e.target.value))}>
             {centers.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.hospital_name} â€” {c.name}
+                {c.hospital_name} — {c.name}
               </option>
             ))}
           </select>
@@ -163,12 +163,12 @@ export function LaboratoryPage() {
               <tr key={r.order_id} className={ui.trHover}>
                 <td className={ui.td}>#{r.order_id}</td>
                 <td className={ui.td}>{r.token_number}</td>
-                <td className={`${ui.td} font-mono text-xs`}>{r.w_number ?? 'â€”'}</td>
+                <td className={`${ui.td} font-mono text-xs`}>{r.w_number ?? '—'}</td>
                 <td className={ui.td}>
-                  {[r.first_name, r.last_name].filter(Boolean).join(' ') || 'â€”'}
+                  {[r.first_name, r.last_name].filter(Boolean).join(' ') || '—'}
                   <div className="font-mono text-xs text-slate-500">{r.cnic ?? ''}</div>
                 </td>
-                <td className={ui.td}>{r.test_code ?? 'â€”'}</td>
+                <td className={ui.td}>{r.test_code ?? '—'}</td>
                 <td className={`${ui.td} capitalize`}>{r.order_status}</td>
                 {can('lab.manage') ? (
                   <td className={`${ui.td} text-right`}>
@@ -205,7 +205,7 @@ export function LaboratoryPage() {
           onClick={(e) => e.target === e.currentTarget && setUploadOrderId(null)}
         >
           <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-xl" role="dialog">
-            <h2 className="text-lg font-semibold text-slate-900">Upload result â€” order #{uploadOrderId}</h2>
+            <h2 className="text-lg font-semibold text-slate-900">Upload result — order #{uploadOrderId}</h2>
             <form className="mt-4 space-y-3" onSubmit={(e) => void submitResult(e)}>
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
                 Summary
@@ -220,7 +220,7 @@ export function LaboratoryPage() {
                   Cancel
                 </button>
                 <button type="submit" className={ui.btnPrimary} disabled={busy}>
-                  {busy ? 'Savingâ€¦' : 'Save result'}
+                  {busy ? 'Saving…' : 'Save result'}
                 </button>
               </div>
             </form>
@@ -230,4 +230,5 @@ export function LaboratoryPage() {
     </div>
   )
 }
+
 

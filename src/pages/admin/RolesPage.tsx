@@ -178,7 +178,7 @@ export function RolesPage() {
                         {r.name.replace(/_/g, ' ')}
                       </span>
                     </td>
-                    <td className={`${ui.td} text-slate-600`}>{r.description ?? 'â€”'}</td>
+                    <td className={`${ui.td} text-slate-600`}>{r.description ?? '—'}</td>
                     <td className={`${ui.td} text-right tabular-nums text-slate-700`}>{r.permissions.length}</td>
                     {canManage ? (
                       <td className={`${ui.td} text-right`}>
@@ -201,7 +201,7 @@ export function RolesPage() {
                             try {
                               await api(`/rbac/roles/${r.id}`, { method: 'DELETE' })
                               await load()
-                              toastSuccess(`Role â€œ${r.name}â€ deleted`)
+                              toastSuccess(`Role “${r.name}” deleted`)
                             } catch (err) {
                               toastError(err, 'Could not delete role')
                             }
@@ -315,4 +315,5 @@ export function RolesPage() {
     </div>
   )
 }
+
 

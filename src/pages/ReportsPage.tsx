@@ -131,7 +131,7 @@ export function ReportsPage() {
             <option value="">All centers</option>
             {centers.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.hospital_name} â€” {c.name}
+                {c.hospital_name} — {c.name}
               </option>
             ))}
           </select>
@@ -383,7 +383,7 @@ export function ReportsPage() {
                         <div className="font-medium text-slate-900">{v.center_name}</div>
                         <div className="text-xs text-slate-500">{v.hospital_name}</div>
                       </td>
-                      <td className={ui.td}>{v.department_name ?? 'â€”'}</td>
+                      <td className={ui.td}>{v.department_name ?? '—'}</td>
                       <td className={ui.td}>{v.appointment_date}</td>
                       <td className={ui.td}>
                         <span className={ui.badge}>{v.status.replace('_', ' ')}</span>
@@ -425,4 +425,5 @@ export function ReportsPage() {
     </div>
   )
 }
+
 

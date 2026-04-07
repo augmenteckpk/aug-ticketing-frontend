@@ -66,7 +66,7 @@ export function pakistanCnic13(v: string): VResult {
   return { ok: true };
 }
 
-/** Lookup: 5–13 digits; if exactly 13 and separators present, enforce #####-#######-#. */
+/** Lookup: 5-13 digits; if exactly 13 and separators present, enforce #####-#######-#. */
 export function cnicLookupMin(v: string): VResult {
   const t = v.trim();
   const d = t.replace(/\D/g, '');
@@ -91,7 +91,7 @@ export function optionalGuardianCnicDigits(v: string): VResult {
   return { ok: true };
 }
 
-/** Staff create / walk-in: 5–20 digits per API; enforce #####-#######-# when 13 with separators. */
+/** Staff create / walk-in: 5-20 digits per API; enforce #####-#######-# when 13 with separators. */
 export function staffPatientCnic(v: string): VResult {
   const t = v.trim();
   if (!t) return { ok: false, message: 'CNIC is required.' };
@@ -225,3 +225,4 @@ export function firstError(...results: VResult[]): string | undefined {
   }
   return undefined;
 }
+

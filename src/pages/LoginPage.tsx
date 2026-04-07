@@ -70,7 +70,7 @@ export function LoginPage() {
           </div>
           <h1 className="mt-5 text-2xl font-semibold tracking-tight text-slate-900">Staff sign in</h1>
           <p className="mt-2 max-w-sm text-sm leading-relaxed text-slate-600">
-            OPD queue management â€” sign in to access the console.
+            OPD queue management — sign in to access the console.
           </p>
         </div>
 
@@ -112,7 +112,7 @@ export function LoginPage() {
                 if (fieldErr.password) setFieldErr((f) => ({ ...f, password: undefined }))
               }}
               autoComplete="current-password"
-              placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+              placeholder="••••••••"
               aria-invalid={fieldErr.password ? true : undefined}
               aria-describedby={fieldErr.password ? 'login-password-err' : undefined}
             />
@@ -136,8 +136,8 @@ export function LoginPage() {
         </button>
 
         <p className="mt-6 text-center text-xs leading-relaxed text-slate-500">
-          Demo: <span className="text-slate-700">admin / Admin@123</span> Â· greeter/Greeter@123 Â· clerk/Clerk@123 Â·
-          coordinator/Coordinator@123 Â· physician/Physician@123 Â· labtech/LabTech@123
+          Demo: <span className="text-slate-700">admin / Admin@123</span> · greeter/Greeter@123 · clerk/Clerk@123 ·
+          coordinator/Coordinator@123 · physician/Physician@123 · labtech/LabTech@123
         </p>
         <p className="mt-3 text-center text-xs">
           <Link
@@ -151,4 +151,5 @@ export function LoginPage() {
     </div>
   )
 }
+
 

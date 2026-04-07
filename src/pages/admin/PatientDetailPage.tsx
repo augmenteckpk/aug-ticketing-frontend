@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, UserCircle2, RefreshCw, Pencil, Trash2 } from 'lucide-react'
 import { SpeechInput } from '../../components/speech'
@@ -32,7 +32,7 @@ type VisitRow = {
 }
 
 function formatTs(iso?: string | null) {
-  if (!iso) return 'â€”'
+  if (!iso) return '—'
   try {
     return new Date(iso).toLocaleString(undefined, {
       dateStyle: 'medium',
@@ -44,7 +44,7 @@ function formatTs(iso?: string | null) {
 }
 
 function formatDob(d: string | null | undefined) {
-  if (!d) return 'â€”'
+  if (!d) return '—'
   const s = String(d).slice(0, 10)
   return s.length === 10 ? s : String(d)
 }
@@ -147,9 +147,9 @@ export function PatientDetailPage() {
     return (
       <p className={`${ui.muted} ${ui.page}`}>
         <Link to="/app/patients" className="text-red-700 hover:underline">
-          â† Patients
+          ← Patients
         </Link>
-        <span className="mt-4 block">Loadingâ€¦</span>
+        <span className="mt-4 block">Loading…</span>
       </p>
     )
   }
@@ -240,23 +240,23 @@ export function PatientDetailPage() {
             </div>
             <div className="grid grid-cols-[8.5rem_1fr] gap-2 border-b border-slate-50 pb-2">
               <dt className={ui.muted}>Father&apos;s name</dt>
-              <dd>{patient.father_name ?? 'â€”'}</dd>
+              <dd>{patient.father_name ?? '—'}</dd>
             </div>
             <div className="grid grid-cols-[8.5rem_1fr] gap-2 border-b border-slate-50 pb-2">
               <dt className={ui.muted}>Father CNIC</dt>
-              <dd className="font-mono text-xs">{patient.father_cnic ?? 'â€”'}</dd>
+              <dd className="font-mono text-xs">{patient.father_cnic ?? '—'}</dd>
             </div>
             <div className="grid grid-cols-[8.5rem_1fr] gap-2 border-b border-slate-50 pb-2">
               <dt className={ui.muted}>Mother CNIC</dt>
-              <dd className="font-mono text-xs">{patient.mother_cnic ?? 'â€”'}</dd>
+              <dd className="font-mono text-xs">{patient.mother_cnic ?? '—'}</dd>
             </div>
             <div className="grid grid-cols-[8.5rem_1fr] gap-2 border-b border-slate-50 pb-2">
               <dt className={ui.muted}>Phone</dt>
-              <dd className="font-mono">{patient.phone ?? 'â€”'}</dd>
+              <dd className="font-mono">{patient.phone ?? '—'}</dd>
             </div>
             <div className="grid grid-cols-[8.5rem_1fr] gap-2 border-b border-slate-50 pb-2">
               <dt className={ui.muted}>Gender</dt>
-              <dd>{patient.gender ?? 'â€”'}</dd>
+              <dd>{patient.gender ?? '—'}</dd>
             </div>
             <div className="grid grid-cols-[8.5rem_1fr] gap-2 border-b border-slate-50 pb-2">
               <dt className={ui.muted}>Date of birth</dt>
@@ -264,11 +264,11 @@ export function PatientDetailPage() {
             </div>
             <div className="grid grid-cols-[8.5rem_1fr] gap-2 border-b border-slate-50 pb-2">
               <dt className={ui.muted}>Address</dt>
-              <dd className="whitespace-pre-wrap">{patient.address ?? 'â€”'}</dd>
+              <dd className="whitespace-pre-wrap">{patient.address ?? '—'}</dd>
             </div>
             <div className="grid grid-cols-[8.5rem_1fr] gap-2 border-b border-slate-50 pb-2">
               <dt className={ui.muted}>City</dt>
-              <dd>{patient.city ?? 'â€”'}</dd>
+              <dd>{patient.city ?? '—'}</dd>
             </div>
           </dl>
         </div>
@@ -278,7 +278,7 @@ export function PatientDetailPage() {
           <dl className="mt-4 grid gap-3 text-sm">
             <div className="grid grid-cols-[8.5rem_1fr] gap-2 border-b border-slate-50 pb-2">
               <dt className={ui.muted}>MRN</dt>
-              <dd className="font-mono">{patient.medical_record_number ?? 'â€”'}</dd>
+              <dd className="font-mono">{patient.medical_record_number ?? '—'}</dd>
             </div>
             <div className="grid grid-cols-[8.5rem_1fr] gap-2 border-b border-slate-50 pb-2">
               <dt className={ui.muted}>Language</dt>
@@ -326,9 +326,9 @@ export function PatientDetailPage() {
                   <td className={ui.td}>{v.id}</td>
                   <td className={`${ui.td} font-mono text-xs`}>{String(v.appointment_date).slice(0, 10)}</td>
                   <td className={ui.td}>{v.token_number}</td>
-                  <td className={`${ui.td} font-mono text-xs`}>{v.w_number ?? 'â€”'}</td>
-                  <td className={ui.td}>{v.center_name ?? 'â€”'}</td>
-                  <td className={ui.td}>{v.department_name ?? 'â€”'}</td>
+                  <td className={`${ui.td} font-mono text-xs`}>{v.w_number ?? '—'}</td>
+                  <td className={ui.td}>{v.center_name ?? '—'}</td>
+                  <td className={ui.td}>{v.department_name ?? '—'}</td>
                   <td className={ui.td}>
                     <span className={ui.badge}>{v.status}</span>
                   </td>
@@ -621,7 +621,7 @@ export function PatientDetailPage() {
                   Cancel
                 </button>
                 <button type="submit" className={ui.btnPrimary} disabled={saving}>
-                  {saving ? 'Savingâ€¦' : 'Save'}
+                  {saving ? 'Saving…' : 'Save'}
                 </button>
               </div>
             </form>
@@ -631,4 +631,5 @@ export function PatientDetailPage() {
     </div>
   )
 }
+
 

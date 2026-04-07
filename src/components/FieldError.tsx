@@ -1,4 +1,4 @@
-type Props = {
+﻿type Props = {
   message?: string | null;
   id?: string;
 }
@@ -14,3 +14,4 @@ export function FieldError({ message, id }: Props) {
 
 /** Border/ring for invalid inputs — add next to ui.input */
 export const invalidInputClass = 'border-red-400 focus:border-red-500 focus:ring-red-500/20'
+

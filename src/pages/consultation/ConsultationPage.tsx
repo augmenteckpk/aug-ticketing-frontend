@@ -43,7 +43,7 @@ function today() {
 }
 
 const OUTCOMES = [
-  { value: '', label: 'â€” Select â€”' },
+  { value: '', label: '— Select —' },
   { value: 'medication_only', label: 'Medication only' },
   { value: 'lab_required', label: 'Lab tests required' },
   { value: 'follow_up', label: 'Follow-up appointment' },
@@ -180,9 +180,9 @@ export function ConsultationPage() {
           <h1 className={`mt-2 ${ui.h1}`}>Consultation</h1>
           <p className={`mt-1 text-sm ${ui.muted}`}>
             <strong>Dispatched</strong> visits are active with the doctor. <strong>Completed</strong> visits already
-            passed reception closing â€” they stay listed so you can review or add notes. Record outcome and clinical notes;
+            passed reception closing — they stay listed so you can review or add notes. Record outcome and clinical notes;
             order labs when needed. For <strong>follow-up</strong>, enter the <strong>advised date</strong> only.{' '}
-            <strong>Reception must record a consultation outcome here before using â€œCompleteâ€ on Appointments.</strong>
+            <strong>Reception must record a consultation outcome here before using “Complete” on Appointments.</strong>
           </p>
         </div>
         <button
@@ -205,7 +205,7 @@ export function ConsultationPage() {
           <select className={ui.select} value={centerId} onChange={(e) => setCenterId(Number(e.target.value))}>
             {centers.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.hospital_name} â€” {c.name}
+                {c.hospital_name} — {c.name}
               </option>
             ))}
           </select>
@@ -235,10 +235,10 @@ export function ConsultationPage() {
             {rows.map((r) => (
               <tr key={r.id} className={ui.trHover}>
                 <td className={ui.td}>{r.token_number}</td>
-                <td className={`${ui.td} font-mono text-xs`}>{r.w_number ?? 'â€”'}</td>
+                <td className={`${ui.td} font-mono text-xs`}>{r.w_number ?? '—'}</td>
                 <td className={ui.td}>{r.patient_name ?? `Patient #${r.patient_id}`}</td>
-                <td className={`${ui.td} font-mono text-xs`}>{r.patient_cnic ?? 'â€”'}</td>
-                <td className={ui.td}>{r.department_name ?? 'â€”'}</td>
+                <td className={`${ui.td} font-mono text-xs`}>{r.patient_cnic ?? '—'}</td>
+                <td className={ui.td}>{r.department_name ?? '—'}</td>
                 <td className={`${ui.td} text-xs`}>
                   <span
                     className={
@@ -251,10 +251,10 @@ export function ConsultationPage() {
                   </span>
                 </td>
                 <td className={`${ui.td} text-xs capitalize`}>
-                  {r.consultation_outcome ? r.consultation_outcome.replace(/_/g, ' ') : 'â€”'}
+                  {r.consultation_outcome ? r.consultation_outcome.replace(/_/g, ' ') : '—'}
                 </td>
                 <td className={`${ui.td} font-mono text-xs`}>
-                  {r.follow_up_advised_date ? String(r.follow_up_advised_date).slice(0, 10) : 'â€”'}
+                  {r.follow_up_advised_date ? String(r.follow_up_advised_date).slice(0, 10) : '—'}
                 </td>
                 <td className={`${ui.td} text-right`}>
                   <button type="button" className={`${ui.btnPrimary} py-1.5 text-xs`} onClick={() => openRow(r)}>
@@ -283,18 +283,18 @@ export function ConsultationPage() {
             role="dialog"
           >
             <h2 className="text-lg font-semibold text-slate-900">
-              Visit â€” token #{sel.token_number} Â· W {sel.w_number ?? 'â€”'}
+              Visit — token #{sel.token_number} · W {sel.w_number ?? '—'}
             </h2>
             <p className={`mt-1 text-xs ${ui.muted}`}>Pre-assessment snapshot (read-only)</p>
             <div className="mt-2 grid gap-2 rounded-lg border border-slate-100 bg-slate-50 p-3 text-xs text-slate-700 sm:grid-cols-2">
               <div>
-                BP: {sel.bp_systolic ?? 'â€”'} / {sel.bp_diastolic ?? 'â€”'}
+                BP: {sel.bp_systolic ?? '—'} / {sel.bp_diastolic ?? '—'}
               </div>
-              <div>Weight: {sel.weight_kg ?? 'â€”'} kg</div>
-              <div>Height: {sel.height_cm ?? 'â€”'} cm</div>
-              <div>Sugar: {sel.blood_sugar_mg_dl ?? 'â€”'} mg/dL</div>
-              <div>Symptoms: {sel.symptoms ?? 'â€”'}</div>
-              <div className="sm:col-span-2">History: {sel.medical_history_notes ?? 'â€”'}</div>
+              <div>Weight: {sel.weight_kg ?? '—'} kg</div>
+              <div>Height: {sel.height_cm ?? '—'} cm</div>
+              <div>Sugar: {sel.blood_sugar_mg_dl ?? '—'} mg/dL</div>
+              <div>Symptoms: {sel.symptoms ?? '—'}</div>
+              <div className="sm:col-span-2">History: {sel.medical_history_notes ?? '—'}</div>
             </div>
 
             <form className="mt-4 space-y-3 border-t border-slate-100 pt-4" onSubmit={(e) => void saveConsultation(e)}>
@@ -343,7 +343,7 @@ export function ConsultationPage() {
                   Close
                 </button>
                 <button type="submit" className={ui.btnPrimary} disabled={busy}>
-                  {busy ? 'Savingâ€¦' : 'Save consultation'}
+                  {busy ? 'Saving…' : 'Save consultation'}
                 </button>
               </div>
             </form>
@@ -355,7 +355,7 @@ export function ConsultationPage() {
                   {labOrders.length ? (
                     labOrders.map((lo) => (
                       <li key={lo.id} className="rounded border border-slate-100 bg-slate-50 px-3 py-2 text-slate-800">
-                        <span className="font-medium">Order #{lo.id}</span> Â· {lo.test_code ?? 'General'} Â·{' '}
+                        <span className="font-medium">Order #{lo.id}</span> · {lo.test_code ?? 'General'} ·{' '}
                         <span className="capitalize">{lo.status}</span>
                         {lo.result?.summary ? (
                           <div className="mt-1 text-slate-600">Result: {lo.result.summary}</div>
@@ -383,7 +383,7 @@ export function ConsultationPage() {
                     </label>
                     <div className="sm:col-span-2">
                       <button type="submit" className={ui.btnSecondary} disabled={labBusy}>
-                        {labBusy ? 'Orderingâ€¦' : 'Add lab order'}
+                        {labBusy ? 'Ordering…' : 'Add lab order'}
                       </button>
                     </div>
                   </form>
@@ -396,4 +396,5 @@ export function ConsultationPage() {
     </div>
   )
 }
+
 

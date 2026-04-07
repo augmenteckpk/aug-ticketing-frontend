@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { RefreshCw, CheckCircle, TicketPlus, X } from 'lucide-react'
 import { SpeechInput } from '../../components/speech'
 import { api } from '../../api/client'
@@ -678,3 +678,4 @@ export function AppointmentsPage() {
     </div>
   )
 }
+

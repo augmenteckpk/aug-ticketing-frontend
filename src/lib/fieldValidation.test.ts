@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+﻿import { describe, expect, it } from 'vitest'
 import {
   appointmentDateYmd,
   cnicLookupMin,
@@ -40,7 +40,7 @@ describe('fieldValidation — positive cases', () => {
   })
   it('names email phone', () => {
     expect(firstNameRequired('Ali').ok).toBe(true)
-    expect(firstNameRequired('Müller').ok).toBe(true)
+    expect(firstNameRequired('MÃ¼ller').ok).toBe(true)
     expect(optionalEmail('a@b.co').ok).toBe(true)
     expect(optionalEmail('').ok).toBe(true)
     expect(optionalPhone('+92 300 1234567').ok).toBe(true)
@@ -86,3 +86,4 @@ describe('fieldValidation — negative cases', () => {
     expect(optionalPhone('12345').ok).toBe(false)
   })
 })
+

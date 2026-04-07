@@ -5,7 +5,7 @@ import { todayLocalYmd } from '../../utils/dateYmd'
 
 const API_BASE = (import.meta.env.VITE_API_URL ?? 'http://localhost:3001').replace(/\/$/, '')
 
-/** اردو — انتظار گاہ LED اسکرین */
+/** Urdu waiting-area LED screen labels */
 const t = {
   displayEyebrow: 'او پی ڈی · انتظار کی اسکرین',
   displayTitle: 'موجودہ قطار اور گروپ',
@@ -372,4 +372,5 @@ export function WaitingBoardPage() {
     </div>
   )
 }
+
 

@@ -176,7 +176,7 @@ export function RegistrationPage() {
       })
       setLookup(null)
       setCnic('')
-      toastSuccess('Registration saved. W number assigned â€” patient can proceed to pre-assessment.')
+      toastSuccess('Registration saved. W number assigned — patient can proceed to pre-assessment.')
     } catch (e) {
       toastError(e, 'Registration failed')
     } finally {
@@ -224,7 +224,7 @@ export function RegistrationPage() {
           >
             {centers.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.hospital_name} â€” {c.name}
+                {c.hospital_name} — {c.name}
               </option>
             ))}
           </select>
@@ -246,7 +246,7 @@ export function RegistrationPage() {
         </label>
         <button type="submit" className={`${ui.btnPrimary} w-full`} disabled={busy}>
           <Search className="size-4" strokeWidth={2} aria-hidden />
-          {busy ? 'Searchingâ€¦' : 'Find booked token'}
+          {busy ? 'Searching…' : 'Find booked token'}
         </button>
       </form>
 
@@ -254,8 +254,8 @@ export function RegistrationPage() {
         <form onSubmit={doRegister} className={`${ui.card} space-y-4 border-red-200`}>
           <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-900">
             <strong>Token #{lookup.appointment.token_number}</strong>
-            {lookup.appointment.visit_type ? ` Â· ${lookup.appointment.visit_type.replace('_', ' ')}` : ''}
-            {lookup.appointment.department_name ? ` Â· Dept: ${lookup.appointment.department_name}` : ''}
+            {lookup.appointment.visit_type ? ` · ${lookup.appointment.visit_type.replace('_', ' ')}` : ''}
+            {lookup.appointment.department_name ? ` · Dept: ${lookup.appointment.department_name}` : ''}
           </div>
           <h2 className="text-sm font-semibold text-slate-800">Demographics & visit record</h2>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -300,7 +300,7 @@ export function RegistrationPage() {
               <FieldError message={regErr.father_name} />
             </label>
             <div className="sm:col-span-2 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-3">
-              <p className="text-xs font-medium text-slate-700">Guardian CNIC (optional â€” e.g. minors)</p>
+              <p className="text-xs font-medium text-slate-700">Guardian CNIC (optional — e.g. minors)</p>
               <p className={`mt-0.5 text-xs ${ui.muted}`}>Digits only; at least one may be recorded for dependents.</p>
               <div className="mt-2 grid gap-3 sm:grid-cols-2">
                 <label className="block text-sm font-medium text-slate-700">
@@ -403,7 +403,7 @@ export function RegistrationPage() {
               <FieldError message={regErr.city} />
             </label>
             <label className="block text-sm font-medium text-slate-700 sm:col-span-2">
-              MRN (optional â€” long-term chart)
+              MRN (optional — long-term chart)
               <SpeechInput
                 shellClassName={regErr.medical_record_number ? '!border-red-400 ring-1 ring-red-400' : ''}
                 className={`${ui.input} mt-1.5 w-full`}
@@ -424,4 +424,5 @@ export function RegistrationPage() {
     </div>
   )
 }
+
 

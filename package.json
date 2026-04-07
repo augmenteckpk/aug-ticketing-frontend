@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "node ./node_modules/vite/bin/vite.js",
-    "build": "tsc -b && node ./node_modules/vite/bin/vite.js build",
+    "build": "node ./scripts/check-mojibake.mjs && tsc -b && node ./node_modules/vite/bin/vite.js build",
+    "check:encoding": "node ./scripts/check-mojibake.mjs",
     "lint": "eslint .",
     "preview": "node ./node_modules/vite/bin/vite.js preview",
     "test": "vitest run",

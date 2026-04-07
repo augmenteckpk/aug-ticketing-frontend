@@ -1,4 +1,4 @@
-const API_BASE = (import.meta.env.VITE_API_URL ?? 'http://localhost:3001').replace(/\/$/, '')
+﻿const API_BASE = (import.meta.env.VITE_API_URL ?? 'http://localhost:3001').replace(/\/$/, '')
 
 const TOKEN_KEY = 'opd_token'
 
@@ -77,3 +77,4 @@ export type LoginResponse = {
     patient_id: number | null
   }
 }
+
