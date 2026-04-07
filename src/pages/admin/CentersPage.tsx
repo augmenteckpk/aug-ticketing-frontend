@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { MapPin, Pencil, Plus, RefreshCw, UserCircle2 } from 'lucide-react'
 import { SpeechInput } from '../../components/speech'
@@ -120,7 +120,7 @@ export function CentersPage() {
       {can('centers.manage') ? (
         <div className={ui.card}>
           <div className="mb-4 flex items-center gap-2 text-slate-900">
-            <Plus className="size-5 text-cyan-600" strokeWidth={2} aria-hidden />
+            <Plus className="size-5 text-red-600" strokeWidth={2} aria-hidden />
             <h2 className="text-lg font-semibold">Add center</h2>
           </div>
           <form
@@ -199,12 +199,12 @@ export function CentersPage() {
                 <td className={`${ui.td} text-slate-700`}>{r.hospital_name ?? `Hospital #${r.hospital_id}`}</td>
                 <td className={`${ui.td} font-medium text-slate-900`}>
                   <span className="inline-flex items-center gap-2">
-                    <MapPin className="size-4 text-cyan-600" strokeWidth={2} aria-hidden />
+                    <MapPin className="size-4 text-red-600" strokeWidth={2} aria-hidden />
                     {r.name}
                   </span>
                 </td>
                 <td className={`${ui.td} text-slate-600`}>{r.city}</td>
-                <td className={`${ui.td} text-slate-600`}>{r.address ?? '—'}</td>
+                <td className={`${ui.td} text-slate-600`}>{r.address ?? 'â€”'}</td>
                 <td className={ui.td}>
                   <span className={r.status === 'Active' ? ui.badgeOk : ui.badge}>{r.status}</span>
                 </td>
@@ -233,7 +233,7 @@ export function CentersPage() {
                         try {
                           await api(`/centers/${r.id}`, { method: 'DELETE' })
                           await load()
-                          toastSuccess(`Center “${r.name}” deleted`)
+                          toastSuccess(`Center â€œ${r.name}â€ deleted`)
                         } catch (err) {
                           toastError(err, 'Could not delete center')
                         }
@@ -252,7 +252,7 @@ export function CentersPage() {
 
       {can('centers.manage') ? (
         <div className={ui.card}>
-          <h2 className="text-lg font-semibold text-slate-900">Weekday → department routing</h2>
+          <h2 className="text-lg font-semibold text-slate-900">Weekday â†’ department routing</h2>
           <p className={`mt-1 text-sm ${ui.muted}`}>
             On registration, the visit&apos;s department is set from the visit date&apos;s weekday. Used for day-based
             OPD allocation.
@@ -267,7 +267,7 @@ export function CentersPage() {
               <option value="">Select</option>
               {rows.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name} — {c.city}
+                  {c.name} â€” {c.city}
                 </option>
               ))}
             </select>
@@ -287,7 +287,7 @@ export function CentersPage() {
                       }))
                     }
                   >
-                    <option value="">— None —</option>
+                    <option value="">â€” None â€”</option>
                     {departments.map((d) => (
                       <option key={d.id} value={d.id}>
                         {d.name}
@@ -388,3 +388,4 @@ export function CentersPage() {
     </div>
   )
 }
+

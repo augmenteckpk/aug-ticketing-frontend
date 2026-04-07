@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { Building2, Pencil, Plus, RefreshCw } from 'lucide-react'
 import { SpeechInput } from '../../components/speech'
 import { api } from '../../api/client'
@@ -52,7 +52,7 @@ export function HospitalsPage() {
       {can('hospitals.manage') ? (
         <div className={ui.card}>
           <div className="mb-4 flex items-center gap-2 text-slate-900">
-            <Plus className="size-5 text-cyan-600" strokeWidth={2} aria-hidden />
+            <Plus className="size-5 text-red-600" strokeWidth={2} aria-hidden />
             <h2 className="text-lg font-semibold">Add hospital</h2>
           </div>
           <form
@@ -126,7 +126,7 @@ export function HospitalsPage() {
                         try {
                           await api(`/hospitals/${r.id}`, { method: 'DELETE' })
                           await load()
-                          toastSuccess(`Hospital “${r.name}” deleted`)
+                          toastSuccess(`Hospital â€œ${r.name}â€ deleted`)
                         } catch (err) {
                           toastError(err, 'Could not delete hospital')
                         }
@@ -207,3 +207,4 @@ export function HospitalsPage() {
     </div>
   )
 }
+

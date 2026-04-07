@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, UserCircle2, RefreshCw, Pencil, Trash2 } from 'lucide-react'
 import { SpeechInput } from '../../components/speech'
@@ -32,7 +32,7 @@ type VisitRow = {
 }
 
 function formatTs(iso?: string | null) {
-  if (!iso) return '—'
+  if (!iso) return 'â€”'
   try {
     return new Date(iso).toLocaleString(undefined, {
       dateStyle: 'medium',
@@ -44,7 +44,7 @@ function formatTs(iso?: string | null) {
 }
 
 function formatDob(d: string | null | undefined) {
-  if (!d) return '—'
+  if (!d) return 'â€”'
   const s = String(d).slice(0, 10)
   return s.length === 10 ? s : String(d)
 }
@@ -146,10 +146,10 @@ export function PatientDetailPage() {
   if (loading) {
     return (
       <p className={`${ui.muted} ${ui.page}`}>
-        <Link to="/app/patients" className="text-cyan-700 hover:underline">
-          ← Patients
+        <Link to="/app/patients" className="text-red-700 hover:underline">
+          â† Patients
         </Link>
-        <span className="mt-4 block">Loading…</span>
+        <span className="mt-4 block">Loadingâ€¦</span>
       </p>
     )
   }
@@ -174,12 +174,12 @@ export function PatientDetailPage() {
         <div>
           <Link
             to="/app/patients"
-            className={`mb-3 inline-flex items-center gap-2 text-sm font-medium text-cyan-700 hover:text-cyan-800`}
+            className={`mb-3 inline-flex items-center gap-2 text-sm font-medium text-red-700 hover:text-red-800`}
           >
             <ArrowLeft className="size-4" strokeWidth={2} aria-hidden />
             All patients
           </Link>
-          <div className="flex items-center gap-2 text-cyan-700">
+          <div className="flex items-center gap-2 text-red-700">
             <UserCircle2 className="size-7" strokeWidth={2} aria-hidden />
           </div>
           <h1 className={`mt-2 ${ui.h1}`}>
@@ -240,23 +240,23 @@ export function PatientDetailPage() {
             </div>
             <div className="grid grid-cols-[8.5rem_1fr] gap-2 border-b border-slate-50 pb-2">
               <dt className={ui.muted}>Father&apos;s name</dt>
-              <dd>{patient.father_name ?? '—'}</dd>
+              <dd>{patient.father_name ?? 'â€”'}</dd>
             </div>
             <div className="grid grid-cols-[8.5rem_1fr] gap-2 border-b border-slate-50 pb-2">
               <dt className={ui.muted}>Father CNIC</dt>
-              <dd className="font-mono text-xs">{patient.father_cnic ?? '—'}</dd>
+              <dd className="font-mono text-xs">{patient.father_cnic ?? 'â€”'}</dd>
             </div>
             <div className="grid grid-cols-[8.5rem_1fr] gap-2 border-b border-slate-50 pb-2">
               <dt className={ui.muted}>Mother CNIC</dt>
-              <dd className="font-mono text-xs">{patient.mother_cnic ?? '—'}</dd>
+              <dd className="font-mono text-xs">{patient.mother_cnic ?? 'â€”'}</dd>
             </div>
             <div className="grid grid-cols-[8.5rem_1fr] gap-2 border-b border-slate-50 pb-2">
               <dt className={ui.muted}>Phone</dt>
-              <dd className="font-mono">{patient.phone ?? '—'}</dd>
+              <dd className="font-mono">{patient.phone ?? 'â€”'}</dd>
             </div>
             <div className="grid grid-cols-[8.5rem_1fr] gap-2 border-b border-slate-50 pb-2">
               <dt className={ui.muted}>Gender</dt>
-              <dd>{patient.gender ?? '—'}</dd>
+              <dd>{patient.gender ?? 'â€”'}</dd>
             </div>
             <div className="grid grid-cols-[8.5rem_1fr] gap-2 border-b border-slate-50 pb-2">
               <dt className={ui.muted}>Date of birth</dt>
@@ -264,11 +264,11 @@ export function PatientDetailPage() {
             </div>
             <div className="grid grid-cols-[8.5rem_1fr] gap-2 border-b border-slate-50 pb-2">
               <dt className={ui.muted}>Address</dt>
-              <dd className="whitespace-pre-wrap">{patient.address ?? '—'}</dd>
+              <dd className="whitespace-pre-wrap">{patient.address ?? 'â€”'}</dd>
             </div>
             <div className="grid grid-cols-[8.5rem_1fr] gap-2 border-b border-slate-50 pb-2">
               <dt className={ui.muted}>City</dt>
-              <dd>{patient.city ?? '—'}</dd>
+              <dd>{patient.city ?? 'â€”'}</dd>
             </div>
           </dl>
         </div>
@@ -278,7 +278,7 @@ export function PatientDetailPage() {
           <dl className="mt-4 grid gap-3 text-sm">
             <div className="grid grid-cols-[8.5rem_1fr] gap-2 border-b border-slate-50 pb-2">
               <dt className={ui.muted}>MRN</dt>
-              <dd className="font-mono">{patient.medical_record_number ?? '—'}</dd>
+              <dd className="font-mono">{patient.medical_record_number ?? 'â€”'}</dd>
             </div>
             <div className="grid grid-cols-[8.5rem_1fr] gap-2 border-b border-slate-50 pb-2">
               <dt className={ui.muted}>Language</dt>
@@ -326,9 +326,9 @@ export function PatientDetailPage() {
                   <td className={ui.td}>{v.id}</td>
                   <td className={`${ui.td} font-mono text-xs`}>{String(v.appointment_date).slice(0, 10)}</td>
                   <td className={ui.td}>{v.token_number}</td>
-                  <td className={`${ui.td} font-mono text-xs`}>{v.w_number ?? '—'}</td>
-                  <td className={ui.td}>{v.center_name ?? '—'}</td>
-                  <td className={ui.td}>{v.department_name ?? '—'}</td>
+                  <td className={`${ui.td} font-mono text-xs`}>{v.w_number ?? 'â€”'}</td>
+                  <td className={ui.td}>{v.center_name ?? 'â€”'}</td>
+                  <td className={ui.td}>{v.department_name ?? 'â€”'}</td>
                   <td className={ui.td}>
                     <span className={ui.badge}>{v.status}</span>
                   </td>
@@ -621,7 +621,7 @@ export function PatientDetailPage() {
                   Cancel
                 </button>
                 <button type="submit" className={ui.btnPrimary} disabled={saving}>
-                  {saving ? 'Saving…' : 'Save'}
+                  {saving ? 'Savingâ€¦' : 'Save'}
                 </button>
               </div>
             </form>
@@ -631,3 +631,4 @@ export function PatientDetailPage() {
     </div>
   )
 }
+

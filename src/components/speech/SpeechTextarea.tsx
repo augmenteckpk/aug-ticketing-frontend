@@ -1,4 +1,4 @@
-import {
+﻿import {
   type ChangeEvent,
   type ComponentPropsWithoutRef,
   type MutableRefObject,
@@ -11,7 +11,7 @@ import { Mic, MicOff } from 'lucide-react'
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition'
 
 const TEXTAREA_SHELL =
-  'relative w-full min-w-0 overflow-hidden rounded-lg border border-slate-300 bg-white shadow-sm transition-[box-shadow,border-color] focus-within:border-cyan-500 focus-within:ring-1 focus-within:ring-cyan-500'
+  'relative w-full min-w-0 overflow-hidden rounded-lg border border-slate-300 bg-white shadow-sm transition-[box-shadow,border-color] focus-within:border-red-500 focus-within:ring-1 focus-within:ring-red-500'
 
 const INNER_TEXTAREA_RESET =
   'block w-full resize-y border-0 bg-transparent px-3 py-2 pr-12 text-sm text-slate-900 shadow-none outline-none ring-0 placeholder:text-slate-400 focus:border-0 focus:ring-0 focus-visible:ring-0 disabled:cursor-not-allowed [color-scheme:inherit]'
@@ -101,9 +101,9 @@ export const SpeechTextarea = forwardRef<HTMLTextAreaElement, SpeechTextareaProp
         onClick={onMicClick}
         className={
           `absolute right-2 top-2 z-[1] flex size-8 items-center justify-center rounded-md border border-slate-200/90 bg-white/95 text-slate-500 shadow-sm ` +
-          `backdrop-blur-[2px] transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-cyan-700 ` +
-          `${isListening ? 'border-cyan-200 bg-cyan-50 text-cyan-700' : ''} ` +
-          `focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-cyan-500`
+          `backdrop-blur-[2px] transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-red-700 ` +
+          `${isListening ? 'border-red-200 bg-red-50 text-red-700' : ''} ` +
+          `focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-red-500`
         }
         aria-label={isListening ? 'Stop dictation' : 'Dictate text'}
         aria-pressed={isListening}
@@ -114,3 +114,4 @@ export const SpeechTextarea = forwardRef<HTMLTextAreaElement, SpeechTextareaProp
     </div>
   )
 })
+

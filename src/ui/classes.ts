@@ -1,4 +1,4 @@
-/** Shared Tailwind class strings for light staff UI */
+﻿/** Shared Tailwind class strings for light staff UI */
 export const ui = {
   page: 'text-slate-900',
   muted: 'text-slate-600',
@@ -9,17 +9,17 @@ export const ui = {
   card: 'rounded-xl border border-slate-200/90 bg-white p-5 shadow-sm shadow-slate-900/5',
   cardMuted: 'rounded-xl border border-slate-200/90 bg-slate-50/90 p-5',
   input:
-    'rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500',
+    'rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500',
   select:
-    'rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500',
+    'rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500',
   btnPrimary:
-    'inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cyan-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600 disabled:opacity-50',
+    'inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-50',
   btnSecondary:
     'inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50',
   btnDanger:
     'inline-flex items-center justify-center rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50',
   btnGhost:
-    'inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-sm font-medium text-cyan-700 hover:bg-cyan-50',
+    'inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50',
   tableWrap: 'overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm',
   th: 'border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600',
   td: 'border-b border-slate-100 px-4 py-3 text-sm text-slate-800',
@@ -32,3 +32,4 @@ export const ui = {
   alertSuccess:
     'rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900',
 } as const
+

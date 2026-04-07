@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+﻿import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { UserCircle2, RefreshCw, Search, Eye, Plus, X } from 'lucide-react'
 import { SpeechInput } from '../../components/speech'
@@ -134,7 +134,7 @@ export function PatientsListPage() {
     <div className={`space-y-8 ${ui.page}`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-cyan-700">
+          <div className="flex items-center gap-2 text-red-700">
             <UserCircle2 className="size-7" strokeWidth={2} aria-hidden />
           </div>
           <h1 className={`mt-2 ${ui.h1}`}>Patients</h1>
@@ -176,7 +176,7 @@ export function PatientsListPage() {
 
       {centerIdFilter != null ? (
         <div
-          className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border border-cyan-200 bg-cyan-50/90 px-4 py-3 text-sm text-cyan-950`}
+          className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50/90 px-4 py-3 text-sm text-red-950`}
         >
           <span>
             Showing patients with at least one OPD visit at{' '}
@@ -193,7 +193,7 @@ export function PatientsListPage() {
         <div className={ui.card}>
           <div className="mb-4 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-slate-900">
-              <Plus className="size-5 text-cyan-600" strokeWidth={2} aria-hidden />
+              <Plus className="size-5 text-red-600" strokeWidth={2} aria-hidden />
               <h2 className="text-lg font-semibold">New patient</h2>
             </div>
             <button type="button" className={ui.btnGhost} onClick={closeAddPanel}>
@@ -299,7 +299,7 @@ export function PatientsListPage() {
               <FieldError message={addErr.phone} />
             </label>
             <button type="submit" className={`${ui.btnPrimary} self-end`} disabled={creating}>
-              {creating ? 'Saving…' : 'Create'}
+              {creating ? 'Savingâ€¦' : 'Create'}
             </button>
           </form>
         </div>
@@ -315,7 +315,7 @@ export function PatientsListPage() {
             className={ui.input}
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Type to filter…"
+            placeholder="Type to filterâ€¦"
             aria-label="Filter patients"
           />
         </label>
@@ -344,9 +344,9 @@ export function PatientsListPage() {
                 <td className={ui.td}>{p.id}</td>
                 <td className={`${ui.td} font-medium text-slate-900`}>{displayName(p)}</td>
                 <td className={`${ui.td} font-mono text-xs`}>{p.cnic}</td>
-                <td className={`${ui.td} font-mono text-xs`}>{p.phone ?? '—'}</td>
-                <td className={ui.td}>{p.city ?? '—'}</td>
-                <td className={`${ui.td} font-mono text-xs`}>{p.medical_record_number ?? '—'}</td>
+                <td className={`${ui.td} font-mono text-xs`}>{p.phone ?? 'â€”'}</td>
+                <td className={ui.td}>{p.city ?? 'â€”'}</td>
+                <td className={`${ui.td} font-mono text-xs`}>{p.medical_record_number ?? 'â€”'}</td>
                 <td className={ui.td}>
                   <span className={ui.badge}>{p.status}</span>
                 </td>
@@ -372,3 +372,4 @@ export function PatientsListPage() {
     </div>
   )
 }
+

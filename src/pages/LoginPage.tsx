@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { Activity, Lock, User, Eye, EyeOff } from 'lucide-react'
 import { SpeechInput } from '../components/speech'
@@ -65,12 +65,12 @@ export function LoginPage() {
         className="relative z-10 w-full max-w-md rounded-2xl border border-white/10 bg-white/95 p-8 shadow-2xl shadow-slate-950/40 ring-1 ring-white/20 backdrop-blur-sm"
       >
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="flex size-14 items-center justify-center rounded-2xl bg-cyan-100 ring-1 ring-cyan-200/80">
-            <Activity className="size-7 text-cyan-700" strokeWidth={2} aria-hidden />
+          <div className="flex size-14 items-center justify-center rounded-2xl bg-red-100 ring-1 ring-red-200/80">
+            <Activity className="size-7 text-red-700" strokeWidth={2} aria-hidden />
           </div>
           <h1 className="mt-5 text-2xl font-semibold tracking-tight text-slate-900">Staff sign in</h1>
           <p className="mt-2 max-w-sm text-sm leading-relaxed text-slate-600">
-            OPD queue management — sign in to access the console.
+            OPD queue management â€” sign in to access the console.
           </p>
         </div>
 
@@ -104,7 +104,7 @@ export function LoginPage() {
             <input
               type={showPassword ? 'text' : 'password'}
               className={`w-full rounded-xl border bg-white px-4 py-3 pr-11 text-slate-900 shadow-sm outline-none transition-shadow placeholder:text-slate-400 focus:ring-2 ${
-                fieldErr.password ? 'border-red-400 focus:border-red-500 focus:ring-red-500/20' : 'border-slate-300 focus:border-cyan-500 focus:ring-cyan-500/20'
+                fieldErr.password ? 'border-red-400 focus:border-red-500 focus:ring-red-500/20' : 'border-slate-300 focus:border-red-500 focus:ring-red-500/20'
               }`}
               value={password}
               onChange={(e) => {
@@ -112,7 +112,7 @@ export function LoginPage() {
                 if (fieldErr.password) setFieldErr((f) => ({ ...f, password: undefined }))
               }}
               autoComplete="current-password"
-              placeholder="••••••••"
+              placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
               aria-invalid={fieldErr.password ? true : undefined}
               aria-describedby={fieldErr.password ? 'login-password-err' : undefined}
             />
@@ -130,19 +130,19 @@ export function LoginPage() {
 
         <button
           type="submit"
-          className="mt-6 w-full rounded-xl bg-gradient-to-r from-cyan-600 to-cyan-500 py-3 text-sm font-semibold text-white shadow-md shadow-cyan-900/10 transition hover:from-cyan-500 hover:to-cyan-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600"
+          className="mt-6 w-full rounded-xl bg-gradient-to-r from-red-600 to-red-500 py-3 text-sm font-semibold text-white shadow-md shadow-red-900/10 transition hover:from-red-500 hover:to-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
         >
           Sign in
         </button>
 
         <p className="mt-6 text-center text-xs leading-relaxed text-slate-500">
-          Demo: <span className="text-slate-700">admin / Admin@123</span> · greeter/Greeter@123 · clerk/Clerk@123 ·
-          coordinator/Coordinator@123 · physician/Physician@123 · labtech/LabTech@123
+          Demo: <span className="text-slate-700">admin / Admin@123</span> Â· greeter/Greeter@123 Â· clerk/Clerk@123 Â·
+          coordinator/Coordinator@123 Â· physician/Physician@123 Â· labtech/LabTech@123
         </p>
         <p className="mt-3 text-center text-xs">
           <Link
             to="/display/waiting"
-            className="font-medium text-cyan-700 underline decoration-cyan-400/60 underline-offset-2 hover:text-cyan-800"
+            className="font-medium text-red-700 underline decoration-red-400/60 underline-offset-2 hover:text-red-800"
           >
             Waiting-area LED display (no login)
           </Link>
@@ -151,3 +151,4 @@ export function LoginPage() {
     </div>
   )
 }
+

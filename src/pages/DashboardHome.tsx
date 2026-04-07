@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -118,13 +118,13 @@ export function DashboardHome() {
     <div className={`space-y-8 ${ui.page}`}>
       <header className="flex flex-col gap-4 border-b border-slate-200 pb-8 md:flex-row md:items-start md:justify-between">
         <div>
-          <div className="flex items-center gap-2 text-cyan-700">
+          <div className="flex items-center gap-2 text-red-700">
             <LayoutDashboard className="size-6" strokeWidth={2} aria-hidden />
             <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">Overview</span>
           </div>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">Dashboard</h1>
           <p className="mt-1 max-w-lg text-sm leading-relaxed text-slate-600">
-            Daily OPD ticketing snapshot — filter by date and center to match operations.
+            Daily OPD ticketing snapshot â€” filter by date and center to match operations.
           </p>
         </div>
         <button
@@ -156,7 +156,7 @@ export function DashboardHome() {
       <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:flex-row md:flex-wrap md:items-end md:gap-6">
         <label className="flex flex-col gap-2 text-sm text-slate-600">
           <span className="flex items-center gap-2 font-medium text-slate-800">
-            <CalendarDays className="size-4 text-cyan-600" strokeWidth={2} aria-hidden />
+            <CalendarDays className="size-4 text-red-600" strokeWidth={2} aria-hidden />
             Date
           </span>
           <SpeechInput
@@ -169,7 +169,7 @@ export function DashboardHome() {
         {can('centers.read') ? (
           <label className="flex min-w-[200px] flex-1 flex-col gap-2 text-sm text-slate-600 md:max-w-md">
             <span className="flex items-center gap-2 font-medium text-slate-800">
-              <MapPin className="size-4 text-cyan-600" strokeWidth={2} aria-hidden />
+              <MapPin className="size-4 text-red-600" strokeWidth={2} aria-hidden />
               Center
             </span>
             <select
@@ -180,7 +180,7 @@ export function DashboardHome() {
               <option value="">All centers</option>
               {centers.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.hospital_name} — {c.name} ({c.city})
+                  {c.hospital_name} â€” {c.name} ({c.city})
                 </option>
               ))}
             </select>
@@ -194,7 +194,7 @@ export function DashboardHome() {
             <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-slate-800">
-                  <UserCircle2 className="size-5 text-cyan-600" strokeWidth={2} aria-hidden />
+                  <UserCircle2 className="size-5 text-red-600" strokeWidth={2} aria-hidden />
                   <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">Patients</h2>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -252,29 +252,30 @@ export function DashboardHome() {
             ))}
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-white p-6 shadow-sm ring-1 ring-cyan-100">
+          <div className="overflow-hidden rounded-2xl border border-red-200 bg-gradient-to-br from-red-50 to-white p-6 shadow-sm ring-1 ring-red-100">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="flex size-12 items-center justify-center rounded-xl bg-cyan-100 text-cyan-800 ring-1 ring-cyan-200">
+                <div className="flex size-12 items-center justify-center rounded-xl bg-red-100 text-red-800 ring-1 ring-red-200">
                   <Hash className="size-6" strokeWidth={2} aria-hidden />
                 </div>
                 <div>
-                  <div className="text-xs font-semibold uppercase tracking-widest text-cyan-800">Total appointments</div>
+                  <div className="text-xs font-semibold uppercase tracking-widest text-red-800">Total appointments</div>
                   <div className="mt-1 text-3xl font-semibold tabular-nums text-slate-900">{summary.total}</div>
                 </div>
               </div>
               <p className="max-w-sm text-right text-sm text-slate-600">
                 For <span className="font-medium text-slate-900">{summary.date}</span>
-                {summary.center_id != null ? ` · center #${summary.center_id}` : ' · all centers'}.
+                {summary.center_id != null ? ` Â· center #${summary.center_id}` : ' Â· all centers'}.
               </p>
             </div>
           </div>
         </>
       ) : (
         <div className="flex items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white py-16 text-slate-500">
-          {loading ? 'Loading summary…' : 'No data'}
+          {loading ? 'Loading summaryâ€¦' : 'No data'}
         </div>
       )}
     </div>
   )
 }
+

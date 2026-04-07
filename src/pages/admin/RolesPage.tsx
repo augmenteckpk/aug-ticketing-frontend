@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from 'react'
+﻿import { Fragment, useEffect, useMemo, useState } from 'react'
 import { ChevronDown, ChevronRight, Pencil, Plus, RefreshCw, Shield } from 'lucide-react'
 import { SpeechInput } from '../../components/speech'
 import { api } from '../../api/client'
@@ -76,7 +76,7 @@ export function RolesPage() {
       {canManage ? (
         <div className={ui.card}>
           <div className="mb-4 flex items-center gap-2 text-slate-900">
-            <Plus className="size-5 text-cyan-600" strokeWidth={2} aria-hidden />
+            <Plus className="size-5 text-red-600" strokeWidth={2} aria-hidden />
             <h2 className="text-lg font-semibold">Create role</h2>
           </div>
           <form
@@ -174,11 +174,11 @@ export function RolesPage() {
                     </td>
                     <td className={`${ui.td} font-medium capitalize text-slate-900`}>
                       <span className="inline-flex items-center gap-2">
-                        <Shield className="size-4 text-cyan-600" strokeWidth={2} aria-hidden />
+                        <Shield className="size-4 text-red-600" strokeWidth={2} aria-hidden />
                         {r.name.replace(/_/g, ' ')}
                       </span>
                     </td>
-                    <td className={`${ui.td} text-slate-600`}>{r.description ?? '—'}</td>
+                    <td className={`${ui.td} text-slate-600`}>{r.description ?? 'â€”'}</td>
                     <td className={`${ui.td} text-right tabular-nums text-slate-700`}>{r.permissions.length}</td>
                     {canManage ? (
                       <td className={`${ui.td} text-right`}>
@@ -201,7 +201,7 @@ export function RolesPage() {
                             try {
                               await api(`/rbac/roles/${r.id}`, { method: 'DELETE' })
                               await load()
-                              toastSuccess(`Role “${r.name}” deleted`)
+                              toastSuccess(`Role â€œ${r.name}â€ deleted`)
                             } catch (err) {
                               toastError(err, 'Could not delete role')
                             }
@@ -315,3 +315,4 @@ export function RolesPage() {
     </div>
   )
 }
+

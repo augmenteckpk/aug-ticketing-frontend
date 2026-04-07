@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom'
+﻿import { NavLink, Outlet } from 'react-router-dom'
 import {
   LayoutDashboard,
   Calendar,
@@ -75,7 +75,7 @@ const navSections: NavSection[] = [
       {
         to: '/app/queue',
         label: 'Queue & batches',
-        description: 'Ready pool → batches → dispatch',
+        description: 'Ready pool â†’ batches â†’ dispatch',
         perm: 'queue.read',
         icon: Layers,
       },
@@ -176,7 +176,7 @@ export function Layout() {
                             [
                               'group flex items-start gap-3 rounded-xl px-2.5 py-2 text-left text-sm transition-colors',
                               isActive
-                                ? 'bg-cyan-600 text-white shadow-md shadow-cyan-900/15'
+                                ? 'bg-red-600 text-white shadow-md shadow-red-900/15'
                                 : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900',
                             ].join(' ')
                           }
@@ -197,7 +197,7 @@ export function Layout() {
                                   <span
                                     className={[
                                       'mt-0.5 block text-[11px] font-normal leading-tight',
-                                      isActive ? 'text-cyan-100' : 'text-slate-500 group-hover:text-slate-600',
+                                      isActive ? 'text-red-100' : 'text-slate-500 group-hover:text-slate-600',
                                     ].join(' ')}
                                   >
                                     {item.description}
@@ -243,3 +243,4 @@ export function Layout() {
     </div>
   )
 }
+

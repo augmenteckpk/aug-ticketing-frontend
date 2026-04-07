@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Activity, ClipboardList, PlusCircle, RefreshCw, TicketPlus, Users } from 'lucide-react'
 import { SpeechInput, SpeechTextarea } from '../../components/speech'
@@ -29,8 +29,8 @@ function today() {
 }
 
 function centerLine(c: Center | undefined, hospital?: string | null) {
-  if (!c) return '—'
-  return [hospital, c.name].filter(Boolean).join(' — ')
+  if (!c) return 'â€”'
+  return [hospital, c.name].filter(Boolean).join(' â€” ')
 }
 
 function openPrintPreScreening(p: {
@@ -53,26 +53,26 @@ function openPrintPreScreening(p: {
   const esc = (s: string) =>
     s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
   const html = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>Pre-screening — Token ${p.token}</title></head>
+<html><head><meta charset="utf-8"><title>Pre-screening â€” Token ${p.token}</title></head>
 <body style="font-family:system-ui,Segoe UI,Arial,sans-serif;padding:28px;max-width:640px;color:#0f172a">
-  <h1 style="font-size:20px;margin:0 0 8px">OPD — waiting area pre-screening</h1>
+  <h1 style="font-size:20px;margin:0 0 8px">OPD â€” waiting area pre-screening</h1>
   <p style="margin:0 0 20px;font-size:13px;color:#475569">Vitals recorded. Patient may proceed to coordinator queue pool for batching.</p>
   <table style="width:100%;font-size:14px;border-collapse:collapse">
     <tr><td style="padding:6px 0;border-bottom:1px solid #e2e8f0;width:40%"><strong>Patient</strong></td><td style="padding:6px 0;border-bottom:1px solid #e2e8f0">${esc(p.patientName)}</td></tr>
     <tr><td style="padding:6px 0;border-bottom:1px solid #e2e8f0"><strong>CNIC</strong></td><td style="padding:6px 0;border-bottom:1px solid #e2e8f0;font-family:ui-monospace,monospace">${esc(p.cnic)}</td></tr>
     <tr><td style="padding:6px 0;border-bottom:1px solid #e2e8f0"><strong>Token</strong></td><td style="padding:6px 0;border-bottom:1px solid #e2e8f0">${p.token}</td></tr>
-    <tr><td style="padding:6px 0;border-bottom:1px solid #e2e8f0"><strong>W number</strong></td><td style="padding:6px 0;border-bottom:1px solid #e2e8f0;font-family:ui-monospace,monospace">${esc(p.wNumber ?? '—')}</td></tr>
+    <tr><td style="padding:6px 0;border-bottom:1px solid #e2e8f0"><strong>W number</strong></td><td style="padding:6px 0;border-bottom:1px solid #e2e8f0;font-family:ui-monospace,monospace">${esc(p.wNumber ?? 'â€”')}</td></tr>
     <tr><td style="padding:6px 0;border-bottom:1px solid #e2e8f0"><strong>Visit date</strong></td><td style="padding:6px 0;border-bottom:1px solid #e2e8f0">${esc(p.visitDate)}</td></tr>
     <tr><td style="padding:6px 0;border-bottom:1px solid #e2e8f0"><strong>Center</strong></td><td style="padding:6px 0;border-bottom:1px solid #e2e8f0">${esc(p.centerLine)}</td></tr>
-    <tr><td style="padding:6px 0;border-bottom:1px solid #e2e8f0"><strong>Department</strong></td><td style="padding:6px 0;border-bottom:1px solid #e2e8f0">${esc(p.department ?? '—')}</td></tr>
+    <tr><td style="padding:6px 0;border-bottom:1px solid #e2e8f0"><strong>Department</strong></td><td style="padding:6px 0;border-bottom:1px solid #e2e8f0">${esc(p.department ?? 'â€”')}</td></tr>
     <tr><td style="padding:6px 0;border-bottom:1px solid #e2e8f0"><strong>Blood pressure</strong></td><td style="padding:6px 0;border-bottom:1px solid #e2e8f0">${p.bpSys} / ${p.bpDia} mmHg</td></tr>
     <tr><td style="padding:6px 0;border-bottom:1px solid #e2e8f0"><strong>Weight</strong></td><td style="padding:6px 0;border-bottom:1px solid #e2e8f0">${p.weightKg} kg</td></tr>
     <tr><td style="padding:6px 0;border-bottom:1px solid #e2e8f0"><strong>Height</strong></td><td style="padding:6px 0;border-bottom:1px solid #e2e8f0">${p.heightCm} cm</td></tr>
-    <tr><td style="padding:6px 0;border-bottom:1px solid #e2e8f0"><strong>Blood sugar</strong></td><td style="padding:6px 0;border-bottom:1px solid #e2e8f0">${p.sugarMgDl != null ? `${p.sugarMgDl} mg/dL` : '—'}</td></tr>
-    <tr><td style="padding:6px 0;border-bottom:1px solid #e2e8f0;vertical-align:top"><strong>Symptoms</strong></td><td style="padding:6px 0;border-bottom:1px solid #e2e8f0;white-space:pre-wrap">${p.symptoms ? esc(p.symptoms) : '—'}</td></tr>
-    <tr><td style="padding:6px 0;vertical-align:top"><strong>History notes</strong></td><td style="padding:6px 0;white-space:pre-wrap">${p.history ? esc(p.history) : '—'}</td></tr>
+    <tr><td style="padding:6px 0;border-bottom:1px solid #e2e8f0"><strong>Blood sugar</strong></td><td style="padding:6px 0;border-bottom:1px solid #e2e8f0">${p.sugarMgDl != null ? `${p.sugarMgDl} mg/dL` : 'â€”'}</td></tr>
+    <tr><td style="padding:6px 0;border-bottom:1px solid #e2e8f0;vertical-align:top"><strong>Symptoms</strong></td><td style="padding:6px 0;border-bottom:1px solid #e2e8f0;white-space:pre-wrap">${p.symptoms ? esc(p.symptoms) : 'â€”'}</td></tr>
+    <tr><td style="padding:6px 0;vertical-align:top"><strong>History notes</strong></td><td style="padding:6px 0;white-space:pre-wrap">${p.history ? esc(p.history) : 'â€”'}</td></tr>
   </table>
-  <p style="margin-top:24px;font-size:12px;color:#64748b">Recorded: ${esc(p.recordedAtLabel)} · Status after save: <strong>ready</strong> (eligible for coordinator batches)</p>
+  <p style="margin-top:24px;font-size:12px;color:#64748b">Recorded: ${esc(p.recordedAtLabel)} Â· Status after save: <strong>ready</strong> (eligible for coordinator batches)</p>
 </body></html>`
   const w = window.open('', '_blank', 'width=720,height=900')
   if (w) {
@@ -178,11 +178,11 @@ export function PreAssessmentPage() {
 
       if (printAfterSave) {
         const centerPrint =
-          [sel.hospital_name, sel.center_name].filter(Boolean).join(' — ') ||
+          [sel.hospital_name, sel.center_name].filter(Boolean).join(' â€” ') ||
           centerLine(c, c?.hospital_name)
         openPrintPreScreening({
           patientName: sel.patient_name ?? `Patient #${sel.patient_id}`,
-          cnic: sel.patient_cnic ?? '—',
+          cnic: sel.patient_cnic ?? 'â€”',
           token: sel.token_number,
           wNumber: sel.w_number ?? null,
           visitDate: String(sel.appointment_date ?? date).slice(0, 10),
@@ -200,7 +200,7 @@ export function PreAssessmentPage() {
       }
 
       setSel(null)
-      toastSuccess('Pre-screening saved — visit is now ready for coordinator batches.')
+      toastSuccess('Pre-screening saved â€” visit is now ready for coordinator batches.')
       await load()
     } catch (e) {
       toastError(e, 'Could not save pre-screening')
@@ -213,10 +213,10 @@ export function PreAssessmentPage() {
     <div className={`space-y-8 ${ui.page}`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-cyan-700">
+          <div className="flex items-center gap-2 text-red-700">
             <Activity className="size-7" strokeWidth={2} aria-hidden />
           </div>
-          <h1 className={`mt-2 ${ui.h1}`}>Waiting area — pre-screening</h1>
+          <h1 className={`mt-2 ${ui.h1}`}>Waiting area â€” pre-screening</h1>
           <p className={`mt-1 text-sm ${ui.muted}`}>
             <strong>Patient-facing workflow:</strong> after registration (W number), the patient waits here while{' '}
             <strong>OPD coordinator or admin</strong> records vitals. Until this form is completed and saved, the visit stays{' '}
@@ -230,7 +230,7 @@ export function PreAssessmentPage() {
           <button
             type="button"
             className={rows.length ? ui.btnPrimary : `${ui.btnSecondary} opacity-80`}
-            title={rows.length ? 'Open vitals form for the next patient in this queue' : 'No registered visits — register a patient first'}
+            title={rows.length ? 'Open vitals form for the next patient in this queue' : 'No registered visits â€” register a patient first'}
             disabled={!rows.length}
             onClick={() => {
               if (rows[0]) {
@@ -290,7 +290,7 @@ export function PreAssessmentPage() {
           <select className={ui.select} value={centerId} onChange={(e) => setCenterId(Number(e.target.value))}>
             {centers.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.hospital_name} — {c.name}
+                {c.hospital_name} â€” {c.name}
               </option>
             ))}
           </select>
@@ -303,7 +303,7 @@ export function PreAssessmentPage() {
 
       <div className={ui.tableWrap}>
         <p className={`border-b border-slate-100 px-4 py-2 text-xs font-medium text-slate-600`}>
-          Queue: registered patients waiting for vitals (same physical queue as “checked-in / registered” in the HIS)
+          Queue: registered patients waiting for vitals (same physical queue as â€œchecked-in / registeredâ€ in the HIS)
         </p>
         <table className="min-w-full border-collapse text-left text-sm">
           <thead>
@@ -320,10 +320,10 @@ export function PreAssessmentPage() {
             {rows.map((r) => (
               <tr key={r.id} className={ui.trHover}>
                 <td className={ui.td}>{r.token_number}</td>
-                <td className={`${ui.td} font-mono text-xs`}>{r.w_number ?? '—'}</td>
+                <td className={`${ui.td} font-mono text-xs`}>{r.w_number ?? 'â€”'}</td>
                 <td className={ui.td}>{r.patient_name ?? r.patient_id}</td>
-                <td className={`${ui.td} font-mono text-xs`}>{r.patient_cnic ?? '—'}</td>
-                <td className={ui.td}>{r.department_name ?? '—'}</td>
+                <td className={`${ui.td} font-mono text-xs`}>{r.patient_cnic ?? 'â€”'}</td>
+                <td className={ui.td}>{r.department_name ?? 'â€”'}</td>
                 <td className={`${ui.td} text-right`}>
                   <button type="button" className={`${ui.btnPrimary} py-1.5 text-xs`} onClick={() => openRow(r)}>
                     Create / edit vitals
@@ -352,7 +352,7 @@ export function PreAssessmentPage() {
             aria-labelledby="pre-title"
           >
             <h2 id="pre-title" className="text-lg font-semibold text-slate-900">
-              Pre-screening — token #{sel.token_number} · W {sel.w_number ?? '—'}
+              Pre-screening â€” token #{sel.token_number} Â· W {sel.w_number ?? 'â€”'}
             </h2>
             <p className={`mt-1 text-xs ${ui.muted}`}>
               Required before batching: BP, weight, height. Optional: glucose, symptoms, history notes.
@@ -406,7 +406,7 @@ export function PreAssessmentPage() {
                   />
                 </label>
                 <label className="text-xs font-medium text-slate-600 sm:col-span-2">
-                  Blood sugar (mg/dL) — optional
+                  Blood sugar (mg/dL) â€” optional
                   <SpeechInput
                     className={ui.input}
                     type="number"
@@ -434,7 +434,7 @@ export function PreAssessmentPage() {
                   Cancel
                 </button>
                 <button type="submit" className={ui.btnPrimary} disabled={busy}>
-                  {busy ? 'Saving…' : 'Save & move to ready pool'}
+                  {busy ? 'Savingâ€¦' : 'Save & move to ready pool'}
                 </button>
               </div>
             </form>
@@ -444,3 +444,4 @@ export function PreAssessmentPage() {
     </div>
   )
 }
+

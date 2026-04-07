@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { UserPlus, Pencil, RefreshCw, Eye, EyeOff } from 'lucide-react'
 import { SpeechInput } from '../../components/speech'
 import { api } from '../../api/client'
@@ -89,7 +89,7 @@ export function UsersPage() {
 
       <div className={ui.card}>
         <div className="mb-4 flex items-center gap-2 text-slate-900">
-          <UserPlus className="size-5 text-cyan-600" strokeWidth={2} aria-hidden />
+          <UserPlus className="size-5 text-red-600" strokeWidth={2} aria-hidden />
           <h2 className="text-lg font-semibold">Create staff user</h2>
         </div>
         <form
@@ -114,7 +114,7 @@ export function UsersPage() {
               setPassword('')
               setCreateErr({})
               await load()
-              toastSuccess(`User “${createdAs}” created`)
+              toastSuccess(`User â€œ${createdAs}â€ created`)
             } catch (err) {
               toastError(err, 'Could not create user')
             } finally {
@@ -145,7 +145,7 @@ export function UsersPage() {
                 type={showPassword ? 'text' : 'password'}
                 className={`${ui.input} pr-10`}
                 shellClassName={createErr.password ? '!border-red-400 ring-1 ring-red-400' : ''}
-                placeholder="••••••••"
+                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value)
@@ -176,7 +176,7 @@ export function UsersPage() {
             </select>
           </label>
           <button type="submit" className={`${ui.btnPrimary} self-end`} disabled={busy}>
-            {busy ? 'Saving…' : 'Create user'}
+            {busy ? 'Savingâ€¦' : 'Create user'}
           </button>
         </form>
       </div>
@@ -204,10 +204,10 @@ export function UsersPage() {
                   {r.username}
                 </td>
                 <td className={`${ui.td} text-slate-600`} data-label="Email">
-                  {r.email ?? '—'}
+                  {r.email ?? 'â€”'}
                 </td>
                 <td className={`${ui.td} text-slate-600`} data-label="Phone">
-                  {r.phone ?? '—'}
+                  {r.phone ?? 'â€”'}
                 </td>
                 <td className={ui.td} data-label="Role">
                   <span className={ui.badge}>{r.role}</span>
@@ -233,7 +233,7 @@ export function UsersPage() {
                       try {
                         await api(`/users/${r.id}`, { method: 'DELETE' })
                         await load()
-                        toastSuccess(`User “${r.username}” deleted`)
+                        toastSuccess(`User â€œ${r.username}â€ deleted`)
                       } catch (err) {
                         toastError(err, 'Could not delete user')
                       } finally {
@@ -367,3 +367,4 @@ export function UsersPage() {
     </div>
   )
 }
+

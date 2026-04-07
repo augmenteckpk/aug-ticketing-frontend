@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { Layers2, RefreshCw } from 'lucide-react'
 import { api } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
@@ -119,7 +119,7 @@ export function ClinicsPage() {
       </div>
 
       <div className={`${ui.card} flex flex-wrap items-end gap-4`}>
-        <div className="flex items-center gap-2 text-cyan-800">
+        <div className="flex items-center gap-2 text-red-800">
           <Layers2 className="size-5 shrink-0" strokeWidth={2} aria-hidden />
           <span className="text-sm font-semibold text-slate-900">Scope</span>
         </div>
@@ -138,7 +138,7 @@ export function ClinicsPage() {
             {centers.length === 0 ? <option value="">No centers</option> : null}
             {centers.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.name} — {c.city}
+                {c.name} â€” {c.city}
               </option>
             ))}
           </select>
@@ -162,7 +162,7 @@ export function ClinicsPage() {
             ))}
           </select>
         </label>
-        {busy ? <p className={`pb-2 text-sm ${ui.muted}`}>Loading clinics…</p> : null}
+        {busy ? <p className={`pb-2 text-sm ${ui.muted}`}>Loading clinicsâ€¦</p> : null}
       </div>
 
       <div className={ui.tableWrap}>
@@ -194,8 +194,8 @@ export function ClinicsPage() {
                   <span className={ui.badge}>{r.clinic_type}</span>
                 </td>
                 <td className={`${ui.td} text-slate-600`}>{r.department_name}</td>
-                <td className={`${ui.td} text-slate-600`}>{r.location ?? '—'}</td>
-                <td className={`${ui.td} text-slate-600`}>{r.schedule ?? '—'}</td>
+                <td className={`${ui.td} text-slate-600`}>{r.location ?? 'â€”'}</td>
+                <td className={`${ui.td} text-slate-600`}>{r.schedule ?? 'â€”'}</td>
                 <td className={ui.td}>
                   <span className={r.status === 'Active' ? ui.badgeOk : ui.badge}>{r.status}</span>
                 </td>
@@ -207,3 +207,4 @@ export function ClinicsPage() {
     </div>
   )
 }
+

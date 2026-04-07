@@ -1,39 +1,39 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+﻿import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { SpeechInput } from '../../components/speech'
 import { todayLocalYmd } from '../../utils/dateYmd'
 
 const API_BASE = (import.meta.env.VITE_API_URL ?? 'http://localhost:3001').replace(/\/$/, '')
 
-/** اردو — انتظار گاہ LED سکرین */
+/** Ø§Ø±Ø¯Ùˆ â€” Ø§Ù†ØªØ¸Ø§Ø± Ú¯Ø§Û LED Ø³Ú©Ø±ÛŒÙ† */
 const t = {
-  displayEyebrow: 'او پی ڈی · انتظار کی سکرین',
-  displayTitle: 'لائیو قطار اور بیچ',
-  selectCenter: 'سینٹر منتخب کریں',
-  localTime: 'مقامی وقت',
-  liveSse: 'براہ راست (SSE)',
-  polling: 'وقفے سے تازہ',
-  center: 'کلینک سینٹر',
-  date: 'تاریخ',
-  applyBookmark: 'لاگو کریں اور لنک محفوظ کریں',
-  loading: 'لوڈ ہو رہا ہے…',
-  readyLaneTitle: 'تیار قطار — اگلا بیچ میں',
+  displayEyebrow: 'Ø§Ùˆ Ù¾ÛŒ ÚˆÛŒ Â· Ø§Ù†ØªØ¸Ø§Ø± Ú©ÛŒ Ø³Ú©Ø±ÛŒÙ†',
+  displayTitle: 'Ù„Ø§Ø¦ÛŒÙˆ Ù‚Ø·Ø§Ø± Ø§ÙˆØ± Ø¨ÛŒÚ†',
+  selectCenter: 'Ø³ÛŒÙ†Ù¹Ø± Ù…Ù†ØªØ®Ø¨ Ú©Ø±ÛŒÚº',
+  localTime: 'Ù…Ù‚Ø§Ù…ÛŒ ÙˆÙ‚Øª',
+  liveSse: 'Ø¨Ø±Ø§Û Ø±Ø§Ø³Øª (SSE)',
+  polling: 'ÙˆÙ‚ÙÛ’ Ø³Û’ ØªØ§Ø²Û',
+  center: 'Ú©Ù„ÛŒÙ†Ú© Ø³ÛŒÙ†Ù¹Ø±',
+  date: 'ØªØ§Ø±ÛŒØ®',
+  applyBookmark: 'Ù„Ø§Ú¯Ùˆ Ú©Ø±ÛŒÚº Ø§ÙˆØ± Ù„Ù†Ú© Ù…Ø­ÙÙˆØ¸ Ú©Ø±ÛŒÚº',
+  loading: 'Ù„ÙˆÚˆ ÛÙˆ Ø±ÛØ§ ÛÛ’â€¦',
+  readyLaneTitle: 'ØªÛŒØ§Ø± Ù‚Ø·Ø§Ø± â€” Ø§Ú¯Ù„Ø§ Ø¨ÛŒÚ† Ù…ÛŒÚº',
   readyLaneBody:
-    'پیشگی معائنہ مکمل۔ یہ ٹوکن ابھی کسی بیچ میں نہیں۔ عملہ اگلا بیچ بناتے وقت اس فہرست کے اوپر سے لیتا ہے۔',
-  noReady: 'تیار قطار میں اس وقت کوئی نہیں۔',
-  nextBatchesTitle: 'اگلے بیچ (تیار، بھیجنے کے منتظر)',
-  batchSeats: (batchIndex: number, count: number) => `بیچ نمبر ${batchIndex} · ${count} نشستیں`,
+    'Ù¾ÛŒØ´Ú¯ÛŒ Ù…Ø¹Ø§Ø¦Ù†Û Ù…Ú©Ù…Ù„Û” ÛŒÛ Ù¹ÙˆÚ©Ù† Ø§Ø¨Ú¾ÛŒ Ú©Ø³ÛŒ Ø¨ÛŒÚ† Ù…ÛŒÚº Ù†ÛÛŒÚºÛ” Ø¹Ù…Ù„Û Ø§Ú¯Ù„Ø§ Ø¨ÛŒÚ† Ø¨Ù†Ø§ØªÛ’ ÙˆÙ‚Øª Ø§Ø³ ÙÛØ±Ø³Øª Ú©Û’ Ø§ÙˆÙ¾Ø± Ø³Û’ Ù„ÛŒØªØ§ ÛÛ’Û”',
+  noReady: 'ØªÛŒØ§Ø± Ù‚Ø·Ø§Ø± Ù…ÛŒÚº Ø§Ø³ ÙˆÙ‚Øª Ú©ÙˆØ¦ÛŒ Ù†ÛÛŒÚºÛ”',
+  nextBatchesTitle: 'Ø§Ú¯Ù„Û’ Ø¨ÛŒÚ† (ØªÛŒØ§Ø±ØŒ Ø¨Ú¾ÛŒØ¬Ù†Û’ Ú©Û’ Ù…Ù†ØªØ¸Ø±)',
+  batchSeats: (batchIndex: number, count: number) => `Ø¨ÛŒÚ† Ù†Ù…Ø¨Ø± ${batchIndex} Â· ${count} Ù†Ø´Ø³ØªÛŒÚº`,
   noDraftBatches:
-    'ابھی کوئی ڈرافٹ بیچ نہیں — سسٹم میں «قطار اور بیچ» سے تیار قطار سے بیچ بنائیں۔',
-  nextBatchesShort: 'اگلے بیچ',
-  earlierToday: 'آج پہلے',
-  batchList: (batchIndex: number, tokens: string) => `بیچ ${batchIndex}: ${tokens}`,
-  withDoctorTitle: 'اب ڈاکٹر کے پاس',
-  batchNumber: (n: number) => `(بیچ نمبر ${n})`,
-  noDispatchYet: '— ابھی کوئی بیچ نہیں بھیجا گیا',
-  whenDispatch: 'جب کوآرڈینیٹر بیچ بھیجیں گے تو ٹوکن نمبر یہاں دکھائی دیں گے۔',
-  invalidPayload: 'بورڈ کا ڈیٹا درست نہیں۔',
-  failedLoad: 'لوڈ نہیں ہو سکا۔',
+    'Ø§Ø¨Ú¾ÛŒ Ú©ÙˆØ¦ÛŒ ÚˆØ±Ø§ÙÙ¹ Ø¨ÛŒÚ† Ù†ÛÛŒÚº â€” Ø³Ø³Ù¹Ù… Ù…ÛŒÚº Â«Ù‚Ø·Ø§Ø± Ø§ÙˆØ± Ø¨ÛŒÚ†Â» Ø³Û’ ØªÛŒØ§Ø± Ù‚Ø·Ø§Ø± Ø³Û’ Ø¨ÛŒÚ† Ø¨Ù†Ø§Ø¦ÛŒÚºÛ”',
+  nextBatchesShort: 'Ø§Ú¯Ù„Û’ Ø¨ÛŒÚ†',
+  earlierToday: 'Ø¢Ø¬ Ù¾ÛÙ„Û’',
+  batchList: (batchIndex: number, tokens: string) => `Ø¨ÛŒÚ† ${batchIndex}: ${tokens}`,
+  withDoctorTitle: 'Ø§Ø¨ ÚˆØ§Ú©Ù¹Ø± Ú©Û’ Ù¾Ø§Ø³',
+  batchNumber: (n: number) => `(Ø¨ÛŒÚ† Ù†Ù…Ø¨Ø± ${n})`,
+  noDispatchYet: 'â€” Ø§Ø¨Ú¾ÛŒ Ú©ÙˆØ¦ÛŒ Ø¨ÛŒÚ† Ù†ÛÛŒÚº Ø¨Ú¾ÛŒØ¬Ø§ Ú¯ÛŒØ§',
+  whenDispatch: 'Ø¬Ø¨ Ú©ÙˆØ¢Ø±ÚˆÛŒÙ†ÛŒÙ¹Ø± Ø¨ÛŒÚ† Ø¨Ú¾ÛŒØ¬ÛŒÚº Ú¯Û’ ØªÙˆ Ù¹ÙˆÚ©Ù† Ù†Ù…Ø¨Ø± ÛŒÛØ§Úº Ø¯Ú©Ú¾Ø§Ø¦ÛŒ Ø¯ÛŒÚº Ú¯Û’Û”',
+  invalidPayload: 'Ø¨ÙˆØ±Úˆ Ú©Ø§ ÚˆÛŒÙ¹Ø§ Ø¯Ø±Ø³Øª Ù†ÛÛŒÚºÛ”',
+  failedLoad: 'Ù„ÙˆÚˆ Ù†ÛÛŒÚº ÛÙˆ Ø³Ú©Ø§Û”',
 } as const
 
 type PublicCenter = { id: number; name: string; city: string; hospital_name?: string | null }
@@ -80,7 +80,7 @@ function SeatGrid({
       ? 'border-amber-400 bg-amber-50 text-amber-950 shadow-sm'
       : accent === 'violet'
         ? 'border-violet-400 bg-violet-50 text-violet-950 shadow-sm'
-        : 'border-cyan-500 bg-cyan-50 text-cyan-950 shadow-sm'
+        : 'border-red-500 bg-red-50 text-red-950 shadow-sm'
   const empty = 'border-slate-200 bg-slate-100 text-slate-400'
 
   return (
@@ -97,7 +97,7 @@ function SeatGrid({
               tok != null ? ring : empty
             }`}
           >
-            {tok != null ? tok : '—'}
+            {tok != null ? tok : 'â€”'}
           </div>
         )
       })}
@@ -198,7 +198,7 @@ export function WaitingBoardPage() {
 
   const subtitle = useMemo(() => {
     if (!board) return ''
-    return `${board.center.hospital_name ? `${board.center.hospital_name} · ` : ''}${board.center.name} · ${board.center.city}`
+    return `${board.center.hospital_name ? `${board.center.hospital_name} Â· ` : ''}${board.center.name} Â· ${board.center.city}`
   }, [board])
 
   return (
@@ -206,7 +206,7 @@ export function WaitingBoardPage() {
       <header className="border-b border-slate-200 bg-slate-50 px-4 py-4 shadow-sm sm:px-8">
         <div className="mx-auto flex max-w-[1600px] flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="text-right lg:text-right">
-            <p className="text-xs font-semibold tracking-wide text-cyan-700">{t.displayEyebrow}</p>
+            <p className="text-xs font-semibold tracking-wide text-red-700">{t.displayEyebrow}</p>
             <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900 sm:text-4xl">{t.displayTitle}</h1>
             <p className="mt-1 text-sm text-slate-600">{subtitle || t.selectCenter}</p>
           </div>
@@ -239,10 +239,10 @@ export function WaitingBoardPage() {
               value={centerId || ''}
               onChange={(e) => setCenterId(Number(e.target.value))}
             >
-              <option value="">—</option>
+              <option value="">â€”</option>
               {centers.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.hospital_name ? `${c.hospital_name} — ` : ''}
+                  {c.hospital_name ? `${c.hospital_name} â€” ` : ''}
                   {c.name}
                 </option>
               ))}
@@ -264,7 +264,7 @@ export function WaitingBoardPage() {
               syncUrl()
               void pollOnce()
             }}
-            className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-cyan-700"
+            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-700"
           >
             {t.applyBookmark}
           </button>
@@ -300,7 +300,7 @@ export function WaitingBoardPage() {
 
             {board.draft_batches.length > 0 ? (
               <section className="space-y-8 text-right">
-                <h2 className="text-lg font-bold text-cyan-800">{t.nextBatchesTitle}</h2>
+                <h2 className="text-lg font-bold text-red-800">{t.nextBatchesTitle}</h2>
                 {board.draft_batches.map((b) => (
                   <div key={b.id}>
                     <h3 className="mb-2 text-sm font-semibold text-slate-600">
@@ -312,7 +312,7 @@ export function WaitingBoardPage() {
               </section>
             ) : (
               <section className="text-right">
-                <h2 className="mb-2 text-lg font-bold text-cyan-800">{t.nextBatchesShort}</h2>
+                <h2 className="mb-2 text-lg font-bold text-red-800">{t.nextBatchesShort}</h2>
                 <p className="text-slate-600">{t.noDraftBatches}</p>
               </section>
             )}
@@ -358,3 +358,4 @@ export function WaitingBoardPage() {
     </div>
   )
 }
+

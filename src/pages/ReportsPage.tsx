@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { BarChart3, RefreshCw } from 'lucide-react'
 import { SpeechInput } from '../components/speech'
 import { api } from '../api/client'
@@ -97,7 +97,7 @@ export function ReportsPage() {
     <div className={`space-y-8 ${ui.page}`}>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-cyan-700">
+          <div className="flex items-center gap-2 text-red-700">
             <BarChart3 className="size-5" strokeWidth={2} aria-hidden />
             <h1 className={ui.h1}>Reporting</h1>
           </div>
@@ -131,7 +131,7 @@ export function ReportsPage() {
             <option value="">All centers</option>
             {centers.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.hospital_name} — {c.name}
+                {c.hospital_name} â€” {c.name}
               </option>
             ))}
           </select>
@@ -383,7 +383,7 @@ export function ReportsPage() {
                         <div className="font-medium text-slate-900">{v.center_name}</div>
                         <div className="text-xs text-slate-500">{v.hospital_name}</div>
                       </td>
-                      <td className={ui.td}>{v.department_name ?? '—'}</td>
+                      <td className={ui.td}>{v.department_name ?? 'â€”'}</td>
                       <td className={ui.td}>{v.appointment_date}</td>
                       <td className={ui.td}>
                         <span className={ui.badge}>{v.status.replace('_', ' ')}</span>
@@ -425,3 +425,4 @@ export function ReportsPage() {
     </div>
   )
 }
+

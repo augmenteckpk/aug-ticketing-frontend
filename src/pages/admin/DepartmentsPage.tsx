@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { Pencil, Plus, RefreshCw } from 'lucide-react'
 import { SpeechInput } from '../../components/speech'
 import { api } from '../../api/client'
@@ -55,7 +55,7 @@ export function DepartmentsPage() {
       {can('departments.manage') ? (
         <div className={ui.card}>
           <div className="mb-4 flex items-center gap-2">
-            <Plus className="size-5 text-cyan-700" strokeWidth={2} aria-hidden />
+            <Plus className="size-5 text-red-700" strokeWidth={2} aria-hidden />
             <h2 className="text-base font-semibold text-slate-900">Add department</h2>
           </div>
           <form
@@ -107,7 +107,7 @@ export function DepartmentsPage() {
               <tr key={r.id} className={ui.trHover}>
                 <td className={ui.td}>{r.id}</td>
                 <td className={`${ui.td} font-medium text-slate-900`}>{r.name}</td>
-                <td className={`${ui.td} text-slate-600`}>{r.description ?? '—'}</td>
+                <td className={`${ui.td} text-slate-600`}>{r.description ?? 'â€”'}</td>
                 <td className={ui.td}>
                   <span className={r.status === 'Active' ? ui.badgeOk : ui.badge}>{r.status}</span>
                 </td>
@@ -125,7 +125,7 @@ export function DepartmentsPage() {
                         try {
                           await api(`/departments/${r.id}`, { method: 'DELETE' })
                           await load()
-                          toastSuccess(`Department “${r.name}” deleted`)
+                          toastSuccess(`Department â€œ${r.name}â€ deleted`)
                         } catch (err) {
                           toastError(err, 'Could not delete department')
                         }
@@ -200,3 +200,4 @@ export function DepartmentsPage() {
     </div>
   )
 }
+
