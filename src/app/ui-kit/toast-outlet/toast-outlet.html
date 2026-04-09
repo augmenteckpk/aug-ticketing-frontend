@@ -1,0 +1,13 @@
+<section class="toast-wrap" aria-live="polite" aria-atomic="true">
+  @for (item of toast.items(); track item.id) {
+    <article class="toast" [class.success]="item.kind === 'success'" [class.error]="item.kind === 'error'">
+      <span class="material-icons" aria-hidden="true">
+        {{ item.kind === 'success' ? 'check_circle' : item.kind === 'error' ? 'error' : 'info' }}
+      </span>
+      <p>{{ item.text }}</p>
+      <button type="button" (click)="toast.dismiss(item.id)" aria-label="Dismiss notification">
+        <span class="material-icons" aria-hidden="true">close</span>
+      </button>
+    </article>
+  }
+</section>

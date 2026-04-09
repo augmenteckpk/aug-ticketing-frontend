@@ -1,0 +1,68 @@
+<div class="login-wrap">
+  <section class="page-card login-card" aria-labelledby="login-title">
+    <div class="login-brand">
+      <img class="brand-logo" src="/siut-logo.png" alt="SIUT logo" />
+    </div>
+    <p class="kicker">SIUT OPD</p>
+    <h1 id="login-title">Staff Sign In</h1>
+    <p class="sub">Use your staff username and password.</p>
+
+    <form (ngSubmit)="submit()" #form="ngForm" novalidate>
+      <label for="username">Username</label>
+      <app-speech-input id="username" name="username" [(model)]="username" placeholder="Enter username" />
+
+      <label for="password">Password</label>
+      <div class="password-field">
+        <input
+          id="password"
+          name="password"
+          [(ngModel)]="password"
+          [type]="showPassword ? 'text' : 'password'"
+          required
+          autocomplete="current-password"
+        />
+        <button
+          type="button"
+          class="password-toggle"
+          (click)="showPassword = !showPassword"
+          [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+          [attr.title]="showPassword ? 'Hide password' : 'Show password'"
+        >
+          <span class="material-icons">{{ showPassword ? 'visibility_off' : 'visibility' }}</span>
+        </button>
+      </div>
+
+      @if (error) {
+        <p class="error" role="alert">{{ error }}</p>
+      }
+
+      <button type="submit" [disabled]="busy || !username.trim() || !password">
+        {{ busy ? 'Signing in...' : 'Sign in' }}
+      </button>
+    </form>
+
+    @if (showDemoCredentials) {
+      <aside class="demo-creds" aria-label="Demo accounts (development only)">
+        <p class="demo-creds-title">Demo users (seed data)</p>
+        <p class="demo-creds-hint">Tap a badge to fill username and password.</p>
+        <div class="demo-badge-list">
+          @for (row of demoAccounts; track row.username) {
+            <button
+              type="button"
+              class="demo-badge"
+              (click)="fillDemo(row)"
+              [attr.title]="'Fill ' + row.username + ' / ' + row.password"
+            >
+              <span class="demo-badge-line">
+                <strong class="demo-badge-user">{{ row.username }}</strong>
+                <span class="demo-badge-sep" aria-hidden="true">·</span>
+                <code class="demo-badge-pass">{{ row.password }}</code>
+              </span>
+              <span class="demo-role-pill">{{ row.role }}</span>
+            </button>
+          }
+        </div>
+      </aside>
+    }
+  </section>
+</div>

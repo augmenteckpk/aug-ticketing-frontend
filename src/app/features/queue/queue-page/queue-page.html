@@ -1,0 +1,233 @@
+<section class="page-card">
+  <header class="head">
+    <div>
+      <h1>Queue & Batches</h1>
+      <p>Live visual queue with ready, active and batch movement.</p>
+    </div>
+    <div class="actions">
+      <button class="btn" (click)="load()"><span class="material-icons">refresh</span> Refresh</button>
+      <button class="btn primary" (click)="createBatch()" [disabled]="saving"><span class="material-icons">stacks</span> Create batch</button>
+      <label class="live-toggle"><input type="checkbox" [(ngModel)]="live" /> Live auto-refresh</label>
+    </div>
+  </header>
+
+  <div class="filters">
+    <label>Center
+      <select [(ngModel)]="centerId" (change)="onFiltersChanged()">
+        @for (c of centers; track c.id) {
+          <option [ngValue]="c.id">{{ c.hospital_name }} - {{ c.name }} ({{ c.city }})</option>
+        }
+      </select>
+    </label>
+    <label>Date
+      <input type="date" [(ngModel)]="date" (change)="onFiltersChanged()" />
+    </label>
+    <label>Pool size
+      <input type="number" min="1" max="200" [(ngModel)]="poolSize" />
+    </label>
+  </div>
+
+  @if (error) {
+    <p class="error">{{ error }}</p>
+  }
+
+  @if (loading) {
+    <div class="spinner-wrap" aria-live="polite" aria-busy="true">
+      <div class="round-spinner" aria-hidden="true"></div>
+      <p class="muted">Loading queue data...</p>
+    </div>
+  } @else {
+    <div class="kpi-grid">
+      <article class="kpi"><p>Ready pool</p><h2>{{ readyRows.length }}</h2></article>
+      <article class="kpi"><p>Emergency flagged</p><h2>{{ flaggedRows.length }}</h2></article>
+      <article class="kpi"><p>Not attending today</p><h2>{{ notAttendingRows.length }}</h2></article>
+      <article class="kpi"><p>Active pending</p><h2>{{ notArrivedRows.length }}</h2></article>
+      <article class="kpi"><p>Draft batches</p><h2>{{ draftBatches.length }}</h2></article>
+      <article class="kpi"><p>Dispatched</p><h2>{{ dispatchedBatches.length }}</h2></article>
+      <article class="kpi"><p>Total batched items</p><h2>{{ totalBatchItems }}</h2></article>
+    </div>
+
+    @if (flaggedRows.length) {
+      <section class="pool-card">
+        <h3>Emergency / Physician-flagged Pool</h3>
+        <div class="token-list">
+          @for (r of flaggedRows; track r.id) {
+            <article class="token flagged">
+              <span class="id">#{{ r.token_number }}</span>
+              <span class="name">{{ r.patient_name }}</span>
+              <span class="state">{{ triageLabel(r.priority_level) }}</span>
+              <span class="meta">By {{ r.priority_flagged_by_username || '—' }}</span>
+              <span class="meta">{{ r.priority_notes || '—' }}</span>
+            </article>
+          }
+        </div>
+      </section>
+    }
+
+    <div class="pools-grid">
+      <section class="pool-card">
+        <h3>Ready Pool</h3>
+        @if (!readyRows.length) {
+          <p class="muted">No ready tokens.</p>
+        } @else {
+          <div class="token-list">
+            @for (r of readyRows; track r.id) {
+              <article class="token ready">
+                <span class="id">#{{ r.token_number }}</span>
+                <span class="name">{{ r.patient_name }}</span>
+                <span class="state">{{ r.status }}</span>
+                @if (can('appointments.priority_flag')) {
+                  <button class="btn" (click)="openPriorityModal(r)">Triage</button>
+                }
+              </article>
+            }
+          </div>
+        }
+      </section>
+
+      <section class="pool-card">
+        <h3>Active / Not Arrived</h3>
+        @if (!notArrivedRows.length) {
+          <p class="muted">No active pending tokens.</p>
+        } @else {
+          <div class="token-list">
+            @for (r of notArrivedRows; track r.id) {
+              <article class="token active">
+                <span class="id">#{{ r.token_number }}</span>
+                <span class="name">{{ r.patient_name }}</span>
+                <span class="state">{{ r.status }}</span>
+              </article>
+            }
+          </div>
+        }
+      </section>
+    </div>
+
+    <section class="pool-card">
+      <h3>Draft Batches</h3>
+      @if (!draftBatches.length) {
+        <p class="muted">No draft batches.</p>
+      } @else {
+        <div class="batch-grid">
+          @for (b of draftBatches; track b.id) {
+            <article class="batch draft">
+              <p>Batch #{{ b.batch_index || b.id }}</p>
+              <h4>{{ b.item_count }} items</h4>
+              <button class="btn" (click)="openBatchDetails(b.id)">Details</button>
+              <button class="btn primary" (click)="dispatchBatch(b.id)" [disabled]="saving">Dispatch</button>
+              @if (can('queue.manage')) {
+                <button class="btn" (click)="openSwapModal(b)" [disabled]="saving || !flaggedRows.length">Replace slot</button>
+              }
+            </article>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="pool-card">
+      <h3>Dispatched Batches</h3>
+      @if (!dispatchedBatches.length) {
+        <p class="muted">No dispatched batches yet.</p>
+      } @else {
+        <div class="batch-grid">
+          @for (b of dispatchedBatches; track b.id) {
+            <article class="batch dispatched">
+              <p>Batch #{{ b.batch_index || b.id }}</p>
+              <h4>{{ b.item_count }} items</h4>
+              <button class="btn" (click)="openBatchDetails(b.id)">Details</button>
+              <span class="badge">Dispatched</span>
+            </article>
+          }
+        </div>
+      }
+    </section>
+  }
+</section>
+
+@if (selectedBatch) {
+  <div class="modal-overlay" (click)="selectedBatch = null">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h3>Batch #{{ selectedBatch.batch.batch_index || selectedBatch.batch.id }} Details</h3>
+      <p class="muted">{{ selectedBatch.appointments.length }} patients</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Token</th><th>Patient</th><th>CNIC</th><th>Department/Location</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody>
+            @if (!selectedBatch.appointments.length) {
+              <tr><td colspan="6">No patients in this batch.</td></tr>
+            } @else {
+              @for (a of selectedBatch.appointments; track a.id) {
+                <tr>
+                  <td>{{ a.token_number }}</td>
+                  <td>{{ a.patient_name }}</td>
+                  <td>{{ a.patient_cnic || '—' }}</td>
+                  <td>{{ a.department_name || '—' }}{{ a.location ? (' · ' + a.location) : '' }}</td>
+                  <td>{{ a.status || '—' }}</td>
+                  <td>
+                    @if (selectedBatch.batch.status === 'draft' && can('queue.manage')) {
+                      <button class="btn" (click)="swapBatch = selectedBatch; swapRemoveId = a.id; swapAddId = flaggedRows[0]?.id || ''">Replace slot</button>
+                    } @else {
+                      —
+                    }
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="actions">
+        <button class="btn" (click)="selectedBatch = null">Close</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (priorityModal) {
+  <div class="modal-overlay" (click)="closePriorityModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h3>Physician triage for token #{{ priorityModal.token_number }}</h3>
+      <label>Triage status
+        <select [(ngModel)]="priorityLevel">
+          <option value="critical_immediate">See immediately</option>
+          <option value="critical_today">See today</option>
+          <option value="not_attending_today">Not attending today</option>
+        </select>
+      </label>
+      <label>Notes
+        <textarea [(ngModel)]="priorityNotes" rows="3" placeholder="Clinical reason / instructions"></textarea>
+      </label>
+      <div class="actions">
+        <button class="btn" (click)="closePriorityModal()">Cancel</button>
+        <button class="btn" (click)="clearPriorityFlag()" [disabled]="saving">Clear</button>
+        <button class="btn primary" (click)="savePriorityFlag()" [disabled]="saving">Save flag</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (swapBatch) {
+  <div class="modal-overlay" (click)="closeSwapModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h3>Replace slot in batch #{{ swapBatch.batch.id }}</h3>
+      <label>Remove token from draft batch
+        <select [(ngModel)]="swapRemoveId">
+          @for (a of swapBatch.appointments; track a.id) {
+            <option [ngValue]="a.id">#{{ a.token_number }} - {{ a.patient_name }}</option>
+          }
+        </select>
+      </label>
+      <label>Add flagged patient
+        <select [(ngModel)]="swapAddId">
+          @for (a of flaggedRows; track a.id) {
+            <option [ngValue]="a.id">#{{ a.token_number }} - {{ triageLabel(a.priority_level) }} - {{ a.patient_name }}</option>
+          }
+        </select>
+      </label>
+      <div class="actions">
+        <button class="btn" (click)="closeSwapModal()">Cancel</button>
+        <button class="btn primary" (click)="confirmSwap()" [disabled]="saving || swapRemoveId === '' || swapAddId === ''">Confirm swap</button>
+      </div>
+    </div>
+  </div>
+}

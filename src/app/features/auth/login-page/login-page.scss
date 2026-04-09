@@ -1,0 +1,230 @@
+.login-wrap {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background:
+    linear-gradient(rgb(2 6 23 / 0.75), rgb(2 6 23 / 0.75)),
+    radial-gradient(circle at 50% 0%, rgb(6 182 212 / 0.18), transparent 55%),
+    url('/56438.jpeg') center 28% / cover no-repeat;
+}
+
+.login-card {
+  width: min(450px, 96vw);
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.2);
+  background: rgb(255 255 255 / 0.94);
+  box-shadow: 0 22px 60px -28px rgb(2 6 23 / 0.75);
+  backdrop-filter: blur(4px);
+}
+
+.login-brand {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.7rem;
+}
+
+.brand-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 0.9rem;
+  object-fit: cover;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 8px 24px -16px rgb(15 23 42 / 0.65);
+}
+
+.kicker {
+  margin: 0;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: var(--color-muted);
+}
+
+h1 {
+  margin: 0.35rem 0;
+}
+
+.sub {
+  margin: 0 0 1rem;
+  color: var(--color-muted);
+}
+
+form {
+  display: grid;
+  gap: 0.65rem;
+}
+
+label {
+  font-weight: 600;
+}
+
+input {
+  border: 1px solid var(--color-border);
+  border-radius: 0.65rem;
+  padding: 0.65rem 0.75rem;
+}
+
+.password-field {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 0.65rem;
+  background: #fff;
+  padding-right: 0.35rem;
+}
+
+.password-field input {
+  border: 0;
+  border-radius: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.password-field input:focus {
+  box-shadow: none;
+  outline: none;
+}
+
+.password-field:focus-within {
+  border-color: #94a3b8;
+  box-shadow: 0 0 0 3px rgb(15 23 42 / 0.06);
+}
+
+.password-toggle {
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  padding: 0.3rem;
+  line-height: 1;
+}
+
+.password-toggle:hover {
+  background: transparent;
+  color: #0f172a;
+}
+
+form button[type='submit'] {
+  margin-top: 0.5rem;
+  border: none;
+  border-radius: 0.65rem;
+  padding: 0.75rem;
+  background: var(--color-danger);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+form button[type='submit']:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.error {
+  color: #b91c1c;
+  margin: 0.25rem 0;
+}
+
+.demo-creds {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px dashed #cbd5e1;
+  min-width: 0;
+}
+
+.demo-creds-title {
+  margin: 0 0 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+}
+
+.demo-creds-hint {
+  margin: 0 0 0.65rem;
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+.demo-badge-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.demo-badge {
+  margin: 0;
+  max-width: 100%;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  padding: 0.4rem 0.65rem 0.45rem;
+  border-radius: 0.75rem;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.demo-badge:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.demo-badge:focus-visible {
+  outline: 2px solid #dc2626;
+  outline-offset: 2px;
+}
+
+.demo-badge-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.35rem;
+  min-width: 0;
+  font-size: 0.78rem;
+  line-height: 1.25;
+}
+
+.demo-badge-user {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.demo-badge-sep {
+  color: #94a3b8;
+  user-select: none;
+}
+
+.demo-badge-pass {
+  font-family: ui-monospace, monospace;
+  font-size: 0.72rem;
+  color: #334155;
+  word-break: break-all;
+}
+
+.demo-role-pill {
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  padding: 0.12rem 0.4rem;
+  border-radius: 999px;
+  background: #e2e8f0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

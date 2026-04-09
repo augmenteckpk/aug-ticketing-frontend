@@ -1,0 +1,109 @@
+<section class="page-card">
+  <header class="page-header">
+    <div>
+      <h1>Registration Desk</h1>
+      <p>Lookup booked token by CNIC, or scan the visit barcode from the patient app with your device camera, then finalize registration details.</p>
+    </div>
+  </header>
+
+  <div class="form-grid">
+    <label>Center
+      <select [(ngModel)]="centerId">
+        @for (c of centers; track c.id) { <option [ngValue]="c.id">{{ c.hospital_name }} - {{ c.name }} ({{ c.city }})</option> }
+      </select>
+    </label>
+    <label>Date <input type="date" [(ngModel)]="date" /></label>
+    <app-speech-input label="CNIC" [(model)]="cnic" placeholder="42101-1234567-8" />
+  </div>
+  <div class="actions">
+    <button class="btn primary" (click)="lookup()" [disabled]="loading || scannerOpen">Lookup booked</button>
+    <button
+      type="button"
+      class="btn reg-scan-btn"
+      (click)="openBarcodeScanner()"
+      [disabled]="loading || scannerOpen"
+      title="Open camera to scan CODE128 visit barcode from patient app"
+    >
+      <span class="material-icons reg-scan-icon" aria-hidden="true">photo_camera</span>
+      Scan visit barcode
+    </button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Token</th><th>Barcode</th><th>Patient</th><th>Center</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody>
+        @if (loading) {
+          <tr><td colspan="6">Loading...</td></tr>
+        } @else if (!booked.length) {
+          <tr>
+            <td colspan="6" [class.error]="error" class="empty-hint">
+              {{ error || 'No lookup yet - use Lookup booked (CNIC) or Scan visit barcode with the camera.' }}
+            </td>
+          </tr>
+        } @else {
+          @for (a of booked; track a.id) {
+            <tr>
+              <td>{{ a.token_number }}</td>
+              <td class="mono-pill">{{ (a.visit_barcode || '').slice(0, 10) }}{{ a.visit_barcode && a.visit_barcode.length > 10 ? '...' : '' }}</td>
+              <td>{{ a.patient_name }}</td>
+              <td>{{ a.center_name || '-' }}</td>
+              <td>{{ a.status }}</td>
+              <td><button class="btn" (click)="pick(a)">Select</button></td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+@if (scannerOpen) {
+  <div
+    class="barcode-scanner-backdrop"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="barcode-scanner-title"
+    (click)="cancelBarcodeScanner()"
+  >
+    <div class="barcode-scanner-panel" (click)="$event.stopPropagation()">
+      <h2 id="barcode-scanner-title" class="barcode-scanner-title">Scan visit barcode</h2>
+      <p class="barcode-scanner-hint">Point the camera at the barcode on the patient&apos;s phone. The lookup runs automatically after a successful read.</p>
+      <div class="barcode-scanner-video-wrap">
+        <video #scannerVideo class="barcode-scanner-video" playsinline muted autoplay></video>
+      </div>
+      <div class="barcode-scanner-actions">
+        <button type="button" class="btn" (click)="cancelBarcodeScanner()">Cancel</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (selected) {
+  <section class="page-card">
+    <header class="page-header">
+      <div>
+        <h2>Register Token #{{ selected.token_number }}</h2>
+        <p>Complete required patient details to move into waiting workflow.</p>
+      </div>
+    </header>
+
+    <div class="form-grid">
+      <app-speech-input label="First name" [(model)]="patient.first_name" />
+      <app-speech-input label="Last name" [(model)]="patient.last_name" />
+      <app-speech-input label="Father name" [(model)]="patient.father_name" />
+      <app-speech-input label="Father CNIC" [(model)]="patient.father_cnic" />
+      <app-speech-input label="Mother CNIC" [(model)]="patient.mother_cnic" />
+      <app-speech-input label="Phone" [(model)]="patient.phone" type="tel" />
+      <app-speech-input label="Gender" [(model)]="patient.gender" />
+      <label>DOB <input type="date" [(ngModel)]="patient.date_of_birth" /></label>
+      <app-speech-input label="Medical record no" [(model)]="patient.medical_record_number" />
+      <app-speech-input label="City" [(model)]="patient.city" />
+      <app-speech-input class="full" label="Address" [(model)]="patient.address" />
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" (click)="register()" [disabled]="saving">Register patient</button>
+    </div>
+  </section>
+}

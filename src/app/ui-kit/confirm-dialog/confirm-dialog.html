@@ -1,0 +1,19 @@
+@if (confirm.state().open) {
+  <div class="overlay" (click)="confirm.resolve(false)">
+    <section class="dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <h3>{{ confirm.state().title }}</h3>
+      <p>{{ confirm.state().message }}</p>
+      <div class="actions">
+        <button type="button" class="btn" (click)="confirm.resolve(false)">{{ confirm.state().cancelText }}</button>
+        <button
+          type="button"
+          class="btn primary"
+          [class.danger]="confirm.state().danger"
+          (click)="confirm.resolve(true)"
+        >
+          {{ confirm.state().confirmText }}
+        </button>
+      </div>
+    </section>
+  </div>
+}

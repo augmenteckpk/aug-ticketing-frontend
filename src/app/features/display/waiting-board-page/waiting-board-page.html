@@ -1,0 +1,173 @@
+<div class="urdu-display-root" dir="rtl" lang="ur">
+  <header class="board-header">
+    <p class="eyebrow">{{ ur.displayEyebrow }}</p>
+    <div class="board-header-inner">
+      <div class="board-title-block">
+        <h1 class="display-title">{{ ur.displayTitle }}</h1>
+        <p class="subtitle">{{ subtitle || ur.selectCenter }}</p>
+      </div>
+      <div class="board-header-actions">
+        <div class="clock-card">
+          <p class="clock-label">{{ ur.localTime }}</p>
+          <p class="clock-time" dir="ltr" lang="en">
+            {{
+              liveClock.toLocaleTimeString('ur-PK', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+              })
+            }}
+          </p>
+        </div>
+        <div class="transport-pill" [class.live]="sseOk">
+          {{ sseOk ? ur.liveSse : ur.polling }}
+        </div>
+        <button type="button" class="btn-toggle-controls" (click)="showControls = !showControls">
+          <span aria-hidden="true">☰</span>
+          {{ showControls ? ur.closeControls : ur.openControls }}
+        </button>
+      </div>
+    </div>
+
+    @if (showControls) {
+      <div class="controls-panel">
+        <div class="controls-row">
+          <label class="field">
+            <span class="field-label">{{ ur.center }}</span>
+            <select
+              class="field-control"
+              [(ngModel)]="centerId"
+              (ngModelChange)="onCenterOrDateChanged()"
+            >
+              <option [ngValue]="0">—</option>
+              @for (c of centers; track c.id) {
+                <option [ngValue]="c.id">
+                  {{ c.hospital_name ? c.hospital_name + ' — ' : '' }}{{ c.name }}
+                </option>
+              }
+            </select>
+          </label>
+          <label class="field">
+            <span class="field-label">{{ ur.date }}</span>
+            <input
+              class="field-control"
+              type="date"
+              dir="ltr"
+              [(ngModel)]="date"
+              (ngModelChange)="onCenterOrDateChanged()"
+            />
+          </label>
+          <button type="button" class="btn-apply" (click)="applyBookmarkAndRefresh()">
+            {{ ur.applyBookmark }}
+          </button>
+        </div>
+      </div>
+    }
+  </header>
+
+  @if (error) {
+    <div class="error-banner-wrap">
+      <p class="error-banner" role="alert">{{ error }}</p>
+    </div>
+  }
+
+  <main class="board-main">
+    @if (!board && !error) {
+      <p class="loading-line">{{ ur.loading }}</p>
+    }
+
+    @if (board) {
+      <section class="card">
+        <h2 class="section-title violet">{{ ur.readyLaneTitle }}</h2>
+        <p class="section-body">{{ ur.readyLaneBody }}</p>
+        @if (board.ready_queue.token_numbers.length) {
+          <div
+            class="seat-grid"
+            [style.grid-template-columns]="'repeat(auto-fill, minmax(4.5rem, 1fr))'"
+          >
+            @for (tok of seatSlots(board.ready_queue.token_numbers, readyMinSlots(board)); track $index) {
+              <div class="seat" [class.violet]="tok !== null" [class.empty]="tok === null">
+                {{ tok !== null ? tok : '—' }}
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="muted">{{ ur.noReady }}</p>
+        }
+      </section>
+
+      @if (board.draft_batches.length > 0) {
+        <section class="card">
+          <h2 class="section-title red">{{ ur.nextBatchesTitle }}</h2>
+          @for (b of board.draft_batches; track b.id) {
+            <div class="batch-block">
+              <h3 class="batch-heading">
+                {{ ur.batchSeats(b.batch_index, b.token_numbers.length) }}
+              </h3>
+              <div
+                class="seat-grid"
+                [style.grid-template-columns]="'repeat(auto-fill, minmax(4.5rem, 1fr))'"
+              >
+                @for (tok of seatSlots(b.token_numbers, 20); track $index) {
+                  <div class="seat" [class.cyan]="tok !== null" [class.empty]="tok === null">
+                    {{ tok !== null ? tok : '—' }}
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </section>
+      } @else {
+        <section class="card">
+          <h2 class="section-title red">{{ ur.nextBatchesShort }}</h2>
+          <p class="muted">{{ ur.noDraftBatches }}</p>
+        </section>
+      }
+
+      @if (board.dispatched_earlier.length > 0) {
+        <section class="card">
+          <h2 class="earlier-title">{{ ur.earlierToday }}</h2>
+          <ul class="earlier-list">
+            @for (b of board.dispatched_earlier; track b.batch_index) {
+              <li class="earlier-chip" dir="ltr">
+                {{ ur.batchList(b.batch_index, b.token_numbers.join(', ')) }}
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      <section class="card">
+        <h2 class="section-title amber with-pulse">
+          <span class="pulse-dot" aria-hidden="true"></span>
+          {{ ur.withDoctorTitle }}
+          <span class="batch-meta">
+            @if (board.latest_dispatched) {
+              {{ ur.batchNumber(board.latest_dispatched.batch_index) }}
+            } @else {
+              {{ ur.noDispatchYet }}
+            }
+          </span>
+        </h2>
+        @if (board.latest_dispatched; as latest) {
+          @if (latest.token_numbers.length) {
+            <div
+              class="seat-grid"
+              [style.grid-template-columns]="'repeat(auto-fill, minmax(4.5rem, 1fr))'"
+            >
+              @for (tok of seatSlots(latest.token_numbers, 20); track $index) {
+                <div class="seat" [class.amber]="tok !== null" [class.empty]="tok === null">
+                  {{ tok !== null ? tok : '—' }}
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="empty-doctor">{{ ur.whenDispatch }}</p>
+          }
+        } @else {
+          <p class="empty-doctor">{{ ur.whenDispatch }}</p>
+        }
+      </section>
+    }
+  </main>
+</div>

@@ -1,0 +1,131 @@
+<section class="page-card">
+  <div class="head">
+    <div>
+      <h1>Appointments</h1>
+      <p>Tokens, filters, and walk-in issuance.</p>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn-secondary" (click)="loadAppointments()">
+        <span class="material-icons" aria-hidden="true">refresh</span>
+        Refresh
+      </button>
+      <button type="button" class="btn-primary" (click)="creatingWalkIn = true">
+        <span class="material-icons" aria-hidden="true">add</span>
+        Walk-in token
+      </button>
+    </div>
+  </div>
+
+  <div class="filters">
+    <label>
+      <span>Center</span>
+      <select [(ngModel)]="centerId" (change)="loadAppointments()">
+        <option [ngValue]="''">All centers</option>
+        @for (c of centers; track c.id) {
+          <option [ngValue]="c.id">{{ c.hospital_name }} - {{ c.name }} ({{ c.city }})</option>
+        }
+      </select>
+    </label>
+    <label>
+      <span>Date</span>
+      <input type="date" [(ngModel)]="date" (change)="loadAppointments()" />
+    </label>
+    <label>
+      <span>Status</span>
+      <select [(ngModel)]="status" (change)="loadAppointments()">
+        <option value="">All statuses</option>
+        <option value="booked">Booked</option>
+        <option value="registered">Registered</option>
+        <option value="ready">Ready</option>
+        <option value="batched">Batched</option>
+        <option value="dispatched">Dispatched</option>
+        <option value="completed">Completed</option>
+      </select>
+    </label>
+  </div>
+
+  @if (error) {
+    <p class="error" role="alert">{{ error }}</p>
+  }
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Token</th>
+          <th scope="col">Patient</th>
+          <th scope="col">CNIC</th>
+          <th scope="col">Center</th>
+          <th scope="col">Department</th>
+          <th scope="col">Date</th>
+          <th scope="col">Status</th>
+          <th scope="col">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (busy) {
+          <tr><td colspan="8">Loading appointments...</td></tr>
+        } @else if (rows.length === 0) {
+          <tr><td colspan="8">No appointments found.</td></tr>
+        } @else {
+          @for (r of rows; track r.id) {
+            <tr>
+              <td>{{ r.token_number }}</td>
+              <td>{{ r.patient_name || ('Patient #' + r.id) }}</td>
+              <td>{{ r.patient_cnic || '—' }}</td>
+              <td>{{ r.center_name || '—' }}</td>
+              <td>{{ r.department_name || '—' }}</td>
+              <td>{{ r.appointment_date }}</td>
+              <td><span class="badge">{{ r.status }}</span></td>
+              <td>
+                @if (r.status === 'dispatched') {
+                  <button class="btn primary" (click)="completeAppointment(r)" [disabled]="busy">Complete</button>
+                } @else {
+                  —
+                }
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+@if (creatingWalkIn) {
+  <div class="modal-overlay" (click)="creatingWalkIn = false">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h3>Issue walk-in token</h3>
+      <div class="walkin-grid">
+        <label>
+          <span>Center</span>
+          <select [(ngModel)]="walkIn.center_id">
+            @for (c of centers; track c.id) {
+              <option [ngValue]="c.id">{{ c.name }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          <span>Date</span>
+          <input type="date" [(ngModel)]="walkIn.appointment_date" />
+        </label>
+        <label>
+          <span>CNIC</span>
+          <app-speech-input [(model)]="walkIn.cnic" placeholder="42101-1234567-8" />
+        </label>
+        <label>
+          <span>First name</span>
+          <app-speech-input [(model)]="walkIn.first_name" />
+        </label>
+        <label>
+          <span>Last name</span>
+          <app-speech-input [(model)]="walkIn.last_name" />
+        </label>
+      </div>
+      <div class="actions">
+        <button class="btn" (click)="creatingWalkIn = false">Cancel</button>
+        <button class="btn primary" (click)="createWalkIn()">Create token</button>
+      </div>
+    </div>
+  </div>
+}
