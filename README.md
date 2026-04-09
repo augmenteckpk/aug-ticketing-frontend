@@ -1,95 +1,83 @@
-# Web
+# Staff console (Angular)
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.6.
+OPD staff web app for the Guyana Ticketing project. Built with [Angular](https://angular.dev/) 21 and the application builder (`@angular/build:application`).
+
+## Requirements
+
+- Node.js compatible with the Angular version in use (see `package.json` engines if present)
+- npm (project uses `packageManager: npm@10.9.3`)
+
+## Install
+
+```bash
+npm ci
+```
+
+For day-to-day work, `npm install` is fine if you are not reproducing CI exactly.
 
 ## Development server
 
-To start a local development server, run:
-
 ```bash
-ng serve
+npm start
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Same as `ng serve`. The dev server listens on **all interfaces** (`0.0.0.0`) so other devices on your LAN can open `http://<your-pc-ip>:4200`.
 
-## Code scaffolding
+When you open the app by **LAN IP** (e.g. from a phone), API calls target the same host on port **3001** automatically in development—see `src/environments/api-base.ts` and `resolveApiBaseUrl()`.
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Configuration
 
-```bash
-ng generate component component-name
-```
+Angular bakes environment values at **build time**. There is **no** runtime `.env` in the static bundle.
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+| Context | Where to set API base URL |
+|--------|---------------------------|
+| Local dev (`ng serve`) | `src/environments/environment.development.ts` (`apiUrl`) |
+| Production build (`ng build`) | `src/environments/environment.ts` (`apiUrl`) — also overwritten in Docker (below) |
+| Docker image | Build argument **`API_URL`** (see [Docker](#docker)) |
 
-```bash
-ng generate --help
-```
+The API base URL must be the origin only (no `/api/v1`, no trailing slash), e.g. `http://localhost:3001` or `https://api.example.com`.
 
-## Building
+For a checklist of variable names used in deployment tools, see **`.env.example`** (reference only; not loaded by Angular).
 
-To build the project run:
+## Build
 
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+Production build (default configuration):
 
 ```bash
-ng test
+npm run build
 ```
 
-## Running end-to-end tests
+Output for static hosting: **`dist/web/browser/`** (copy this folder to your web server or use the Docker image below).
 
-For end-to-end (e2e) testing, run:
+## Docker
+
+Build the image from this directory:
 
 ```bash
-ng e2e
+docker build --build-arg API_URL=https://api.yourdomain.com -t staff-console .
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+- **`API_URL`** — public URL of the backend API, written into `environment.ts` during the image build.
+- The runtime stage serves the built app with **nginx** (`nginx.conf`); SPA routes use `try_files` → `index.html`.
 
-## Additional Resources
+## Tests
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Unit tests (Vitest via Angular CLI):
 
-## Migration Notes (React -> Angular)
+```bash
+npm test
+```
 
-This folder now contains the Angular migration target for the former React staff console.
+## Project notes
 
-- Route parity implemented for:
-  - `/login`
-  - `/display/waiting`
-  - `/app` and child routes (dashboard, appointments, reports, registration, waiting-area, consultation, laboratory, queue, hospitals, centers, departments, clinics, patients, users, roles)
-- Core auth/API parity implemented:
-  - Token key `opd_token`
-  - Auth bootstrap (`/auth/me`)
-  - Login (`/auth/login`)
-  - Auth HTTP interceptor (`Authorization: Bearer ...`)
-  - Guard behavior (redirect unauthenticated; patient role blocked from staff shell)
-- Waiting board parity foundation implemented:
-  - Public centers API
-  - Waiting board SSE stream
-  - Polling fallback
-- Reporting parity foundation implemented:
-  - Daily report JSON load
-  - CSV export with bearer token
+This app replaced the earlier React staff console. It keeps route and API parity for login, waiting display, appointments, queue, reports, registration, and related staff flows. Token storage uses `opd_token`; HTTP calls use an auth interceptor (`Authorization: Bearer …`).
 
-## Cutover Checklist
+### Smoke checklist (after changes)
 
-1. Set API URL in `src/environments/environment*.ts`.
-2. Run build verification:
-   - `npm run build`
-3. Smoke test key flows:
-   - login
-   - appointments
-   - queue
-   - reports
-   - waiting display SSE fallback
-4. Switch deployment source from React `frontend` to Angular `frontend-new/dist/web`.
-5. Keep React app available as rollback until UAT sign-off.
+1. Confirm `apiUrl` / `API_URL` for your environment.
+2. `npm run build`
+3. Exercise: login, appointments, queue, reports, waiting display (SSE / fallback).
+
+## Further reading
+
+- [Angular CLI](https://angular.dev/tools/cli)
