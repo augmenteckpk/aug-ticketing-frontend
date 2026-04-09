@@ -1,0 +1,102 @@
+<section class="dashboard">
+  <header class="hero page-card">
+    <div>
+      <p class="kicker">Overview</p>
+      <h1>Dashboard</h1>
+      <p class="sub">Daily OPD ticketing snapshot with center and date filters.</p>
+    </div>
+    <button type="button" class="btn-secondary" (click)="loadSummary()">
+      <span class="material-icons" aria-hidden="true">refresh</span>
+      Refresh
+    </button>
+  </header>
+
+  <section class="filters page-card" aria-label="Dashboard filters">
+    <label>
+      <span>Date</span>
+      <input type="date" [(ngModel)]="date" (change)="loadSummary()" />
+    </label>
+    <label>
+      <span>Center</span>
+      <select [(ngModel)]="centerId" (change)="loadSummary()">
+        <option [ngValue]="''">All centers</option>
+        @for (c of centers; track c.id) {
+          <option [ngValue]="c.id">{{ c.hospital_name }} - {{ c.name }} ({{ c.city }})</option>
+        }
+      </select>
+    </label>
+  </section>
+
+  @if (loading) {
+    <section class="page-card"><p>Loading dashboard data...</p></section>
+  } @else if (error) {
+    <section class="page-card"><p class="error" role="alert">{{ error }}</p></section>
+  } @else if (summary) {
+    <section class="stat-grid">
+      @for (s of statusOrder; track s.key) {
+        <article class="stat-card page-card">
+          <p class="label">{{ s.label }}</p>
+          <p class="value">{{ summary.byStatus[s.key] || 0 }}</p>
+        </article>
+      }
+    </section>
+
+    <section class="totals page-card">
+      <article>
+        <p>Total tickets</p>
+        <h2>{{ summary.total }}</h2>
+      </article>
+      <article>
+        <p>Patients in system</p>
+        <h2>{{ summary.patients?.total_in_system ?? 0 }}</h2>
+      </article>
+      <article>
+        <p>Patients with visit on date</p>
+        <h2>{{ summary.patients?.with_visit_on_date ?? 0 }}</h2>
+      </article>
+      <a routerLink="/app/patients" class="btn-primary link-btn">Open patient directory</a>
+    </section>
+
+    <section class="charts-grid">
+      <article class="page-card chart-card">
+        <header>
+          <h3>Status distribution</h3>
+          <p>Share of total tickets by workflow state.</p>
+        </header>
+        <div class="donut-wrap">
+          <div class="donut" [style]="donutStyle"></div>
+          <div class="donut-center">
+            <strong>{{ summary.total }}</strong>
+            <span>Total</span>
+          </div>
+        </div>
+        <ul class="legend">
+          @for (bar of chartBars; track bar.label) {
+            <li>
+              <span>{{ bar.label }}</span>
+              <strong>{{ bar.value }}</strong>
+            </li>
+          }
+        </ul>
+      </article>
+
+      <article class="page-card chart-card">
+        <header>
+          <h3>Volume by status</h3>
+          <p>Bar view for quick comparison.</p>
+        </header>
+        <div class="bars">
+          @for (bar of chartBars; track bar.label) {
+            <div class="bar-row">
+              <span class="name">{{ bar.label }}</span>
+              <div class="track">
+                <div class="fill" [style.width.%]="bar.pct"></div>
+              </div>
+              <span class="value">{{ bar.value }}</span>
+            </div>
+          }
+        </div>
+      </article>
+    </section>
+  }
+</section>

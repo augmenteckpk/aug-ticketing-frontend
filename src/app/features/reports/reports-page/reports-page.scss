@@ -1,0 +1,26 @@
+:host {
+  display: grid;
+  gap: 1rem;
+}
+
+.kpi-grid {
+  margin-top: 0.9rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+
+.kpi {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.85rem;
+  background: #fff;
+  padding: 0.85rem;
+}
+
+.kpi p {
+  color: #64748b;
+}
+
+.kpi h2 {
+  margin-top: 0.35rem;
+}

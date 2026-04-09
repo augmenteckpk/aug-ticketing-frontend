@@ -1,0 +1,15 @@
+<footer class="pager">
+  <p>Showing page {{ page }} of {{ totalPages }} ({{ total }} records)</p>
+  <div class="controls">
+    <label>
+      Page size
+      <select [ngModel]="pageSize" (ngModelChange)="setPageSize($event)">
+        <option [ngValue]="10">10</option>
+        <option [ngValue]="25">25</option>
+        <option [ngValue]="50">50</option>
+      </select>
+    </label>
+    <button type="button" class="btn" (click)="setPage(page - 1)" [disabled]="page <= 1">Previous</button>
+    <button type="button" class="btn" (click)="setPage(page + 1)" [disabled]="page >= totalPages">Next</button>
+  </div>
+</footer>

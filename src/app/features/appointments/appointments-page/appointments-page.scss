@@ -1,0 +1,28 @@
+:host {
+  display: grid;
+  gap: 1rem;
+}
+
+.walkin {
+  border: 1px solid var(--color-border);
+  border-radius: 0.85rem;
+  padding: 0.95rem;
+  margin-top: 0.6rem;
+  background: #f8fafc;
+}
+
+.walkin h2 {
+  margin-bottom: 0.65rem;
+}
+
+.badge {
+  display: inline-block;
+  border-radius: 999px;
+  border: 1px solid #dbe2eb;
+  background: #f8fafc;
+  padding: 0.16rem 0.48rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  color: #334155;
+}

@@ -1,0 +1,66 @@
+:host {
+  display: grid;
+  gap: 1rem;
+}
+
+.action-cell {
+  white-space: nowrap;
+}
+
+.action-cell .btn + .btn {
+  margin-left: 0.45rem;
+}
+
+.spinner-wrap {
+  min-height: 260px;
+  display: grid;
+  place-items: center;
+  gap: 0.8rem;
+}
+
+.round-spinner {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 4px solid #e2e8f0;
+  border-top-color: #2563eb;
+  animation: spin 0.9s linear infinite;
+}
+
+.muted {
+  color: #64748b;
+}
+
+.modal {
+  width: min(980px, 96vw);
+  max-height: 90vh;
+  overflow: auto;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.form-grid .full {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 980px) {
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

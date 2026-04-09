@@ -1,0 +1,45 @@
+<section class="page-card">
+  <app-page-header [title]="title" [subtitle]="subtitle" />
+  <div class="toolbar">
+    <label class="search">
+      <span class="material-icons" aria-hidden="true">search</span>
+      <input [(ngModel)]="search" type="text" placeholder="Search in loaded data" />
+    </label>
+    <button type="button" class="action-btn" (click)="load()">
+      <span class="material-icons" aria-hidden="true">refresh</span>
+      Refresh
+    </button>
+  </div>
+
+  <app-async-state [loading]="loading" [error]="error" [isEmpty]="rows.length === 0">
+    <div class="table-wrap" role="region" aria-label="{{ title }} data table">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            @for (col of columns; track col) {
+              <th scope="col">{{ col }}</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of pagedRows; track $index) {
+            <tr>
+              <td>{{ $index + 1 }}</td>
+              @for (col of columns; track col) {
+                <td>{{ displayValue(row[col]) }}</td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-pagination
+      [total]="filteredRows.length"
+      [page]="page"
+      [pageSize]="pageSize"
+      (pageChange)="onPageChange($event)"
+      (pageSizeChange)="onPageSizeChange($event)"
+    />
+  </app-async-state>
+</section>

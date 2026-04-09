@@ -1,0 +1,9 @@
+@if (loading) {
+  <app-loading-state [text]="loadingText" />
+} @else if (error) {
+  <app-error-state [text]="error" />
+} @else if (isEmpty) {
+  <app-empty-state [text]="emptyText" />
+} @else {
+  <ng-content />
+}

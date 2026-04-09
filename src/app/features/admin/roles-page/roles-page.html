@@ -1,0 +1,131 @@
+<section class="page-card">
+  <header class="page-header">
+    <div>
+      <h1>Roles & Permissions</h1>
+      <p>RBAC role setup and permission mapping.</p>
+    </div>
+  </header>
+
+  @if (error) { <p class="error">{{ error }}</p> }
+
+  <div class="actions">
+    <button class="btn primary" (click)="creating = true" [disabled]="saving || loading">Create role</button>
+    <button class="btn" (click)="load()" [disabled]="loading"><span class="material-icons">refresh</span> Refresh</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Name</th><th>Description</th><th>Permissions</th><th class="right">Actions</th></tr></thead>
+      <tbody>
+        @if (loading) {
+          <tr><td colspan="4">Loading...</td></tr>
+        } @else if (!rows.length) {
+          <tr><td colspan="4">No roles found.</td></tr>
+        } @else {
+          @for (r of paged; track r.id) {
+            <tr>
+              <td>{{ r.name }}</td>
+              <td>{{ r.description || '—' }}</td>
+              <td class="perm-cell">
+                @if (!(r.permissions || []).length) {
+                  <span>—</span>
+                } @else {
+                  @for (perm of rolePermVisible(r.permissions); track perm) {
+                    <span class="badge permission">{{ perm }}</span>
+                  }
+                  @if (rolePermHiddenCount(r.permissions) > 0) {
+                    <span
+                      class="badge perm-more"
+                      [attr.title]="rolePermFullTitle(r.permissions)"
+                      >+ {{ rolePermHiddenCount(r.permissions) }} more</span>
+                  }
+                }
+              </td>
+              <td class="right">
+                <button class="btn" (click)="startEdit(r)">Edit</button>
+                <button class="btn danger" (click)="remove(r)">Delete</button>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+  <app-pagination
+    [total]="rows.length"
+    [page]="page"
+    [pageSize]="pageSize"
+    (pageChange)="setPage($event)"
+    (pageSizeChange)="setPageSize($event)"
+  />
+</section>
+
+@if (creating) {
+  <div class="modal-overlay" (click)="creating = false">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h3>Create role</h3>
+      <app-speech-input label="Role name" [(model)]="form.name" />
+      <app-speech-input label="Description" [(model)]="form.description" />
+      <div class="perm-actions">
+        <button class="btn" type="button" (click)="selectAllCreatePermissions()">Select all</button>
+        <button class="btn" type="button" (click)="clearCreatePermissions()">Clear</button>
+      </div>
+      <div class="perm-list">
+        @for (group of permissionsByModule; track group.module) {
+          <section class="perm-group">
+            <h4>{{ group.module }}</h4>
+            @for (perm of group.names; track perm) {
+              <label class="perm-item">
+                <input
+                  type="checkbox"
+                  [checked]="form.selectedPermissions.includes(perm)"
+                  (change)="toggleCreatePermission(perm, $any($event.target).checked)"
+                />
+                <span>{{ perm }}</span>
+              </label>
+            }
+          </section>
+        }
+      </div>
+      <div class="actions">
+        <button class="btn" (click)="creating = false">Cancel</button>
+        <button class="btn primary" (click)="create()" [disabled]="saving || !form.name.trim()">Create</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (editing) {
+  <div class="modal-overlay" (click)="editing = null">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h3>Edit role</h3>
+      <app-speech-input label="Name" [(model)]="editing.name" />
+      <app-speech-input label="Description" [model]="editing.description ?? ''" (modelChange)="editing.description = $event" />
+      <div class="perm-actions">
+        <button class="btn" type="button" (click)="selectAllEditPermissions()">Select all</button>
+        <button class="btn" type="button" (click)="clearEditPermissions()">Clear</button>
+      </div>
+      <div class="perm-list">
+        @for (group of permissionsByModule; track group.module) {
+          <section class="perm-group">
+            <h4>{{ group.module }}</h4>
+            @for (perm of group.names; track perm) {
+              <label class="perm-item">
+                <input
+                  type="checkbox"
+                  [checked]="editing.selectedPermissions.includes(perm)"
+                  (change)="toggleEditPermission(perm, $any($event.target).checked)"
+                />
+                <span>{{ perm }}</span>
+              </label>
+            }
+          </section>
+        }
+      </div>
+      <div class="actions">
+        <button class="btn" (click)="editing = null">Cancel</button>
+        <button class="btn primary" (click)="saveEdit()" [disabled]="saving">Save</button>
+      </div>
+    </div>
+  </div>
+}

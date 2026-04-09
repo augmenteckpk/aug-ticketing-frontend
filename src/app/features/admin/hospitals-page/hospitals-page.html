@@ -1,0 +1,82 @@
+<section class="page-card">
+  <div class="header-row">
+    <div>
+      <h1><span class="material-icons">local_hospital</span> Hospitals</h1>
+      <p>Register and maintain hospital sites.</p>
+    </div>
+    <button class="btn-secondary" type="button" (click)="load()"><span class="material-icons">refresh</span> Refresh</button>
+  </div>
+
+  <div class="actions">
+    <button class="btn-primary" type="button" [disabled]="saving" (click)="creating = true">
+      <span class="material-icons">add</span> Add
+    </button>
+  </div>
+
+  @if (error) { <p class="error" role="alert">{{ error }}</p> }
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Name</th><th>Code</th><th>Status</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        @if (loading) { <tr><td colspan="5">Loading...</td></tr> }
+        @else if (!rows.length) { <tr><td colspan="5">No hospitals found.</td></tr> }
+        @else {
+          @for (r of paged; track r.id) {
+            <tr>
+              <td>{{ r.id }}</td>
+              <td>{{ r.name }}</td>
+              <td>{{ r.code }}</td>
+              <td><span class="badge">{{ r.status }}</span></td>
+              <td>
+                <button class="btn-ghost" type="button" (click)="editing = { ...r }"><span class="material-icons">edit</span> Edit</button>
+                <button class="btn-danger" type="button" (click)="remove(r)"><span class="material-icons">delete</span> Delete</button>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+  <app-pagination
+    [total]="rows.length"
+    [page]="page"
+    [pageSize]="pageSize"
+    (pageChange)="setPage($event)"
+    (pageSizeChange)="setPageSize($event)"
+  />
+
+  @if (creating) {
+    <div class="modal-backdrop" (click)="creating = false">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <h2>Create hospital</h2>
+        <app-speech-input [(model)]="name" placeholder="Hospital name" [maxLength]="50" />
+        <app-speech-input [(model)]="code" placeholder="Code" [maxLength]="20" />
+        <div class="actions">
+          <button class="btn-secondary" type="button" (click)="creating = false">Cancel</button>
+          <button class="btn-primary" type="button" [disabled]="saving || !name.trim() || !code.trim()" (click)="create()">Create</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (editing) {
+    <div class="modal-backdrop" (click)="editing = null">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <h2>Edit hospital</h2>
+        <app-speech-input [(model)]="editing.name" placeholder="Name" />
+        <app-speech-input [(model)]="editing.code" placeholder="Code" />
+        <select [(ngModel)]="editing.status">
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+        <div class="actions">
+          <button class="btn-secondary" type="button" (click)="editing = null">Cancel</button>
+          <button class="btn-primary" type="button" [disabled]="saving" (click)="saveEdit()">Save</button>
+        </div>
+      </div>
+    </div>
+  }
+</section>

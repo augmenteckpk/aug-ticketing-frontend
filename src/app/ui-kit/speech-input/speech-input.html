@@ -1,0 +1,25 @@
+<label class="speech-field">
+  @if (label) {
+    <span>{{ label }}</span>
+  }
+  <div class="control">
+    <input
+      [id]="id"
+      [name]="name"
+      [type]="type"
+      [ngModel]="model ?? ''"
+      (ngModelChange)="modelChange.emit($event)"
+      [placeholder]="placeholder"
+      [autocomplete]="autocomplete"
+      [required]="required"
+      [disabled]="disabled"
+      [attr.maxlength]="maxLength"
+      [attr.minlength]="minLength"
+    />
+    @if (canShowMic) {
+      <button type="button" class="mic-btn" (click)="toggle()" [attr.aria-pressed]="listening">
+        <span class="material-icons" aria-hidden="true">{{ listening ? 'mic' : 'mic_none' }}</span>
+      </button>
+    }
+  </div>
+</label>

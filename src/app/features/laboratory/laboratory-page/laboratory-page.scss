@@ -1,0 +1,47 @@
+:host {
+  display: grid;
+  gap: 1rem;
+}
+
+.lab-result-modal {
+  width: min(900px, 96vw);
+  max-height: 90vh;
+  overflow: auto;
+  padding: 1rem 1.1rem;
+}
+
+.lab-result-modal .muted {
+  margin-top: -0.35rem;
+}
+
+.lab-result-modal .form-grid {
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
+}
+
+.lab-result-modal label.full {
+  grid-column: 1 / -1;
+}
+
+.lab-result-modal textarea {
+  min-height: 220px;
+  height: auto;
+  resize: vertical;
+  padding: 0.65rem 0.74rem;
+}
+
+.lab-result-modal .actions {
+  justify-content: flex-end;
+}
+
+@media (max-width: 700px) {
+  .lab-result-modal {
+    width: 98vw;
+    max-height: 94vh;
+    padding: 0.85rem;
+  }
+
+  .lab-result-modal textarea {
+    min-height: 170px;
+  }
+}
