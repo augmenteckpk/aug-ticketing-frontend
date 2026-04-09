@@ -1,0 +1,78 @@
+<section class="page-card">
+  <header class="head">
+    <div>
+      <h1>Pre-assessment Queue</h1>
+      <p>Capture triage vitals and move patient to ready pool.</p>
+    </div>
+    <button class="btn" (click)="load()"><span class="material-icons">refresh</span> Refresh</button>
+  </header>
+
+  <div class="filters">
+    <label>Center
+      <select [(ngModel)]="centerId" (change)="onFiltersChanged()">
+        <option [ngValue]="''">All centers</option>
+        @for (c of centers; track c.id) {
+          <option [ngValue]="c.id">{{ c.hospital_name }} - {{ c.name }} ({{ c.city }})</option>
+        }
+      </select>
+    </label>
+    <label>Date
+      <input type="date" [(ngModel)]="date" (change)="onFiltersChanged()" />
+    </label>
+  </div>
+
+  @if (error) {
+    <p class="error">{{ error }}</p>
+  }
+
+  @if (loading) {
+    <div class="spinner-wrap" aria-live="polite" aria-busy="true">
+      <div class="round-spinner" aria-hidden="true"></div>
+      <p class="muted">Loading queue data...</p>
+    </div>
+  } @else {
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Token</th><th>Patient</th><th>CNIC</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+          @if (!rows.length) {
+            <tr><td colspan="5">No registered/checked-in patients for this center and date.</td></tr>
+          } @else {
+            @for (r of rows; track r.id) {
+              <tr>
+                <td>{{ r.token_number }}</td>
+                <td>{{ r.patient_name }}</td>
+                <td>{{ r.patient_cnic || '—' }}</td>
+                <td>{{ r.status }}</td>
+                <td class="action-cell">
+                  <button class="btn" (click)="openAssessment(r)">Assess</button>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>
+
+@if (selected) {
+  <div class="modal-overlay" (click)="closeAssessment()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h3>Pre-assessment for Token #{{ selected.token_number }}</h3>
+      <div class="form-grid">
+        <label>BP systolic <input type="number" [(ngModel)]="form.bp_systolic" /></label>
+        <label>BP diastolic <input type="number" [(ngModel)]="form.bp_diastolic" /></label>
+        <label>Weight (kg) <input type="number" [(ngModel)]="form.weight_kg" /></label>
+        <label>Height (cm) <input type="number" [(ngModel)]="form.height_cm" /></label>
+        <label>Blood sugar (mg/dL) <input type="number" [(ngModel)]="form.blood_sugar_mg_dl" /></label>
+        <app-speech-input class="full" label="Symptoms" placeholder="Symptoms / chief complaint" [(model)]="form.symptoms" />
+        <app-speech-input class="full" label="Medical history notes" placeholder="History notes" [(model)]="form.medical_history_notes" />
+      </div>
+      <div class="actions">
+        <button class="btn" (click)="closeAssessment()">Cancel</button>
+        <button class="btn primary" (click)="submitAssessment()" [disabled]="saving">Save & mark ready</button>
+      </div>
+    </div>
+  </div>
+}

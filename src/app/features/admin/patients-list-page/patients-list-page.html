@@ -1,0 +1,95 @@
+<section class="page-card">
+  <header class="page-header">
+    <div>
+      <h1>Patients</h1>
+      <p>Patient directory and basic demographics management.</p>
+    </div>
+  </header>
+
+  @if (error) { <p class="error">{{ error }}</p> }
+
+  <div class="actions">
+    <button class="btn primary" (click)="creating = true" [disabled]="saving || loading">Create patient</button>
+    <app-speech-input [(model)]="search" placeholder="Search patients" />
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>CNIC</th><th>Name</th><th>Phone</th><th>DOB</th><th>Status</th><th class="right">Action</th></tr></thead>
+      <tbody>
+        @if (loading) {
+          <tr><td colspan="6">Loading...</td></tr>
+        } @else if (!filtered.length) {
+          <tr><td colspan="6">No patients found.</td></tr>
+        } @else {
+          @for (p of paged; track p.id) {
+            <tr>
+              <td>{{ display(p.cnic) }}</td>
+              <td>{{ display(p.first_name) }} {{ display(p.last_name) === '�' ? '' : display(p.last_name) }}</td>
+              <td>{{ display(p.phone) }}</td>
+              <td>{{ display(p.date_of_birth) }}</td>
+              <td>{{ display(p.status || 'Active') }}</td>
+              <td class="right">
+                <button class="btn" (click)="editing = { ...p }">Edit</button>
+                <button class="btn danger" (click)="remove(p)">Delete</button>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+  <app-pagination
+    [total]="filtered.length"
+    [page]="page"
+    [pageSize]="pageSize"
+    (pageChange)="setPage($event)"
+    (pageSizeChange)="setPageSize($event)"
+  />
+</section>
+
+@if (creating) {
+  <div class="modal-overlay" (click)="creating = false">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h3>Create patient</h3>
+      <app-speech-input label="CNIC" [(model)]="form.cnic" />
+      <app-speech-input label="First name" [(model)]="form.first_name" />
+      <app-speech-input label="Last name" [(model)]="form.last_name" />
+      <app-speech-input label="Father name" [(model)]="form.father_name" />
+      <app-speech-input label="Phone" [(model)]="form.phone" type="tel" />
+      <app-speech-input label="Gender" [(model)]="form.gender" />
+      <label>Date of birth <input type="date" [(ngModel)]="form.date_of_birth" /></label>
+      <app-speech-input label="City" [(model)]="form.city" />
+      <div class="actions">
+        <button class="btn" (click)="creating = false">Cancel</button>
+        <button class="btn primary" (click)="create()" [disabled]="saving || !form.cnic.trim() || !form.first_name.trim()">Create</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (editing) {
+  <div class="modal-overlay" (click)="editing = null">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h3>Edit patient</h3>
+      <app-speech-input label="First name" [(model)]="editing.first_name" />
+      <app-speech-input label="Last name" [model]="editing.last_name ?? ''" (modelChange)="editing.last_name = $event" />
+      <app-speech-input label="Father name" [model]="editing.father_name ?? ''" (modelChange)="editing.father_name = $event" />
+      <app-speech-input label="Phone" [model]="editing.phone ?? ''" (modelChange)="editing.phone = $event" type="tel" />
+      <app-speech-input label="Gender" [model]="editing.gender ?? ''" (modelChange)="editing.gender = $event" />
+      <label>DOB <input type="date" [(ngModel)]="editing.date_of_birth" /></label>
+      <app-speech-input label="City" [model]="editing.city ?? ''" (modelChange)="editing.city = $event" />
+      <label>Status
+        <select [(ngModel)]="editing.status">
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+          <option value="Suspended">Suspended</option>
+        </select>
+      </label>
+      <div class="actions">
+        <button class="btn" (click)="editing = null">Cancel</button>
+        <button class="btn primary" (click)="saveEdit()" [disabled]="saving">Save</button>
+      </div>
+    </div>
+  </div>
+}

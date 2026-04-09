@@ -1,0 +1,22 @@
+<section class="page-card">
+  <h1>Patient Detail</h1>
+
+  @if (loading) {
+    <p>Loading patient…</p>
+  } @else if (error) {
+    <p class="error" role="alert">{{ error }}</p>
+  } @else if (patient) {
+    <div class="grid">
+      <div><strong>ID:</strong> {{ patient.id }}</div>
+      <div><strong>CNIC:</strong> {{ patient.cnic }}</div>
+      <div><strong>First name:</strong> {{ patient.first_name }}</div>
+      <div><strong>Last name:</strong> {{ patient.last_name || '—' }}</div>
+      <div><strong>Father name:</strong> {{ patient.father_name || '—' }}</div>
+      <div><strong>Gender:</strong> {{ patient.gender || '—' }}</div>
+      <div><strong>Date of birth:</strong> {{ patient.date_of_birth || '—' }}</div>
+      <div><strong>Phone:</strong> {{ patient.phone || '—' }}</div>
+      <div><strong>Status:</strong> {{ patient.status || '—' }}</div>
+      <div class="wide"><strong>Address:</strong> {{ patient.address || '—' }}</div>
+    </div>
+  }
+</section>

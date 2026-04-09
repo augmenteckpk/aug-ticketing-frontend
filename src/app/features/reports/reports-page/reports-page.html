@@ -1,0 +1,99 @@
+<section class="page-card">
+  <header class="head">
+    <div>
+      <h1>Reporting</h1>
+      <p class="subtitle">Daily operational report with center, department and visit breakdown.</p>
+    </div>
+  </header>
+
+  <div class="filters">
+    <label for="reportDate">Date
+      <input id="reportDate" type="date" [(ngModel)]="date" (change)="load()" />
+    </label>
+  </div>
+  <div class="actions">
+    <button type="button" class="btn primary" (click)="load()">Load report</button>
+    <button type="button" class="btn" (click)="downloadCsv()">Export CSV</button>
+  </div>
+
+  @if (loading) {
+    <p>Loading report...</p>
+  } @else if (error) {
+    <p class="error" role="alert">{{ error }}</p>
+  } @else if (data) {
+    <div class="kpi-grid">
+      <article class="kpi">
+        <p>Total visits</p>
+        <h2>{{ data.total }}</h2>
+      </article>
+      <article class="kpi">
+        <p>Centers covered</p>
+        <h2>{{ data.by_center.length }}</h2>
+      </article>
+      <article class="kpi">
+        <p>Departments covered</p>
+        <h2>{{ data.by_department.length }}</h2>
+      </article>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Status</th><th>Count</th></tr>
+        </thead>
+        <tbody>
+          @if (!statusRows.length) {
+            <tr><td colspan="2">No status data.</td></tr>
+          } @else {
+            @for (row of statusRows; track row.key) {
+              <tr><td>{{ row.key }}</td><td>{{ row.value }}</td></tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Center</th><th>Hospital</th><th>Total</th></tr>
+        </thead>
+        <tbody>
+          @if (!data.by_center.length) {
+            <tr><td colspan="3">No center summary.</td></tr>
+          } @else {
+            @for (row of data.by_center; track row.center_id) {
+              <tr><td>{{ row.center_name }}</td><td>{{ row.hospital_name }}</td><td>{{ row.total }}</td></tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Token</th><th>Patient</th><th>CNIC</th><th>Center</th><th>Department</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          @if (!data.patient_visits.length) {
+            <tr><td colspan="6">No visits in this date range.</td></tr>
+          } @else {
+            @for (v of data.patient_visits; track v.appointment_id) {
+              <tr>
+                <td>{{ v.token_number }}</td>
+                <td>{{ v.patient_name }}</td>
+                <td>{{ v.patient_cnic }}</td>
+                <td>{{ v.center_name }}</td>
+                <td>{{ v.department_name || 'Unassigned' }}</td>
+                <td>{{ v.status }}</td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <p>Select a date and load report data.</p>
+  }
+</section>

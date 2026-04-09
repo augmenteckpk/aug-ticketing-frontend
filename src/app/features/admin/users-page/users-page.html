@@ -1,0 +1,101 @@
+<section class="page-card">
+  <header class="page-header">
+    <div>
+      <h1>Users</h1>
+      <p>Manage staff accounts and role assignment.</p>
+    </div>
+  </header>
+
+  @if (error) { <p class="error">{{ error }}</p> }
+
+  <div class="actions">
+    <button class="btn primary" (click)="creating = true" [disabled]="saving || loading">Create user</button>
+    <button class="btn" (click)="load()" [disabled]="loading"><span class="material-icons">refresh</span> Refresh</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Username</th><th>Role</th><th>Status</th><th>Email</th><th class="right">Actions</th></tr></thead>
+      <tbody>
+        @if (loading) {
+          <tr><td colspan="5">Loading...</td></tr>
+        } @else if (!rows.length) {
+          <tr><td colspan="5">No users found.</td></tr>
+        } @else {
+          @for (u of paged; track u.id) {
+            <tr>
+              <td>{{ u.username }}</td>
+              <td>{{ u.role }}</td>
+              <td>{{ u.status }}</td>
+              <td>{{ u.email || '—' }}</td>
+              <td class="right">
+                <button class="btn" (click)="editing = { ...u }">Edit</button>
+                <button class="btn danger" (click)="remove(u)">Delete</button>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+  <app-pagination
+    [total]="rows.length"
+    [page]="page"
+    [pageSize]="pageSize"
+    (pageChange)="setPage($event)"
+    (pageSizeChange)="setPageSize($event)"
+  />
+</section>
+
+@if (creating) {
+  <div class="modal-overlay" (click)="creating = false">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h3>Create user</h3>
+      <app-speech-input label="Username" [(model)]="form.username" [maxLength]="50" [required]="true" [disabled]="saving" />
+      <label>Password <input [(ngModel)]="form.password" minlength="8" type="password" required [disabled]="saving" /></label>
+      <app-speech-input label="Email" [(model)]="form.email" type="email" [maxLength]="100" [disabled]="saving" />
+      <app-speech-input label="Phone" [(model)]="form.phone" type="tel" [maxLength]="20" [disabled]="saving" />
+      <label>Role
+        <select [(ngModel)]="form.role_name" [disabled]="saving">
+          @for (r of roles; track r.id) { <option [value]="r.name">{{ r.name }}</option> }
+        </select>
+      </label>
+      <div class="actions">
+        <button class="btn" (click)="creating = false">Cancel</button>
+        <button
+          class="btn primary"
+          (click)="create()"
+          [disabled]="saving || !form.username.trim() || !form.password.trim() || form.password.length < 8 || !form.role_name"
+        >
+          Create
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (editing) {
+  <div class="modal-overlay" (click)="editing = null">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h3>Edit user</h3>
+      <app-speech-input label="Email" [model]="editing.email ?? ''" (modelChange)="editing.email = $event" type="email" />
+      <app-speech-input label="Phone" [model]="editing.phone ?? ''" (modelChange)="editing.phone = $event" type="tel" />
+      <label>Role
+        <select [(ngModel)]="editing.role">
+          @for (r of roles; track r.id) { <option [value]="r.name">{{ r.name }}</option> }
+        </select>
+      </label>
+      <label>Status
+        <select [(ngModel)]="editing.status">
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+          <option value="Suspended">Suspended</option>
+        </select>
+      </label>
+      <div class="actions">
+        <button class="btn" (click)="editing = null">Cancel</button>
+        <button class="btn primary" (click)="saveEdit()" [disabled]="saving">Save</button>
+      </div>
+    </div>
+  </div>
+}

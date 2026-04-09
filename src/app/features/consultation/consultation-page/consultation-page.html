@@ -1,0 +1,234 @@
+<section class="page-card">
+  <header class="head">
+    <div>
+      <h1>Consultation</h1>
+      <p>Doctor consultation, outcomes, and lab orders.</p>
+    </div>
+    <button class="btn" (click)="refreshAll()"><span class="material-icons">refresh</span> Refresh</button>
+  </header>
+
+  <div class="filters">
+    <label>Center
+      <select [(ngModel)]="centerId" (change)="onFiltersChanged()">
+        <option [ngValue]="''">All centers</option>
+        @for (c of centers; track c.id) {
+          <option [ngValue]="c.id">{{ c.hospital_name }} - {{ c.name }} ({{ c.city }})</option>
+        }
+      </select>
+    </label>
+    <label>Date
+      <input type="date" [(ngModel)]="date" (change)="onFiltersChanged()" />
+    </label>
+  </div>
+
+  @if (error) {
+    <p class="error">{{ error }}</p>
+  }
+
+  @if (loading) {
+    <div class="spinner-wrap" aria-live="polite" aria-busy="true">
+      <div class="round-spinner" aria-hidden="true"></div>
+      <p class="muted">Loading consultation data...</p>
+    </div>
+  } @else {
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Token</th><th>Patient</th><th>CNIC</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+          @if (!rows.length) {
+            <tr><td colspan="5">No dispatched visits for consultation.</td></tr>
+          } @else {
+            @for (r of rows; track r.id) {
+              <tr>
+                <td>{{ r.token_number }}</td>
+                <td>{{ r.patient_name }}</td>
+                <td>{{ r.patient_cnic || '—' }}</td>
+                <td>{{ r.status }}</td>
+                <td>
+                  <button class="btn" (click)="selectAppointment(r)">Open</button>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>
+
+<section class="page-card">
+  <header class="page-header">
+    <div>
+      <h2>Follow-up Reports</h2>
+      <p>Doctor review table for completed follow-up and lab-completed visits.</p>
+    </div>
+  </header>
+  <div class="filters">
+    <label>Search patient / CNIC / token
+      <input type="text" [(ngModel)]="followUpSearch" placeholder="Type patient name, CNIC, or token" />
+    </label>
+  </div>
+  @if (loading) {
+    <div class="spinner-wrap" aria-live="polite" aria-busy="true">
+      <div class="round-spinner" aria-hidden="true"></div>
+      <p class="muted">Loading follow-up reports...</p>
+    </div>
+  } @else {
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Token</th><th>Patient</th><th>CNIC</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+          @if (!filteredFollowUpRows.length) {
+            <tr><td colspan="5">No follow-up records found.</td></tr>
+          } @else {
+            @for (r of filteredFollowUpRows; track r.id) {
+              <tr>
+                <td>{{ r.token_number }}</td>
+                <td>{{ r.patient_name || '—' }}</td>
+                <td>{{ r.patient_cnic || '—' }}</td>
+                <td>{{ r.status }}</td>
+                <td><button class="btn" (click)="openReportModal(r)">View report</button></td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>
+
+@if (selected) {
+  <div class="modal-overlay consultation-overlay" (click)="selected = null">
+    <div class="modal consultation-modal" (click)="$event.stopPropagation()">
+      <section class="page-card">
+        <header class="page-header">
+          <div>
+            <h2>Consultation for Token #{{ selected.token_number }}</h2>
+            <p>{{ selected.patient_name }}</p>
+          </div>
+        </header>
+
+        <div class="form-grid">
+          <label>Outcome
+            <select [(ngModel)]="consultForm.consultation_outcome">
+              <option value="medication_only">Medication only</option>
+              <option value="lab_required">Lab required</option>
+              <option value="follow_up">Follow up</option>
+              <option value="admission">Admission</option>
+            </select>
+          </label>
+          @if (consultForm.consultation_outcome === 'follow_up') {
+            <label>Follow-up advised date
+              <input type="date" [(ngModel)]="consultForm.follow_up_advised_date" />
+            </label>
+          }
+          <app-speech-input
+            class="full"
+            label="Doctor notes"
+            placeholder="Clinical notes"
+            [(model)]="consultForm.doctor_notes"
+          />
+        </div>
+        <div class="actions">
+          <button class="btn primary" (click)="saveConsultation()" [disabled]="saving">Save consultation</button>
+          @if (consultForm.consultation_outcome !== 'lab_required') {
+            <button class="btn" (click)="completeFromConsultation()" [disabled]="saving">Complete patient</button>
+          }
+        </div>
+      </section>
+
+      <section class="page-card">
+        <header class="page-header">
+          <div>
+            <h2>Lab Orders</h2>
+          </div>
+        </header>
+
+        <div class="actions">
+          <button class="btn" (click)="creatingLabOrder = true" [disabled]="saving">Create order</button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Order ID</th><th>Test</th><th>Notes</th><th>Order status</th></tr></thead>
+            <tbody>
+              @if (!labOrders.length) {
+                <tr><td colspan="4">No lab orders yet.</td></tr>
+              } @else {
+                @for (o of labOrders; track o.id) {
+                  <tr>
+                    <td>{{ o.id }}</td>
+                    <td>{{ o.test_code || '—' }}</td>
+                    <td>{{ o.notes || '—' }}</td>
+                    <td>{{ o.status || 'ordered' }}</td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <div class="actions">
+        <button class="btn" (click)="selected = null">Close</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (selectedReport) {
+  <div class="modal-overlay consultation-overlay" (click)="closeReportModal()">
+    <div class="modal consultation-modal" (click)="$event.stopPropagation()">
+      <h3>Follow-up report · Token #{{ selectedReport.appointment.token_number }}</h3>
+      <p class="muted">{{ selectedReport.appointment.patient_name || '—' }} · {{ selectedReport.appointment.patient_cnic || '—' }}</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Order ID</th><th>Test</th><th>Status</th><th>Summary</th><th>Details</th></tr></thead>
+          <tbody>
+            @if (!selectedReport.orders.length) {
+              <tr><td colspan="5">No lab orders found for this visit.</td></tr>
+            } @else {
+              @for (o of selectedReport.orders; track o.id) {
+                <tr>
+                  <td>{{ o.id }}</td>
+                  <td>{{ o.test_code || '—' }}</td>
+                  <td>{{ o.status || 'ordered' }}</td>
+                  <td>{{ parseResult(o.result).summary || '—' }}</td>
+                  <td>{{ parseResult(o.result).details || '—' }}</td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="actions">
+        <button class="btn" (click)="closeReportModal()">Close</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (creatingLabOrder) {
+  <div class="modal-overlay" (click)="creatingLabOrder = false">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h3>Create lab order</h3>
+      <div class="form-grid">
+        <app-speech-input
+          label="Test code"
+          placeholder="CBC"
+          [(model)]="labForm.test_code"
+        />
+        <app-speech-input
+          label="Notes"
+          placeholder="Urgent if needed"
+          [(model)]="labForm.notes"
+        />
+      </div>
+      <div class="actions">
+        <button class="btn" (click)="creatingLabOrder = false">Cancel</button>
+        <button class="btn primary" (click)="createLabOrder()" [disabled]="saving || !labForm.test_code.trim()">Create</button>
+      </div>
+    </div>
+  </div>
+}
+

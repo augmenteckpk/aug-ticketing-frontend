@@ -1,0 +1,33 @@
+<div class="shell">
+  <aside class="sidebar" aria-label="Primary navigation">
+    <div class="brand">
+      <img class="brand-logo" src="/siut-logo.png" alt="SIUT logo" />
+      <div class="brand-kicker">OPD ticketing</div>
+      <h1>Staff console</h1>
+      <p class="brand-user">User: {{ user()?.username || 'Operator' }}</p>
+      <p class="brand-role">Role: {{ formattedRole() }}</p>
+    </div>
+
+    @for (section of visibleSections(); track section.title) {
+      <section class="nav-section">
+        <h2>{{ section.title }}</h2>
+        <ul>
+          @for (item of section.items; track item.to) {
+            <li>
+              <a [routerLink]="item.to" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: item.to === '/app' }">
+                <span class="material-icons nav-icon" aria-hidden="true">{{ item.icon }}</span>
+                {{ item.label }}
+              </a>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+    <button type="button" class="logout" (click)="logout()">Sign out</button>
+  </aside>
+
+  <main class="content" id="main-content">
+    <router-outlet />
+  </main>
+</div>

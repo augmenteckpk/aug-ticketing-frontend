@@ -1,0 +1,179 @@
+<section class="page-card">
+  <header class="page-header">
+    <div>
+      <h1>Centers</h1>
+      <p>Manage center records and weekday department routing.</p>
+    </div>
+  </header>
+
+  @if (error) {
+    <div class="error">{{ error }}</div>
+  }
+
+  <div class="actions">
+    <button class="btn primary" (click)="creating = true" [disabled]="saving || loading">Create center</button>
+    <button class="btn" (click)="load()" [disabled]="loading"><span class="material-icons">refresh</span> Refresh</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Hospital</th>
+          <th>City</th>
+          <th>Status</th>
+          <th>Weekday routing</th>
+          <th class="right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (loading) {
+          <tr>
+            <td colspan="6" class="muted">Loading centers...</td>
+          </tr>
+        } @else if (!rows.length) {
+          <tr>
+            <td colspan="6" class="muted">No centers available.</td>
+          </tr>
+        } @else {
+          @for (row of paged; track row.id) {
+            <tr>
+              <td>{{ row.name }}</td>
+              <td>{{ row.hospital_name || row.hospital_id }}</td>
+              <td>{{ row.city }}</td>
+              <td>{{ row.status }}</td>
+              <td class="route-cell">
+                @if (!centerRouteLabels(row).length) {
+                  <span>—</span>
+                } @else {
+                  @for (label of routeVisibleLabels(row); track label) {
+                    <span class="badge routing">{{ label }}</span>
+                  }
+                  @if (routeHiddenCount(row) > 0) {
+                    <span class="badge route-more" [attr.title]="routeFullTitle(row)"
+                      >+ {{ routeHiddenCount(row) }} more</span>
+                  }
+                }
+              </td>
+              <td class="right">
+                <button class="btn" (click)="editing = { ...row }">Edit</button>
+                <button class="btn danger" (click)="remove(row)">Delete</button>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+  <app-pagination
+    [total]="rows.length"
+    [page]="page"
+    [pageSize]="pageSize"
+    (pageChange)="setPage($event)"
+    (pageSizeChange)="setPageSize($event)"
+  />
+</section>
+
+@if (creating) {
+  <div class="modal-overlay" (click)="creating = false">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h3>Create center</h3>
+      <label>
+        Hospital
+        <select [(ngModel)]="form.hospital_id" [disabled]="saving || loading">
+          <option [ngValue]="''">Select hospital</option>
+          @for (h of hospitals; track h.id) {
+            <option [ngValue]="h.id">{{ h.name }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        Name
+        <app-speech-input [(model)]="form.name" placeholder="East Bank Center" [disabled]="saving || loading" />
+      </label>
+      <label>
+        City
+        <app-speech-input [(model)]="form.city" placeholder="Georgetown" [disabled]="saving || loading" />
+      </label>
+      <label>
+        Address
+        <app-speech-input [(model)]="form.address" placeholder="Street and area" [disabled]="saving || loading" />
+      </label>
+      <div class="actions">
+        <button class="btn" (click)="creating = false">Cancel</button>
+        <button class="btn primary" (click)="create()" [disabled]="saving || form.hospital_id === '' || !form.name.trim() || !form.city.trim()">Create</button>
+      </div>
+    </div>
+  </div>
+}
+
+<section class="page-card">
+  <header class="page-header">
+    <div>
+      <h2>Weekday Routing</h2>
+      <p>Map each day to a department for the selected center.</p>
+    </div>
+  </header>
+
+  <div class="form-grid">
+    <label>
+      Center
+      <select [(ngModel)]="routeCenterId" (ngModelChange)="onRouteCenterChange()">
+        <option [ngValue]="''">Select center</option>
+        @for (c of rows; track c.id) {
+          <option [ngValue]="c.id">{{ c.name }}</option>
+        }
+      </select>
+    </label>
+  </div>
+
+  <div class="weekday-grid">
+    @for (label of weekdayLabels; track $index) {
+      <label>
+        {{ label }}
+        <select [(ngModel)]="routeDeptByWeekday[$index]">
+          <option [ngValue]="''">Off day</option>
+          @for (d of departments; track d.id) {
+            <option [ngValue]="d.id">{{ d.name }}</option>
+          }
+        </select>
+      </label>
+    }
+  </div>
+
+  <div class="actions">
+    <button class="btn primary" (click)="saveWeekdayRoutes()" [disabled]="saving || routeCenterId === ''">Save routing</button>
+  </div>
+</section>
+
+@if (editing) {
+  <div class="modal-overlay" (click)="editing = null">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h3>Edit center</h3>
+      <label>
+        Name
+        <app-speech-input [(model)]="editing.name" />
+      </label>
+      <label>
+        City
+        <app-speech-input [(model)]="editing.city" />
+      </label>
+      <label>
+        Address
+        <app-speech-input [model]="editing.address ?? ''" (modelChange)="editing.address = $event" />
+      </label>
+      <label>
+        Status
+        <select [(ngModel)]="editing.status">
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+      </label>
+      <div class="actions">
+        <button class="btn" (click)="editing = null">Cancel</button>
+        <button class="btn primary" (click)="saveEdit()" [disabled]="saving">Save</button>
+      </div>
+    </div>
+  </div>
+}

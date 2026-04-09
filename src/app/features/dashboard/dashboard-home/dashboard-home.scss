@@ -1,0 +1,140 @@
+.dashboard {
+  display: grid;
+  gap: 1rem;
+}
+
+.kicker {
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+.stat-grid {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+}
+
+.stat-card .label {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--color-muted);
+}
+
+.stat-card .value {
+  margin: 0.25rem 0 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.totals {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  align-items: end;
+}
+
+.link-btn {
+  justify-content: center;
+}
+
+.charts-grid {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.chart-card header h3 {
+  margin: 0;
+}
+
+.chart-card header p {
+  margin: 0.25rem 0 0.6rem;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.donut-wrap {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  margin: 0.3rem auto 0.8rem;
+}
+
+.donut {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.donut-center {
+  position: absolute;
+  inset: 22%;
+  border-radius: 50%;
+  background: #fff;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+.donut-center strong {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.donut-center span {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+}
+
+.legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.legend li {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.88rem;
+}
+
+.bars {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 96px 1fr auto;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.bar-row .name {
+  font-size: 0.82rem;
+  color: var(--color-muted);
+}
+
+.track {
+  height: 9px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2563eb 0%, #14b8a6 100%);
+}
+
+.bar-row .value {
+  min-width: 24px;
+  text-align: right;
+  font-weight: 700;
+}

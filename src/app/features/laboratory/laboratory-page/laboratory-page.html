@@ -1,0 +1,86 @@
+<section class="page-card">
+  <header class="head">
+    <div>
+      <h1>Laboratory</h1>
+      <p>Daily lab worklist with pending filter.</p>
+    </div>
+    <button class="btn" (click)="load()"><span class="material-icons">refresh</span> Refresh</button>
+  </header>
+
+  <div class="filters">
+    <label>Center
+      <select [(ngModel)]="centerId" (change)="load()">
+        <option [ngValue]="''">All centers</option>
+        @for (c of centers; track c.id) {
+          <option [ngValue]="c.id">{{ c.hospital_name }} - {{ c.name }} ({{ c.city }})</option>
+        }
+      </select>
+    </label>
+    <label>Date
+      <input type="date" [(ngModel)]="date" (change)="load()" />
+    </label>
+    <label class="check"><input type="checkbox" [(ngModel)]="pendingOnly" (change)="load()" /> Pending only</label>
+  </div>
+
+  @if (error) {
+    <p class="error">{{ error }}</p>
+  }
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Token</th><th>Patient</th><th>Test</th><th>Order status</th><th>Visit status</th><th>Action</th></tr></thead>
+      <tbody>
+        @if (loading && !bootstrapped && !rows.length) {
+          <tr><td colspan="6">Loading...</td></tr>
+        } @else if (!rows.length) {
+          <tr><td colspan="6">No lab worklist entries found.</td></tr>
+        } @else {
+          @for (r of rows; track r.order_id) {
+            <tr>
+              <td>{{ r.token_number }}</td>
+              <td>{{ (r.first_name || '') + ' ' + (r.last_name || '') }}</td>
+              <td>{{ r.test_code || '—' }}</td>
+              <td>{{ r.order_status || 'ordered' }}</td>
+              <td>{{ r.appointment_status || '—' }}</td>
+              <td class="actions">
+                @if ((r.order_status || '').toLowerCase() !== 'completed' && (r.appointment_status || '').toLowerCase() === 'dispatched') {
+                  <button class="btn" (click)="openResultModal(r)">Fill result</button>
+                }
+                @if ((r.order_status || '').toLowerCase() === 'completed' && (r.appointment_status || '').toLowerCase() === 'dispatched') {
+                  <button class="btn primary" (click)="completeFromLab(r)" [disabled]="saving">Complete patient</button>
+                }
+                @if ((r.appointment_status || '').toLowerCase() === 'completed') {
+                  <span class="badge">Journey completed</span>
+                }
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+@if (selectedOrder) {
+  <div class="modal-overlay" (click)="closeResultModal()">
+    <div class="modal lab-result-modal" (click)="$event.stopPropagation()">
+      <h3>Lab result for order #{{ selectedOrder.order_id }}</h3>
+      <p class="muted">Token #{{ selectedOrder.token_number }} · {{ (selectedOrder.first_name || '') + ' ' + (selectedOrder.last_name || '') }}</p>
+
+      <div class="form-grid">
+        <label class="full">Summary
+          <input type="text" [(ngModel)]="resultForm.summary" placeholder="Result summary" />
+        </label>
+        <label class="full">Details
+          <textarea rows="6" [(ngModel)]="resultForm.details" placeholder="Detailed lab findings"></textarea>
+        </label>
+      </div>
+
+      <div class="actions">
+        <button class="btn" (click)="closeResultModal()">Cancel</button>
+        <button class="btn primary" (click)="saveResult()" [disabled]="saving">Save result</button>
+        <button class="btn" (click)="completeFromLab(selectedOrder)" [disabled]="saving">Complete patient</button>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,43 @@
+{
+  "name": "web",
+  "version": "0.0.0",
+  "scripts": {
+    "ng": "ng",
+    "prebuild": "node scripts/check-project-root.mjs",
+    "prestart": "node scripts/check-project-root.mjs",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test"
+  },
+  "private": true,
+  "packageManager": "npm@10.9.3",
+  "dependencies": {
+    "@angular/cdk": "^21.2.5",
+    "@angular/common": "^21.2.0",
+    "@angular/compiler": "^21.2.0",
+    "@angular/core": "^21.2.0",
+    "@angular/forms": "^21.2.0",
+    "@angular/material": "^21.2.5",
+    "@angular/platform-browser": "^21.2.0",
+    "@angular/router": "^21.2.0",
+    "@fortawesome/fontawesome-free": "^7.2.0",
+    "@zxing/browser": "^0.1.5",
+    "bootstrap-icons": "^1.13.1",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0",
+    "zone.js": "^0.16.1"
+  },
+  "devDependencies": {
+    "@angular/build": "^21.2.6",
+    "@angular/cli": "^21.2.6",
+    "@angular/compiler-cli": "^21.2.0",
+    "@tailwindcss/postcss": "^4.2.2",
+    "jsdom": "^28.0.0",
+    "postcss": "^8.5.9",
+    "prettier": "^3.8.1",
+    "tailwindcss": "^4.2.2",
+    "typescript": "~5.9.2",
+    "vitest": "^4.0.8"
+  }
+}
