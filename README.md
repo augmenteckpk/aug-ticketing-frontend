@@ -33,7 +33,7 @@ Angular bakes environment values at **build time**. There is **no** runtime `.en
 |--------|---------------------------|
 | Local dev (`ng serve`) | `src/environments/environment.development.ts` (`apiUrl`) |
 | Production build (`ng build`) | `src/environments/environment.ts` (`apiUrl`) — also overwritten in Docker (below) |
-| Docker image | Build argument **`API_URL`** (see [Docker](#docker)) |
+| Docker image | Build argument **`API_URL`** or legacy **`VITE_API_URL`** — `API_URL` wins if both are set ([Docker](#docker)) |
 
 The API base URL must be the origin only (no `/api/v1`, no trailing slash), e.g. `http://localhost:3001` or `https://api.example.com`.
 
@@ -55,9 +55,11 @@ Build the image from this directory:
 
 ```bash
 docker build --build-arg API_URL=https://api.yourdomain.com -t staff-console .
+# Still works if your platform only defines the old Vite name:
+docker build --build-arg VITE_API_URL=https://api.yourdomain.com -t staff-console .
 ```
 
-- **`API_URL`** — public URL of the backend API, written into `environment.ts` during the image build.
+- **`API_URL`** / **`VITE_API_URL`** — public URL of the backend API, written into `environment.ts` during the image build. Prefer **`API_URL`**; **`VITE_API_URL`** is kept for existing production env vars from the former Vite app.
 - The runtime stage serves the built app with **nginx** (`nginx.conf`); SPA routes use `try_files` → `index.html`.
 
 ## Tests
@@ -74,7 +76,7 @@ This app replaced the earlier React staff console. It keeps route and API parity
 
 ### Smoke checklist (after changes)
 
-1. Confirm `apiUrl` / `API_URL` for your environment.
+1. Confirm `apiUrl` / Docker `API_URL` (or legacy `VITE_API_URL`) for your environment.
 2. `npm run build`
 3. Exercise: login, appointments, queue, reports, waiting display (SSE / fallback).
 
