@@ -21,9 +21,7 @@ For day-to-day work, `npm install` is fine if you are not reproducing CI exactly
 npm start
 ```
 
-Same as `ng serve`. The dev server listens on **all interfaces** (`0.0.0.0`) so other devices on your LAN can open `http://<your-pc-ip>:4200`.
-
-When you open the app by **LAN IP** (e.g. from a phone), API calls target the same host on port **3001** automatically in development—see `src/environments/api-base.ts` and `resolveApiBaseUrl()`.
+Same as `ng serve` (default host `localhost`). API base URL comes from `environment.development.ts` via `resolveApiBaseUrl()` in `src/environments/api-base.ts`.
 
 ## Configuration
 
