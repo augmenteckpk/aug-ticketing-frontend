@@ -11,6 +11,16 @@ type DailyReport = {
   by_status: Record<string, number>;
   by_center: Array<{ center_id: number; center_name: string; hospital_name: string; total: number }>;
   by_department: Array<{ department_id: number | null; department_name: string | null; total: number }>;
+  /** Executive KPIs (mobile + analytics); optional for older API builds. */
+  executive?: {
+    total_scheduled_appointments: number;
+    total_awaiting_arrival_booked: number;
+    total_in_clinic_flow: number;
+    emergency_priority_visits: number;
+    dialysis_appointments_total: number;
+    dialysis_emergency: number;
+    dialysis_routine: number;
+  };
   patient_visits: Array<{
     appointment_id: number;
     appointment_date: string;
