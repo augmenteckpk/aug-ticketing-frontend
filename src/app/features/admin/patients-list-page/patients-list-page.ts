@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { ApiService } from '../../../core/services/api';
 import { ConfirmService } from '../../../core/services/confirm';
 import { ToastService } from '../../../core/services/toast';
@@ -22,7 +23,7 @@ type Patient = {
 
 @Component({
   selector: 'app-patients-list-page',
-  imports: [CommonModule, FormsModule, Pagination, SpeechInput],
+  imports: [CommonModule, FormsModule, Pagination, SpeechInput, RouterLink],
   templateUrl: './patients-list-page.html',
   styleUrl: './patients-list-page.scss',
 })

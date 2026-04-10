@@ -1,22 +1,81 @@
 <section class="page-card">
-  <h1>Patient Detail</h1>
+  <header class="page-header">
+    <a routerLink="/app/patients" class="back-link">? Patients</a>
+    <h1>Patient details</h1>
+    <p class="sub">Demographics, account fields, and OPD visit history.</p>
+  </header>
 
   @if (loading) {
-    <p>Loading patient…</p>
+    <p class="muted">Loading?</p>
   } @else if (error) {
     <p class="error" role="alert">{{ error }}</p>
   } @else if (patient) {
+    <div class="section-title">Profile</div>
     <div class="grid">
-      <div><strong>ID:</strong> {{ patient.id }}</div>
-      <div><strong>CNIC:</strong> {{ patient.cnic }}</div>
-      <div><strong>First name:</strong> {{ patient.first_name }}</div>
-      <div><strong>Last name:</strong> {{ patient.last_name || '—' }}</div>
-      <div><strong>Father name:</strong> {{ patient.father_name || '—' }}</div>
-      <div><strong>Gender:</strong> {{ patient.gender || '—' }}</div>
-      <div><strong>Date of birth:</strong> {{ patient.date_of_birth || '—' }}</div>
-      <div><strong>Phone:</strong> {{ patient.phone || '—' }}</div>
-      <div><strong>Status:</strong> {{ patient.status || '—' }}</div>
-      <div class="wide"><strong>Address:</strong> {{ patient.address || '—' }}</div>
+      <div><span class="k">Patient ID</span><span class="v">{{ patient.id }}</span></div>
+      <div><span class="k">CNIC</span><span class="v mono">{{ display(patient.cnic) }}</span></div>
+      <div><span class="k">Status</span><span class="v"><span class="pill">{{ display(patient.status || 'Active') }}</span></span></div>
+      <div><span class="k">First name</span><span class="v">{{ display(patient.first_name) }}</span></div>
+      <div><span class="k">Last name</span><span class="v">{{ display(patient.last_name) }}</span></div>
+      <div><span class="k">First name (Urdu)</span><span class="v urdu">{{ display(patient.first_name_ur) }}</span></div>
+      <div><span class="k">Last name (Urdu)</span><span class="v urdu">{{ display(patient.last_name_ur) }}</span></div>
+      <div><span class="k">Father name</span><span class="v">{{ display(patient.father_name) }}</span></div>
+      <div><span class="k">Father CNIC</span><span class="v mono">{{ display(patient.father_cnic) }}</span></div>
+      <div><span class="k">Mother CNIC</span><span class="v mono">{{ display(patient.mother_cnic) }}</span></div>
+      <div><span class="k">Gender</span><span class="v">{{ display(patient.gender) }}</span></div>
+      <div><span class="k">Date of birth</span><span class="v">{{ dateOnly(patient.date_of_birth ?? undefined) }}</span></div>
+      <div><span class="k">Phone</span><span class="v mono">{{ display(patient.phone) }}</span></div>
+      <div><span class="k">City</span><span class="v">{{ display(patient.city) }}</span></div>
+      <div><span class="k">Preferred language</span><span class="v">{{ display(patient.preferred_language) }}</span></div>
+      <div><span class="k">MRN</span><span class="v mono">{{ display(patient.medical_record_number) }}</span></div>
+      <div class="wide"><span class="k">Address</span><span class="v">{{ display(patient.address) }}</span></div>
+      <div><span class="k">Created</span><span class="v">{{ dateTime(patient.created_at ?? undefined) }}</span></div>
+      <div><span class="k">Updated</span><span class="v">{{ dateTime(patient.updated_at ?? undefined) }}</span></div>
     </div>
+
+    <div class="section-title">OPD visits &amp; bookings</div>
+    @if (appointmentsError) {
+      <p class="warn">{{ appointmentsError }}</p>
+    }
+    @if (!appointments.length && !appointmentsError) {
+      <p class="muted">No appointments or visits on record for this patient.</p>
+    } @else if (appointments.length) {
+      <div class="table-wrap">
+        <table class="appt-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Token</th>
+              <th>Status</th>
+              <th>Hospital</th>
+              <th>Center</th>
+              <th>Department</th>
+              <th>Clinic</th>
+              <th>Location</th>
+              <th>Outcome</th>
+              <th>Follow-up</th>
+              <th>Registered</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (a of appointments; track a.id) {
+              <tr>
+                <td>{{ dateOnly(a.appointment_date) }}</td>
+                <td class="mono">#{{ a.token_number }}</td>
+                <td><span class="pill sm">{{ a.status }}</span></td>
+                <td>{{ display(a.hospital_name) }}</td>
+                <td>{{ display(a.center_name) }}</td>
+                <td>{{ display(a.department_name) }}</td>
+                <td>{{ display(a.clinic_name) }}</td>
+                <td>{{ display(a.location) }}</td>
+                <td>{{ display(a.consultation_outcome) }}</td>
+                <td>{{ dateOnly(a.follow_up_advised_date ?? undefined) }}</td>
+                <td class="muted sm">{{ dateTime(a.registered_at ?? undefined) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
   }
 </section>

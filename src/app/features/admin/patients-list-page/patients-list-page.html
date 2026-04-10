@@ -15,7 +15,7 @@
 
   <div class="table-wrap">
     <table>
-      <thead><tr><th>CNIC</th><th>Name</th><th>Phone</th><th>DOB</th><th>Status</th><th class="right">Action</th></tr></thead>
+      <thead><tr><th>CNIC</th><th>Name</th><th>Phone</th><th>DOB</th><th>Status</th><th class="right">Actions</th></tr></thead>
       <tbody>
         @if (loading) {
           <tr><td colspan="6">Loading...</td></tr>
@@ -25,13 +25,14 @@
           @for (p of paged; track p.id) {
             <tr>
               <td>{{ display(p.cnic) }}</td>
-              <td>{{ display(p.first_name) }} {{ display(p.last_name) === '�' ? '' : display(p.last_name) }}</td>
+              <td>{{ display(p.first_name) }} {{ display(p.last_name) }}</td>
               <td>{{ display(p.phone) }}</td>
               <td>{{ display(p.date_of_birth) }}</td>
               <td>{{ display(p.status || 'Active') }}</td>
-              <td class="right">
-                <button class="btn" (click)="editing = { ...p }">Edit</button>
-                <button class="btn danger" (click)="remove(p)">Delete</button>
+              <td class="right actions-cell">
+                <a class="btn ghost" [routerLink]="['/app/patients', p.id]">View</a>
+                <button type="button" class="btn" (click)="editing = { ...p }">Edit</button>
+                <button type="button" class="btn danger" (click)="remove(p)">Delete</button>
               </td>
             </tr>
           }

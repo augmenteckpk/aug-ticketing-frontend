@@ -1,17 +1,146 @@
+.page-header {
+  margin-bottom: 1.25rem;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  color: var(--color-primary, #a32417);
+  text-decoration: none;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
 h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.35rem;
+}
+
+.sub {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.92rem;
+}
+
+.section-title {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  font-weight: 800;
+  margin: 1.25rem 0 0.65rem;
+}
+
+.section-title:first-of-type {
   margin-top: 0;
 }
 
 .grid {
   display: grid;
-  gap: 0.7rem;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.65rem 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
-.wide {
+.grid .wide {
   grid-column: 1 / -1;
+}
+
+.k {
+  display: block;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  font-weight: 700;
+  margin-bottom: 0.15rem;
+}
+
+.v {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.35;
+}
+
+.v.urdu {
+  font-family: 'Noto Nastaliq Urdu', 'Noto Sans Arabic', serif;
+  direction: rtl;
+  text-align: right;
+}
+
+.mono {
+  font-variant-numeric: tabular-nums;
+}
+
+.pill {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.pill.sm {
+  font-size: 0.72rem;
+  padding: 0.12rem 0.45rem;
+}
+
+.muted {
+  color: #64748b;
+}
+
+.muted.sm {
+  font-size: 0.78rem;
+}
+
+.warn {
+  color: #b45309;
+  font-weight: 600;
 }
 
 .error {
   color: #b91c1c;
+  font-weight: 600;
+}
+
+.table-wrap {
+  overflow: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.appt-table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.appt-table th,
+.appt-table td {
+  padding: 0.55rem 0.65rem;
+  text-align: left;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: top;
+}
+
+.appt-table thead th {
+  background: #f8fafc;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.appt-table tbody tr:hover {
+  background: #fafafa;
 }
