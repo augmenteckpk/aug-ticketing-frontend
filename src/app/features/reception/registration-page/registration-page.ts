@@ -19,6 +19,7 @@ type Appt = {
   appointment_date?: string;
   status: string;
   visit_barcode?: string | null;
+  w_number?: string | null;
 };
 /** Patient app encodes visit tokens as CODE128 over 32-char lowercase hex (backend `newVisitBarcode`). */
 const VISIT_BARCODE_SCAN_HINTS = new Map<DecodeHintType, unknown>([
@@ -73,6 +74,7 @@ export class RegistrationPage implements OnInit, OnDestroy {
 
   loading = false;
   saving = false;
+  gateBusyId: number | null = null;
   error = '';
   scannerOpen = false;
   private suppressNoRecordToastOnce = false;
@@ -311,32 +313,56 @@ export class RegistrationPage implements OnInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
+  async gateCheckIn(a: Appt): Promise<void> {
+    this.gateBusyId = a.id;
+    this.error = '';
+    try {
+      const updated = await this.api.post<Appt>(`/appointments/${a.id}/gate-check-in`, {}, 20000);
+      this.toast.success('Gate check-in: W number issued.');
+      this.booked = this.booked.map((row) => (row.id === a.id ? { ...row, ...updated } : row));
+      if (this.selected?.id === a.id) {
+        this.selected = { ...this.selected, ...updated };
+      }
+    } catch (e) {
+      this.error = e instanceof Error ? e.message : 'Gate check-in failed';
+      this.toast.error(this.error);
+    } finally {
+      this.gateBusyId = null;
+      this.cdr.detectChanges();
+    }
+  }
+
   async register(): Promise<void> {
     if (!this.selected) return;
     const selected = this.selected;
     this.saving = true;
     this.error = '';
     try {
-      await this.api.post('/appointments/register', {
-        appointment_id: this.selected.id,
-        visit_barcode: this.selected.visit_barcode?.trim() || null,
-        patient: {
-          first_name: this.patient.first_name,
-          last_name: this.patient.last_name || null,
-          father_name: this.patient.father_name || null,
-          father_cnic: this.patient.father_cnic || null,
-          mother_cnic: this.patient.mother_cnic || null,
-          phone: this.patient.phone || null,
-          address: this.patient.address || null,
-          city: this.patient.city || null,
-          gender: this.patient.gender || null,
-          date_of_birth: this.patient.date_of_birth || null,
-          medical_record_number: this.patient.medical_record_number || null,
+      const updated = await this.api.post<Appt>(
+        '/appointments/register',
+        {
+          appointment_id: this.selected.id,
+          visit_barcode: this.selected.visit_barcode?.trim() || null,
+          patient: {
+            first_name: this.patient.first_name,
+            last_name: this.patient.last_name || null,
+            father_name: this.patient.father_name || null,
+            father_cnic: this.patient.father_cnic || null,
+            mother_cnic: this.patient.mother_cnic || null,
+            phone: this.patient.phone || null,
+            address: this.patient.address || null,
+            city: this.patient.city || null,
+            gender: this.patient.gender || null,
+            date_of_birth: this.patient.date_of_birth || null,
+            medical_record_number: this.patient.medical_record_number || null,
+          },
         },
-      });
+        20000,
+      );
       this.toast.success('Patient check-in confirmed.');
       this.slipPrint.print('OPD Ticket Slip', 'Registration confirmed ticket', [
         { label: 'Token', value: String(selected.token_number) },
+        { label: 'W number', value: updated.w_number?.trim() || '-' },
         { label: 'Patient', value: selected.patient_name || this.patient.first_name || '-' },
         { label: 'CNIC', value: selected.patient_cnic || this.cnic || '-' },
         { label: 'Center', value: selected.center_name || this.centerLabel() },

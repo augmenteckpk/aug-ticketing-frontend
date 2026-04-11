@@ -33,7 +33,7 @@
   } @else {
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Token</th><th>Patient</th><th>CNIC</th><th>Status</th><th>Action</th></tr></thead>
+        <thead><tr><th>Token</th><th>Patient</th><th>CNIC</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>
           @if (!rows.length) {
             <tr><td colspan="5">No registered/checked-in patients for this center and date.</td></tr>
@@ -45,7 +45,16 @@
                 <td>{{ r.patient_cnic || '—' }}</td>
                 <td>{{ r.status }}</td>
                 <td class="action-cell">
-                  <button class="btn" (click)="openAssessment(r)">Assess</button>
+                  <button type="button" class="btn" (click)="openAssessment(r)">Assess</button>
+                  <button
+                    type="button"
+                    class="btn"
+                    (click)="markReadyWithoutVitals(r)"
+                    [disabled]="readyWithoutId === r.id"
+                    title="Send to ready pool without vitals (pre-assessment optional)"
+                  >
+                    Ready (no vitals)
+                  </button>
                 </td>
               </tr>
             }

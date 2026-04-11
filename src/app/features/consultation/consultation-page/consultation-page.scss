@@ -23,6 +23,43 @@
   color: #64748b;
 }
 
+.small {
+  font-size: 0.85rem;
+  line-height: 1.35;
+  margin: 0.25rem 0 0;
+}
+
+.week-routes {
+  grid-column: 1 / -1;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  background: #f8fafc;
+}
+
+.week-routes-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #0f172a;
+  margin-bottom: 0.15rem;
+}
+
+.week-routes-list {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.88rem;
+}
+
+.week-routes-list .wd {
+  display: inline-block;
+  min-width: 2.4rem;
+  font-weight: 600;
+  color: #334155;
+}
+
 .consultation-overlay {
   position: fixed;
   inset: 0;

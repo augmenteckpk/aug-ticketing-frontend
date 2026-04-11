@@ -33,6 +33,8 @@ export class PreAssessmentPage implements OnInit {
   bootstrapped = false;
   hasLoadedOnce = false;
   saving = false;
+  /** Row id while POST ready-without-preassessment is in flight */
+  readyWithoutId: number | null = null;
   error = '';
   private loadRunId = 0;
 
@@ -166,6 +168,23 @@ export class PreAssessmentPage implements OnInit {
   closeAssessment(): void {
     this.selected = null;
     this.cdr.detectChanges();
+  }
+
+  async markReadyWithoutVitals(row: QueueRow): Promise<void> {
+    this.readyWithoutId = row.id;
+    this.error = '';
+    try {
+      await this.api.post(`/appointments/${row.id}/ready-without-preassessment`, {});
+      this.toast.success('Patient marked ready without pre-assessment vitals.');
+      this.rows = this.rows.filter((r) => r.id !== row.id);
+      await this.load();
+    } catch (e) {
+      this.error = e instanceof Error ? e.message : 'Could not mark ready';
+      this.toast.error(this.error);
+    } finally {
+      this.readyWithoutId = null;
+      this.cdr.detectChanges();
+    }
   }
 
   async submitAssessment(): Promise<void> {

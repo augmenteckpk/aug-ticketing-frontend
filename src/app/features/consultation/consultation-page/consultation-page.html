@@ -121,6 +121,37 @@
             <label>Follow-up advised date
               <input type="date" [(ngModel)]="consultForm.follow_up_advised_date" />
             </label>
+            <div class="week-routes" role="region" aria-label="OPD weekday routing for this center">
+              <div class="week-routes-title">Center OPD weekday routing</div>
+              <p class="muted small">Which weekday patients are routed to which department at this center (same rules apply when they book).</p>
+              <ul class="week-routes-list">
+                @for (wd of [0, 1, 2, 3, 4, 5, 6]; track wd) {
+                  <li><span class="wd">{{ weekdayLabels[wd] }}</span> — {{ weekdayRouteLabel(wd) }}</li>
+                }
+              </ul>
+            </div>
+            <label>Follow-up department
+              <select
+                [ngModel]="consultForm.follow_up_advised_department_id"
+                (ngModelChange)="onFollowUpDepartmentChange($event)"
+              >
+                <option [ngValue]="''">Optional — select department</option>
+                @for (d of departmentsForCenter; track d.id) {
+                  <option [ngValue]="d.id">{{ d.name }}</option>
+                }
+              </select>
+            </label>
+            <label>Follow-up OPD / clinic
+              <select [(ngModel)]="consultForm.follow_up_advised_clinic_id" [disabled]="!clinicsForFollowUp.length">
+                <option [ngValue]="''">Optional — select clinic</option>
+                @for (c of clinicsForFollowUp; track c.id) {
+                  <option [ngValue]="c.id">{{ c.name }}</option>
+                }
+              </select>
+            </label>
+            @if (consultForm.follow_up_advised_department_id !== '' && !clinicsForFollowUp.length) {
+              <p class="muted small">No clinics linked for this department at this center, or still loading.</p>
+            }
           }
           <app-speech-input
             class="full"

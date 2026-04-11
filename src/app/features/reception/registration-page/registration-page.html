@@ -31,13 +31,13 @@
 
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Token</th><th>Barcode</th><th>Patient</th><th>Center</th><th>Status</th><th>Action</th></tr></thead>
+      <thead><tr><th>Token</th><th>W #</th><th>Barcode</th><th>Patient</th><th>Center</th><th>Status</th><th>Actions</th></tr></thead>
       <tbody>
         @if (loading) {
-          <tr><td colspan="6">Loading...</td></tr>
+          <tr><td colspan="7">Loading...</td></tr>
         } @else if (!booked.length) {
           <tr>
-            <td colspan="6" [class.error]="error" class="empty-hint">
+            <td colspan="7" [class.error]="error" class="empty-hint">
               {{ error || 'No lookup yet - use Lookup booked (CNIC) or Scan visit barcode with the camera.' }}
             </td>
           </tr>
@@ -45,11 +45,19 @@
           @for (a of booked; track a.id) {
             <tr>
               <td>{{ a.token_number }}</td>
+              <td class="mono-pill">{{ a.w_number?.trim() || '—' }}</td>
               <td class="mono-pill">{{ (a.visit_barcode || '').slice(0, 10) }}{{ a.visit_barcode && a.visit_barcode.length > 10 ? '...' : '' }}</td>
               <td>{{ a.patient_name }}</td>
               <td>{{ a.center_name || '-' }}</td>
               <td>{{ a.status }}</td>
-              <td><button class="btn" (click)="pick(a)">Select</button></td>
+              <td class="action-cell">
+                @if (a.status === 'booked') {
+                  <button type="button" class="btn" (click)="gateCheckIn(a)" [disabled]="gateBusyId === a.id" title="Issue W number and mark checked in before registration form">
+                    Gate &amp; W #
+                  </button>
+                }
+                <button type="button" class="btn" (click)="pick(a)">Select</button>
+              </td>
             </tr>
           }
         }

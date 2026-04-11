@@ -12,9 +12,23 @@ type Appointment = {
   token_number: number;
   patient_name: string;
   patient_cnic?: string | null;
+  center_id: number;
   center_name?: string | null;
   status: string;
   consultation_outcome?: string | null;
+  follow_up_advised_date?: string | null;
+  follow_up_advised_department_id?: number | null;
+  follow_up_advised_clinic_id?: number | null;
+  follow_up_advised_department_name?: string | null;
+  follow_up_advised_clinic_name?: string | null;
+};
+
+type DepartmentRow = { id: number; name: string };
+type ClinicRow = { id: number; name: string; department_name: string; schedule?: string | null };
+type WeekdayRouteRow = {
+  weekday: number;
+  department_id: number;
+  department?: { id: number; name: string } | null;
 };
 type LabOrder = { id: number; test_code?: string | null; notes?: string | null; status?: string | null; result?: unknown };
 type LabReportResult = { summary?: string | null; details?: string | null };
@@ -47,7 +61,17 @@ export class ConsultationPage implements OnInit {
     consultation_outcome: 'medication_only',
     doctor_notes: '',
     follow_up_advised_date: '',
+    follow_up_advised_department_id: '' as number | '',
+    follow_up_advised_clinic_id: '' as number | '',
   };
+
+  /** Departments linked to the selected visit's center */
+  departmentsForCenter: DepartmentRow[] = [];
+  /** OPD weekday routing for that center (which department runs which day) */
+  weekdayRoutes: WeekdayRouteRow[] = [];
+  /** Clinics for chosen follow-up department */
+  clinicsForFollowUp: ClinicRow[] = [];
+  readonly weekdayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
 
   labForm = {
     test_code: '',
@@ -191,13 +215,76 @@ export class ConsultationPage implements OnInit {
 
   async selectAppointment(row: Appointment): Promise<void> {
     this.selected = row;
+    const adv = row.follow_up_advised_date ? String(row.follow_up_advised_date).slice(0, 10) : '';
     this.consultForm = {
       consultation_outcome: (row.consultation_outcome || 'medication_only') as string,
       doctor_notes: '',
-      follow_up_advised_date: '',
+      follow_up_advised_date: adv,
+      follow_up_advised_department_id: row.follow_up_advised_department_id ?? '',
+      follow_up_advised_clinic_id: row.follow_up_advised_clinic_id ?? '',
     };
+    this.clinicsForFollowUp = [];
     this.cdr.detectChanges();
+    await this.loadConsultReference(row.center_id);
+    if (this.consultForm.follow_up_advised_department_id !== '') {
+      await this.loadFollowUpClinics(row.center_id, Number(this.consultForm.follow_up_advised_department_id));
+    }
     await this.loadLabOrders();
+  }
+
+  private async loadConsultReference(centerId: number): Promise<void> {
+    try {
+      const [depts, routes] = await Promise.all([
+        this.withTimeout(
+          this.api.get<DepartmentRow[]>(`/departments?center_id=${centerId}&active_only=true`, 15000),
+          16000,
+        ),
+        this.withTimeout(this.api.get<WeekdayRouteRow[]>(`/centers/${centerId}/weekday-routes`, 15000), 16000),
+      ]);
+      this.departmentsForCenter = depts ?? [];
+      this.weekdayRoutes = routes ?? [];
+    } catch {
+      this.departmentsForCenter = [];
+      this.weekdayRoutes = [];
+    }
+    this.cdr.detectChanges();
+  }
+
+  async onFollowUpDepartmentChange(id: number | ''): Promise<void> {
+    this.consultForm.follow_up_advised_department_id = id;
+    this.consultForm.follow_up_advised_clinic_id = '';
+    this.clinicsForFollowUp = [];
+    if (!this.selected || id === '') {
+      this.cdr.detectChanges();
+      return;
+    }
+    await this.loadFollowUpClinics(this.selected.center_id, Number(id));
+    this.cdr.detectChanges();
+  }
+
+  private async loadFollowUpClinics(centerId: number, departmentId: number): Promise<void> {
+    try {
+      const q = new URLSearchParams({
+        center_id: String(centerId),
+        department_id: String(departmentId),
+        active_only: 'true',
+      });
+      this.clinicsForFollowUp = await this.withTimeout(
+        this.api.get<ClinicRow[]>(`/clinics?${q.toString()}`, 15000),
+        16000,
+      );
+    } catch {
+      this.clinicsForFollowUp = [];
+    }
+    this.cdr.detectChanges();
+  }
+
+  weekdayRouteLabel(wd: number): string {
+    const r = this.weekdayRoutes.find((x) => x.weekday === wd);
+    if (!r) return '—';
+    return (
+      r.department?.name ?? this.departmentsForCenter.find((d) => d.id === r.department_id)?.name ?? '—'
+    );
   }
 
   async loadLabOrders(): Promise<void> {
@@ -221,6 +308,14 @@ export class ConsultationPage implements OnInit {
         follow_up_advised_date:
           this.consultForm.consultation_outcome === 'follow_up'
             ? this.consultForm.follow_up_advised_date || null
+            : null,
+        follow_up_advised_department_id:
+          this.consultForm.consultation_outcome === 'follow_up' && this.consultForm.follow_up_advised_department_id !== ''
+            ? Number(this.consultForm.follow_up_advised_department_id)
+            : null,
+        follow_up_advised_clinic_id:
+          this.consultForm.consultation_outcome === 'follow_up' && this.consultForm.follow_up_advised_clinic_id !== ''
+            ? Number(this.consultForm.follow_up_advised_clinic_id)
             : null,
       });
       this.printConsultationSlip(this.selected);
@@ -280,6 +375,14 @@ export class ConsultationPage implements OnInit {
   }
 
   private printConsultationSlip(row: Appointment): void {
+    const deptName =
+      this.consultForm.follow_up_advised_department_id !== ''
+        ? this.departmentsForCenter.find((d) => d.id === Number(this.consultForm.follow_up_advised_department_id))?.name
+        : undefined;
+    const clinicName =
+      this.consultForm.follow_up_advised_clinic_id !== ''
+        ? this.clinicsForFollowUp.find((c) => c.id === Number(this.consultForm.follow_up_advised_clinic_id))?.name
+        : undefined;
     this.slipPrint.print('Consultation Slip', 'Doctor consultation outcome', [
       { label: 'Token', value: String(row.token_number) },
       { label: 'Patient', value: row.patient_name || '-' },
@@ -294,6 +397,17 @@ export class ConsultationPage implements OnInit {
           this.consultForm.consultation_outcome === 'follow_up'
             ? this.consultForm.follow_up_advised_date || '-'
             : '-',
+      },
+      {
+        label: 'Follow-up department',
+        value:
+          this.consultForm.consultation_outcome === 'follow_up'
+            ? deptName || (this.consultForm.follow_up_advised_department_id !== '' ? String(this.consultForm.follow_up_advised_department_id) : '-')
+            : '-',
+      },
+      {
+        label: 'Follow-up OPD / clinic',
+        value: this.consultForm.consultation_outcome === 'follow_up' ? clinicName || '-' : '-',
       },
     ]);
   }
