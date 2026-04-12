@@ -150,12 +150,13 @@ export class QueuePage implements OnInit, OnDestroy {
     try {
       const params = new URLSearchParams({ date: this.date, center_id: String(this.centerId) });
       const q = params.toString();
+      const reqMs = 20000;
       const [readyRes, batchesRes, notArrivedRes, flaggedRes, notAttendingRes] = await Promise.allSettled([
-        this.withTimeout(this.api.get<QueueReady[]>(`/queue/ready?${q}`), 20000),
-        this.withTimeout(this.api.get<Batch[]>(`/queue/batches?${q}`), 20000),
-        this.withTimeout(this.api.get<QueueNotArrived[]>(`/queue/not-arrived?${q}`), 20000),
-        this.withTimeout(this.api.get<QueueFlagged[]>(`/queue/flagged-pool?${q}`), 20000),
-        this.withTimeout(this.api.get<QueueFlagged[]>(`/queue/not-attending-today?${q}`), 20000),
+        this.withTimeout(this.api.get<QueueReady[]>(`/queue/ready?${q}`, reqMs), reqMs),
+        this.withTimeout(this.api.get<Batch[]>(`/queue/batches?${q}`, reqMs), reqMs),
+        this.withTimeout(this.api.get<QueueNotArrived[]>(`/queue/not-arrived?${q}`, reqMs), reqMs),
+        this.withTimeout(this.api.get<QueueFlagged[]>(`/queue/flagged-pool?${q}`, reqMs), reqMs),
+        this.withTimeout(this.api.get<QueueFlagged[]>(`/queue/not-attending-today?${q}`, reqMs), reqMs),
       ]);
 
       if (this.loadRunId !== runId) return;

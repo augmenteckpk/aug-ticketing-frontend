@@ -119,7 +119,11 @@
   <div class="form-grid">
     <label>
       Center
-      <select [(ngModel)]="routeCenterId" (ngModelChange)="onRouteCenterChange()">
+      <select
+        [(ngModel)]="routeCenterId"
+        (ngModelChange)="onRouteCenterChange()"
+        [disabled]="weekdayRoutesLoading"
+      >
         <option [ngValue]="''">Select center</option>
         @for (c of rows; track c.id) {
           <option [ngValue]="c.id">{{ c.name }}</option>
@@ -128,7 +132,11 @@
     </label>
   </div>
 
-  <div class="weekday-grid">
+  @if (weekdayRoutesLoading) {
+    <p class="muted">Loading weekday routing and clinic options…</p>
+  }
+
+  <div class="weekday-grid" [class.dimmed]="weekdayRoutesLoading">
     @for (idx of weekdayIndices; track idx) {
       <div class="weekday-cell">
         <div class="weekday-name">{{ weekdayLabels[idx] }}</div>

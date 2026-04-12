@@ -7,6 +7,11 @@
   display: grid;
   gap: 1rem;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+
+  &.dimmed {
+    opacity: 0.65;
+    pointer-events: none;
+  }
 }
 
 .weekday-cell {
