@@ -112,7 +112,7 @@
   <header class="page-header">
     <div>
       <h2>Weekday Routing</h2>
-      <p>Map each day to a department for the selected center.</p>
+      <p>Map each day to a department and optional OPD/clinic for the selected center.</p>
     </div>
   </header>
 
@@ -129,16 +129,28 @@
   </div>
 
   <div class="weekday-grid">
-    @for (label of weekdayLabels; track $index) {
-      <label>
-        {{ label }}
-        <select [(ngModel)]="routeDeptByWeekday[$index]">
-          <option [ngValue]="''">Off day</option>
-          @for (d of departments; track d.id) {
-            <option [ngValue]="d.id">{{ d.name }}</option>
-          }
-        </select>
-      </label>
+    @for (idx of weekdayIndices; track idx) {
+      <div class="weekday-cell">
+        <div class="weekday-name">{{ weekdayLabels[idx] }}</div>
+        <label>
+          Department
+          <select [(ngModel)]="routeDeptByWeekday[idx]" (ngModelChange)="onRouteDeptChange(idx)">
+            <option [ngValue]="''">Off day</option>
+            @for (d of departments; track d.id) {
+              <option [ngValue]="d.id">{{ d.name }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          OPD / clinic (optional)
+          <select [(ngModel)]="routeClinicByWeekday[idx]" [disabled]="routeDeptByWeekday[idx] === ''">
+            <option [ngValue]="''">Any in department</option>
+            @for (cl of weekdayClinicOptions(idx); track cl.id) {
+              <option [ngValue]="cl.id">{{ cl.name }}</option>
+            }
+          </select>
+        </label>
+      </div>
     }
   </div>
 

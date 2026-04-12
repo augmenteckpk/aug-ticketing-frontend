@@ -51,12 +51,7 @@
               <td>{{ a.center_name || '-' }}</td>
               <td>{{ a.status }}</td>
               <td class="action-cell">
-                @if (a.status === 'booked') {
-                  <button type="button" class="btn" (click)="gateCheckIn(a)" [disabled]="gateBusyId === a.id" title="Issue W number and mark checked in before registration form">
-                    Gate &amp; W #
-                  </button>
-                }
-                <button type="button" class="btn" (click)="pick(a)">Select</button>
+                <button type="button" class="btn primary" (click)="pick(a)">Register</button>
               </td>
             </tr>
           }
@@ -103,7 +98,14 @@
       <app-speech-input label="Father CNIC" [(model)]="patient.father_cnic" />
       <app-speech-input label="Mother CNIC" [(model)]="patient.mother_cnic" />
       <app-speech-input label="Phone" [(model)]="patient.phone" type="tel" />
-      <app-speech-input label="Gender" [(model)]="patient.gender" />
+      <label>Gender
+        <select [(ngModel)]="patient.gender">
+          <option value="">—</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+          <option value="Other">Other</option>
+        </select>
+      </label>
       <label>DOB <input type="date" [(ngModel)]="patient.date_of_birth" /></label>
       <app-speech-input label="Medical record no" [(model)]="patient.medical_record_number" />
       <app-speech-input label="City" [(model)]="patient.city" />

@@ -74,7 +74,6 @@ export class RegistrationPage implements OnInit, OnDestroy {
 
   loading = false;
   saving = false;
-  gateBusyId: number | null = null;
   error = '';
   scannerOpen = false;
   private suppressNoRecordToastOnce = false;
@@ -311,25 +310,6 @@ export class RegistrationPage implements OnInit, OnDestroy {
     this.selected = appt;
     this.patient.first_name = appt.patient_name?.split(' ')[0] || '';
     this.cdr.detectChanges();
-  }
-
-  async gateCheckIn(a: Appt): Promise<void> {
-    this.gateBusyId = a.id;
-    this.error = '';
-    try {
-      const updated = await this.api.post<Appt>(`/appointments/${a.id}/gate-check-in`, {}, 20000);
-      this.toast.success('Gate check-in: W number issued.');
-      this.booked = this.booked.map((row) => (row.id === a.id ? { ...row, ...updated } : row));
-      if (this.selected?.id === a.id) {
-        this.selected = { ...this.selected, ...updated };
-      }
-    } catch (e) {
-      this.error = e instanceof Error ? e.message : 'Gate check-in failed';
-      this.toast.error(this.error);
-    } finally {
-      this.gateBusyId = null;
-      this.cdr.detectChanges();
-    }
   }
 
   async register(): Promise<void> {

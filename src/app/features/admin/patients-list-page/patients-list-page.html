@@ -58,7 +58,14 @@
       <app-speech-input label="Last name" [(model)]="form.last_name" />
       <app-speech-input label="Father name" [(model)]="form.father_name" />
       <app-speech-input label="Phone" [(model)]="form.phone" type="tel" />
-      <app-speech-input label="Gender" [(model)]="form.gender" />
+      <label>Gender
+        <select [(ngModel)]="form.gender">
+          <option value="">—</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+          <option value="Other">Other</option>
+        </select>
+      </label>
       <label>Date of birth <input type="date" [(ngModel)]="form.date_of_birth" /></label>
       <app-speech-input label="City" [(model)]="form.city" />
       <div class="actions">
@@ -77,7 +84,14 @@
       <app-speech-input label="Last name" [model]="editing.last_name ?? ''" (modelChange)="editing.last_name = $event" />
       <app-speech-input label="Father name" [model]="editing.father_name ?? ''" (modelChange)="editing.father_name = $event" />
       <app-speech-input label="Phone" [model]="editing.phone ?? ''" (modelChange)="editing.phone = $event" type="tel" />
-      <app-speech-input label="Gender" [model]="editing.gender ?? ''" (modelChange)="editing.gender = $event" />
+      <label>Gender
+        <select [(ngModel)]="editing.gender">
+          <option [ngValue]="null">—</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+          <option value="Other">Other</option>
+        </select>
+      </label>
       <label>DOB <input type="date" [(ngModel)]="editing.date_of_birth" /></label>
       <app-speech-input label="City" [model]="editing.city ?? ''" (modelChange)="editing.city = $event" />
       <label>Status

@@ -8,7 +8,13 @@ import { Pagination } from '../../../ui-kit/pagination/pagination';
 import { SpeechInput } from '../../../ui-kit/speech-input/speech-input';
 
 type Hospital = { id: number; name: string };
-type CenterWeekdayRoute = { weekday: number; department_id: number; department_name?: string };
+type CenterWeekdayRoute = {
+  weekday: number;
+  department_id: number;
+  department_name?: string;
+  clinic_id?: number | null;
+  clinic_name?: string | null;
+};
 type Center = {
   id: number;
   hospital_id: number;
@@ -19,7 +25,8 @@ type Center = {
   status: string;
   weekday_routes?: CenterWeekdayRoute[];
 };
-type RouteRow = { weekday: number; department_id: number };
+type RouteRow = { weekday: number; department_id: number; clinic_id?: number | null; clinic?: { id: number; name?: string } | null };
+type ClinicOpt = { id: number; name: string };
 type Department = { id: number; name: string };
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -41,6 +48,8 @@ export class CentersPage implements OnInit {
   form = { hospital_id: '' as number | '', name: '', city: '', address: '' };
   routeCenterId: number | '' = '';
   routeDeptByWeekday: Record<number, number | ''> = { 0: '', 1: '', 2: '', 3: '', 4: '', 5: '', 6: '' };
+  routeClinicByWeekday: Record<number, number | ''> = { 0: '', 1: '', 2: '', 3: '', 4: '', 5: '', 6: '' };
+  clinicsForWeekday: Record<number, ClinicOpt[]> = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] };
 
   loading = false;
   saving = false;
@@ -51,6 +60,8 @@ export class CentersPage implements OnInit {
   pageSize = 10;
 
   readonly weekdayLabels = WEEKDAY_LABELS;
+  /** Stable indices 0–6 for @for track */
+  readonly weekdayIndices = [0, 1, 2, 3, 4, 5, 6];
 
   constructor(
     private readonly api: ApiService,
@@ -65,11 +76,12 @@ export class CentersPage implements OnInit {
   async load(): Promise<void> {
     this.loading = true;
     this.error = '';
+    const ms = 25000;
     try {
       const [centersRes, hospitalsRes, departmentsRes] = await Promise.allSettled([
-        this.api.get<Center[]>('/centers'),
-        this.api.get<Hospital[]>('/hospitals'),
-        this.api.get<Department[]>('/departments'),
+        this.api.get<Center[]>('/centers', ms),
+        this.api.get<Hospital[]>('/hospitals', ms),
+        this.api.get<Department[]>('/departments', ms),
       ]);
       if (centersRes.status === 'fulfilled') {
         this.rows = centersRes.value;
@@ -82,7 +94,9 @@ export class CentersPage implements OnInit {
       if (this.form.hospital_id === '' && this.hospitals[0]) this.form.hospital_id = this.hospitals[0].id;
       if (this.routeCenterId === '' && this.rows[0]) {
         this.routeCenterId = this.rows[0].id;
-        await this.loadWeekdayRoutes(this.rows[0].id);
+      }
+      if (this.routeCenterId !== '') {
+        await this.loadWeekdayRoutes(Number(this.routeCenterId));
       }
     } catch (e) {
       this.error = e instanceof Error ? e.message : 'Failed to load centers';
@@ -138,7 +152,8 @@ export class CentersPage implements OnInit {
     return routes.map((r) => {
       const day = WEEKDAY_LABELS[r.weekday] ?? String(r.weekday);
       const name = (r.department_name ?? '').trim() || `Dept #${r.department_id}`;
-      return `${day}: ${name}`;
+      const opd = (r.clinic_name ?? '').trim();
+      return opd ? `${day}: ${name} · ${opd}` : `${day}: ${name}`;
     });
   }
 
@@ -195,24 +210,72 @@ export class CentersPage implements OnInit {
   }
 
   async loadWeekdayRoutes(centerId: number): Promise<void> {
+    const emptyDept: Record<number, number | ''> = { 0: '', 1: '', 2: '', 3: '', 4: '', 5: '', 6: '' };
+    const emptyClinic: Record<number, number | ''> = { 0: '', 1: '', 2: '', 3: '', 4: '', 5: '', 6: '' };
+    const emptyClinics: Record<number, ClinicOpt[]> = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] };
     try {
-      const rows = await this.api.get<RouteRow[]>(`/centers/${centerId}/weekday-routes`);
-      const map: Record<number, number | ''> = { 0: '', 1: '', 2: '', 3: '', 4: '', 5: '', 6: '' };
-      for (const r of rows) map[r.weekday] = r.department_id;
+      const rows = await this.api.get<RouteRow[]>(`/centers/${centerId}/weekday-routes`, 20000);
+      const map = { ...emptyDept };
+      const cmap = { ...emptyClinic };
+      for (const r of rows) {
+        map[r.weekday] = r.department_id;
+        const cid = r.clinic_id ?? r.clinic?.id ?? null;
+        cmap[r.weekday] = cid != null && cid !== undefined ? Number(cid) : '';
+      }
       this.routeDeptByWeekday = map;
+      this.routeClinicByWeekday = cmap;
+      this.clinicsForWeekday = { ...emptyClinics };
+      for (let i = 0; i < 7; i++) {
+        if (map[i] !== '') await this.refreshClinicsForWeekdaySlot(centerId, i);
+      }
     } catch {
-      this.routeDeptByWeekday = { 0: '', 1: '', 2: '', 3: '', 4: '', 5: '', 6: '' };
+      this.routeDeptByWeekday = { ...emptyDept };
+      this.routeClinicByWeekday = { ...emptyClinic };
+      this.clinicsForWeekday = { ...emptyClinics };
     }
+  }
+
+  private async refreshClinicsForWeekdaySlot(centerId: number, weekdayIndex: number): Promise<void> {
+    const dep = this.routeDeptByWeekday[weekdayIndex];
+    if (dep === '') {
+      this.clinicsForWeekday[weekdayIndex] = [];
+      return;
+    }
+    try {
+      const q = new URLSearchParams({
+        center_id: String(centerId),
+        department_id: String(dep),
+        active_only: 'true',
+      });
+      const list = await this.api.get<ClinicOpt[]>(`/clinics?${q.toString()}`, 15000);
+      this.clinicsForWeekday[weekdayIndex] = list ?? [];
+    } catch {
+      this.clinicsForWeekday[weekdayIndex] = [];
+    }
+  }
+
+  async onRouteDeptChange(weekdayIndex: number): Promise<void> {
+    this.routeClinicByWeekday[weekdayIndex] = '';
+    if (this.routeCenterId === '') return;
+    await this.refreshClinicsForWeekdaySlot(Number(this.routeCenterId), weekdayIndex);
   }
 
   async saveWeekdayRoutes(): Promise<void> {
     if (this.routeCenterId === '') return;
     const body = Object.entries(this.routeDeptByWeekday)
       .filter(([, dep]) => dep !== '')
-      .map(([weekday, dep]) => ({ weekday: Number(weekday), department_id: Number(dep) }));
+      .map(([weekday, dep]) => {
+        const wd = Number(weekday);
+        const c = this.routeClinicByWeekday[wd];
+        return {
+          weekday: wd,
+          department_id: Number(dep),
+          clinic_id: c === '' || c === undefined ? null : Number(c),
+        };
+      });
     this.saving = true;
     try {
-      await this.api.request(`/centers/${this.routeCenterId}/weekday-routes`, { method: 'PUT', body });
+      await this.api.request(`/centers/${this.routeCenterId}/weekday-routes`, { method: 'PUT', body, timeoutMs: 30000 });
       await this.loadWeekdayRoutes(Number(this.routeCenterId));
       this.toast.success('Weekday routing saved.');
     } catch (e) {
@@ -226,5 +289,9 @@ export class CentersPage implements OnInit {
   async onRouteCenterChange(): Promise<void> {
     if (this.routeCenterId === '') return;
     await this.loadWeekdayRoutes(Number(this.routeCenterId));
+  }
+
+  weekdayClinicOptions(i: number): ClinicOpt[] {
+    return this.clinicsForWeekday[i] ?? [];
   }
 }

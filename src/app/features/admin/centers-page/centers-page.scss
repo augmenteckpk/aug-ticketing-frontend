@@ -3,6 +3,44 @@
   gap: 1rem;
 }
 
+.weekday-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.weekday-cell {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.75rem 0.85rem;
+  background: #f8fafc;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.weekday-name {
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: #0f172a;
+  letter-spacing: 0.02em;
+}
+
+.weekday-cell label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.weekday-cell select {
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+}
+
 .route-cell {
   display: flex;
   flex-wrap: wrap;
