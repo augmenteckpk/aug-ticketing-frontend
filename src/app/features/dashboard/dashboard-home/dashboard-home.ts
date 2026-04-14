@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../../core/services/api';
 import { ToastService } from '../../../core/services/toast';
+import { todayLocalYmd } from '../../../core/utils/local-date';
 
 type Center = { id: number; name: string; city: string; hospital_name?: string };
 type Summary = {
@@ -21,7 +22,7 @@ type Summary = {
   styleUrl: './dashboard-home.scss',
 })
 export class DashboardHome implements OnInit {
-  date = new Date().toISOString().slice(0, 10);
+  date = todayLocalYmd();
   centerId: number | '' = '';
   centers: Center[] = [];
   summary: Summary | null = null;

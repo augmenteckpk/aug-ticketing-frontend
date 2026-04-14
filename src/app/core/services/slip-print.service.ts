@@ -2,9 +2,15 @@ import { Injectable } from '@angular/core';
 
 export type SlipField = { label: string; value: string };
 
+export type SlipPrintOptions = {
+  /** PNG data URL from e.g. `qrcode.toDataURL`. */
+  qrDataUrl?: string;
+  qrCaption?: string;
+};
+
 @Injectable({ providedIn: 'root' })
 export class SlipPrintService {
-  print(title: string, subtitle: string, fields: SlipField[]): void {
+  print(title: string, subtitle: string, fields: SlipField[], options?: SlipPrintOptions): void {
     const popup = window.open('', '_blank', 'width=820,height=920');
     if (!popup) return;
 
@@ -18,6 +24,14 @@ export class SlipPrintService {
         `,
       )
       .join('');
+
+    const qrBlock =
+      options?.qrDataUrl && options.qrDataUrl.startsWith('data:image/')
+        ? `<div class="qr-wrap">
+             <img src="${this.escapeAttr(options.qrDataUrl)}" alt="Verification QR" width="180" height="180" />
+             <p class="qr-cap">${this.escape(options.qrCaption ?? 'Scan to verify slip contents')}</p>
+           </div>`
+        : '';
 
     popup.document.write(`<!doctype html>
 <html>
@@ -33,11 +47,14 @@ export class SlipPrintService {
       td.label { width: 34%; font-weight: 600; color: #374151; }
       td.value { white-space: pre-wrap; }
       .foot { margin-top: 14px; color: #6b7280; font-size: 11px; }
+      .qr-wrap { margin: 16px 0; text-align: center; }
+      .qr-cap { margin: 8px 0 0; color: #4b5563; font-size: 11px; }
     </style>
   </head>
   <body>
     <h1>${this.escape(title)}</h1>
     <p>${this.escape(subtitle)}</p>
+    ${qrBlock}
     <table>${rows}</table>
     <p class="foot">Generated at ${this.escape(new Date().toLocaleString())}</p>
     <script>
@@ -58,5 +75,10 @@ export class SlipPrintService {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  /** For attribute values (e.g. img src data URLs). */
+  private escapeAttr(value: string): string {
+    return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
   }
 }

@@ -5,6 +5,7 @@ import { ApiService } from '../../../core/services/api';
 import { AuthService } from '../../../core/services/auth';
 import { ConfirmService } from '../../../core/services/confirm';
 import { ToastService } from '../../../core/services/toast';
+import { todayLocalYmd } from '../../../core/utils/local-date';
 
 type Center = { id: number; name: string; hospital_name?: string; city?: string };
 type QueueReady = {
@@ -53,7 +54,7 @@ const EMERGENCY_LEVELS = new Set(['critical_immediate', 'critical_today']);
 export class QueuePage implements OnInit, OnDestroy {
   centers: Center[] = [];
   centerId: number | '' = '';
-  date = new Date().toISOString().slice(0, 10);
+  date = todayLocalYmd();
   readyRows: QueueReady[] = [];
   notArrivedRows: QueueNotArrived[] = [];
   flaggedRows: QueueFlagged[] = [];

@@ -2,9 +2,14 @@
   <header class="head">
     <div>
       <h1>Clinics</h1>
-      <p>Live OPD stations by center and department.</p>
+      <p>OPD stations by center and department — create, edit, or deactivate (new clinics attach to the department’s default specialty).</p>
     </div>
-    <button class="btn" (click)="load()"><span class="material-icons">refresh</span> Refresh</button>
+    <div class="head-actions">
+      <button class="btn primary" type="button" [disabled]="filtersLoading || centerId === '' || departmentId === '' || saving" (click)="openCreate()">
+        <span class="material-icons">add</span> Add clinic
+      </button>
+      <button class="btn" type="button" (click)="load()"><span class="material-icons">refresh</span> Refresh</button>
+    </div>
   </header>
 
   @if (filtersLoading) {
@@ -13,14 +18,14 @@
 
   <div class="filters">
     <label>Center
-      <select [(ngModel)]="centerId" (change)="load()" [disabled]="filtersLoading">
+      <select [(ngModel)]="centerId" (ngModelChange)="onCenterChanged()" [disabled]="filtersLoading">
         @for (c of centers; track c.id) {
           <option [ngValue]="c.id">{{ c.hospital_name }} - {{ c.name }} ({{ c.city }})</option>
         }
       </select>
     </label>
     <label>Department
-      <select [(ngModel)]="departmentId" (change)="load()" [disabled]="filtersLoading || !departments.length">
+      <select [(ngModel)]="departmentId" (ngModelChange)="onDepartmentChanged()" [disabled]="filtersLoading || !departments.length">
         @for (d of departments; track d.id) {
           <option [ngValue]="d.id">{{ d.name }}</option>
         }
@@ -35,12 +40,12 @@
 
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Department</th><th>Clinic</th><th>Type</th><th>Location</th><th>Status</th></tr></thead>
+      <thead><tr><th>Department</th><th>Clinic</th><th>Type</th><th>Location</th><th>Schedule</th><th>Status</th><th>Actions</th></tr></thead>
       <tbody>
         @if (loading) {
-          <tr><td colspan="5">Loading...</td></tr>
+          <tr><td colspan="7">Loading...</td></tr>
         } @else if (!rows.length) {
-          <tr><td colspan="5">No clinics found for selected filters.</td></tr>
+          <tr><td colspan="7">No clinics found for selected filters.</td></tr>
         } @else {
           @for (r of rows; track r.id) {
             <tr>
@@ -48,7 +53,14 @@
               <td>{{ display(r.name) }}</td>
               <td>{{ display(r.clinic_type) }}</td>
               <td>{{ display(r.location) }}</td>
+              <td>{{ display(r.schedule) }}</td>
               <td><span class="badge">{{ display(r.status) }}</span></td>
+              <td class="actions-cell">
+                <button type="button" class="btn-ghost" [disabled]="saving" (click)="openEdit(r, $event)"><span class="material-icons">edit</span> Edit</button>
+                @if (r.status === 'Active') {
+                  <button type="button" class="btn-danger" [disabled]="saving" (click)="deactivate(r)"><span class="material-icons">block</span> Deactivate</button>
+                }
+              </td>
             </tr>
           }
         }
@@ -56,3 +68,40 @@
     </table>
   </div>
 </section>
+
+@if (creating) {
+  <div class="modal-backdrop" (click)="closeCreate()">
+    <div class="modal modal--lg" (click)="$event.stopPropagation()">
+      <h2>Add clinic (OPD)</h2>
+      <p class="muted small">Must be under a center that already includes this department. Uses the department’s default specialty bucket.</p>
+      <label class="field"><span>Name</span><app-speech-input [(model)]="form.name" placeholder="e.g. Urology OPD — Stone clinic" /></label>
+      <label class="field"><span>Type</span><input [(ngModel)]="form.clinic_type" placeholder="OPD" /></label>
+      <label class="field"><span>Location</span><app-speech-input [(model)]="form.location" placeholder="Wing / floor (optional)" /></label>
+      <label class="field"><span>Schedule</span><app-speech-input [(model)]="form.schedule" placeholder="e.g. Mon–Fri 9–1 (optional)" /></label>
+      <label class="field"><span>Status</span>
+        <select [(ngModel)]="form.status"><option value="Active">Active</option><option value="Inactive">Inactive</option></select>
+      </label>
+      <div class="actions">
+        <button class="btn-secondary" type="button" (click)="closeCreate()">Cancel</button>
+        <button class="btn-primary" type="button" [disabled]="saving || !form.name.trim()" (click)="createClinic()">{{ saving ? 'Saving…' : 'Create' }}</button>
+      </div>
+    </div>
+  </div>
+} @else if (editing) {
+  <div class="modal-backdrop" (click)="closeEdit()">
+    <div class="modal modal--lg" (click)="$event.stopPropagation()">
+      <h2>Edit clinic</h2>
+      <label class="field"><span>Name</span><app-speech-input [(model)]="editing.name" placeholder="Name" /></label>
+      <label class="field"><span>Type</span><input [(ngModel)]="editing.clinic_type" placeholder="OPD" /></label>
+      <label class="field"><span>Location</span><app-speech-input [model]="editing.location ?? ''" (modelChange)="editing.location = $event" placeholder="Location" /></label>
+      <label class="field"><span>Schedule</span><app-speech-input [model]="editing.schedule ?? ''" (modelChange)="editing.schedule = $event" placeholder="Schedule" /></label>
+      <label class="field"><span>Status</span>
+        <select [(ngModel)]="editing.status"><option value="Active">Active</option><option value="Inactive">Inactive</option></select>
+      </label>
+      <div class="actions">
+        <button class="btn-secondary" type="button" (click)="closeEdit()">Cancel</button>
+        <button class="btn-primary" type="button" [disabled]="saving || !editing.name.trim()" (click)="saveEdit()">{{ saving ? 'Saving…' : 'Save' }}</button>
+      </div>
+    </div>
+  </div>
+}

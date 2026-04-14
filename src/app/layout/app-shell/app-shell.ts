@@ -34,6 +34,7 @@ export class AppShell {
         { to: '/app/queue', label: 'Queue & batches', icon: 'view_kanban', perm: 'queue.read' },
         { to: '/app/consultation', label: 'Consultation', icon: 'local_hospital', perm: 'appointments.consult' },
         { to: '/app/laboratory', label: 'Laboratory', icon: 'biotech', perm: 'lab.read' },
+        { to: '/app/radiology', label: 'Radiology', icon: 'imagesearch_roller', perm: 'radiology.read' },
       ],
     },
     {

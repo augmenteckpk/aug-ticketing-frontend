@@ -30,13 +30,3 @@
 .lab-result-modal .actions {
   justify-content: flex-end;
 }
-
-@media (max-width: 700px) {
-  .lab-result-modal {
-    padding: 0.85rem;
-  }
-
-  .lab-result-modal textarea {
-    min-height: 170px;
-  }
-}

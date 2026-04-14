@@ -5,6 +5,7 @@ import { ApiService } from '../../../core/services/api';
 import { SpeechInput } from '../../../ui-kit/speech-input/speech-input';
 import { SlipPrintService } from '../../../core/services/slip-print.service';
 import { ToastService } from '../../../core/services/toast';
+import { todayLocalYmd } from '../../../core/utils/local-date';
 
 type Center = { id: number; name: string; hospital_name?: string; city?: string };
 type QueueRow = { id: number; token_number: number; patient_name: string; patient_cnic?: string; status: string };
@@ -27,7 +28,7 @@ type PreAssessmentInput = {
 export class PreAssessmentPage implements OnInit {
   centers: Center[] = [];
   centerId: number | '' = '';
-  date = new Date().toISOString().slice(0, 10);
+  date = todayLocalYmd();
   rows: QueueRow[] = [];
   loading = false;
   bootstrapped = false;
@@ -35,6 +36,9 @@ export class PreAssessmentPage implements OnInit {
   saving = false;
   /** Row id while POST ready-without-preassessment is in flight */
   readyWithoutId: number | null = null;
+  /** Bulk selection for ready-without-vitals */
+  selectedForBulk = new Set<number>();
+  bulkReadyBusy = false;
   error = '';
   private loadRunId = 0;
 
@@ -147,6 +151,8 @@ export class PreAssessmentPage implements OnInit {
       if (useSpinner) this.loading = false;
       this.bootstrapped = true;
       this.hasLoadedOnce = true;
+      const keep = new Set(this.rows.map((r) => r.id));
+      this.selectedForBulk = new Set([...this.selectedForBulk].filter((id) => keep.has(id)));
       this.cdr.detectChanges();
     }
   }
@@ -168,6 +174,49 @@ export class PreAssessmentPage implements OnInit {
   closeAssessment(): void {
     this.selected = null;
     this.cdr.detectChanges();
+  }
+
+  get allRowsSelected(): boolean {
+    return this.rows.length > 0 && this.rows.every((r) => this.selectedForBulk.has(r.id));
+  }
+
+  toggleSelectAll(checked: boolean): void {
+    if (checked) {
+      this.rows.forEach((r) => this.selectedForBulk.add(r.id));
+    } else {
+      this.selectedForBulk.clear();
+    }
+    this.cdr.detectChanges();
+  }
+
+  toggleBulkRow(id: number, checked: boolean): void {
+    if (checked) this.selectedForBulk.add(id);
+    else this.selectedForBulk.delete(id);
+    this.cdr.detectChanges();
+  }
+
+  async bulkReadyWithoutVitals(): Promise<void> {
+    const ids = this.rows.filter((r) => this.selectedForBulk.has(r.id)).map((r) => r.id);
+    if (!ids.length) {
+      this.toast.error('Select at least one patient.');
+      return;
+    }
+    this.bulkReadyBusy = true;
+    this.error = '';
+    try {
+      for (const id of ids) {
+        await this.api.post(`/appointments/${id}/ready-without-preassessment`, {});
+      }
+      this.toast.success(`${ids.length} patient(s) marked ready without pre-assessment vitals.`);
+      this.selectedForBulk.clear();
+      await this.load();
+    } catch (e) {
+      this.error = e instanceof Error ? e.message : 'Could not complete bulk action';
+      this.toast.error(this.error);
+    } finally {
+      this.bulkReadyBusy = false;
+      this.cdr.detectChanges();
+    }
   }
 
   async markReadyWithoutVitals(row: QueueRow): Promise<void> {

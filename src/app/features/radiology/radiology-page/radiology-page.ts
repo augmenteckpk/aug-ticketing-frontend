@@ -6,39 +6,39 @@ import { ToastService } from '../../../core/services/toast';
 import { todayLocalYmd } from '../../../core/utils/local-date';
 
 type Center = { id: number; name: string; hospital_name?: string; city?: string };
-type LabRow = {
+type RadRow = {
   order_id: number;
   appointment_id: number;
   token_number: number;
   first_name?: string | null;
   last_name?: string | null;
   cnic?: string | null;
-  test_code?: string | null;
+  study_code?: string | null;
   order_status?: string | null;
   appointment_status?: string | null;
 };
-type LabOrderDetail = {
+type RadOrderDetail = {
   id: number;
   result?: { summary?: string | null; details?: string | null; file_path?: string | null } | null;
 };
 
 @Component({
-  selector: 'app-laboratory-page',
+  selector: 'app-radiology-page',
   imports: [CommonModule, FormsModule],
-  templateUrl: './laboratory-page.html',
-  styleUrl: './laboratory-page.scss',
+  templateUrl: './radiology-page.html',
+  styleUrl: './radiology-page.scss',
 })
-export class LaboratoryPage implements OnInit {
+export class RadiologyPage implements OnInit {
   centers: Center[] = [];
   centerId: number | '' = '';
   date = todayLocalYmd();
   pendingOnly = false;
-  rows: LabRow[] = [];
+  rows: RadRow[] = [];
   loading = false;
   saving = false;
   bootstrapped = true;
   error = '';
-  selectedOrder: LabRow | null = null;
+  selectedOrder: RadRow | null = null;
   resultForm = { summary: '', details: '' };
   resultFile: File | null = null;
   existingFilePath: string | null = null;
@@ -89,9 +89,9 @@ export class LaboratoryPage implements OnInit {
     try {
       const params = new URLSearchParams({ date: this.date, pending_only: this.pendingOnly ? '1' : '0' });
       if (this.centerId !== '') params.set('center_id', String(this.centerId));
-      this.rows = await this.withTimeout(this.api.get<LabRow[]>(`/lab/worklist?${params.toString()}`, 20000));
+      this.rows = await this.withTimeout(this.api.get<RadRow[]>(`/radiology/worklist?${params.toString()}`, 20000));
     } catch (e) {
-      this.error = e instanceof Error ? e.message : 'Failed to load lab worklist';
+      this.error = e instanceof Error ? e.message : 'Failed to load radiology worklist';
       this.rows = [];
       this.toast.error(this.error);
     } finally {
@@ -102,14 +102,14 @@ export class LaboratoryPage implements OnInit {
     }
   }
 
-  async openResultModal(row: LabRow): Promise<void> {
+  async openResultModal(row: RadRow): Promise<void> {
     this.selectedOrder = row;
     this.resultForm = { summary: '', details: '' };
     this.resultFile = null;
     this.existingFilePath = null;
     this.cdr.detectChanges();
     try {
-      const orders = await this.withTimeout(this.api.get<LabOrderDetail[]>(`/appointments/${row.appointment_id}/lab`, 15000));
+      const orders = await this.withTimeout(this.api.get<RadOrderDetail[]>(`/appointments/${row.appointment_id}/radiology`, 15000));
       const current = orders.find((o) => o.id === row.order_id);
       this.resultForm.summary = current?.result?.summary || '';
       this.resultForm.details = current?.result?.details || '';
@@ -138,7 +138,7 @@ export class LaboratoryPage implements OnInit {
   async downloadFile(): Promise<void> {
     if (!this.selectedOrder) return;
     try {
-      const blob = await this.api.getBlob(`/investigations/file/lab/${this.selectedOrder.order_id}`, 60000);
+      const blob = await this.api.getBlob(`/investigations/file/radiology/${this.selectedOrder.order_id}`, 60000);
       const url = URL.createObjectURL(blob);
       window.open(url, '_blank', 'noopener');
       setTimeout(() => URL.revokeObjectURL(url), 120000);
@@ -157,18 +157,18 @@ export class LaboratoryPage implements OnInit {
         fd.set('summary', this.resultForm.summary.trim());
         fd.set('details', this.resultForm.details.trim());
         fd.set('file', this.resultFile);
-        await this.api.postFormData(`/appointments/lab-orders/${this.selectedOrder.order_id}/result-file`, fd);
+        await this.api.postFormData(`/appointments/radiology-orders/${this.selectedOrder.order_id}/result-file`, fd);
       } else {
-        await this.api.patch(`/appointments/lab-orders/${this.selectedOrder.order_id}/result`, {
+        await this.api.patch(`/appointments/radiology-orders/${this.selectedOrder.order_id}/result`, {
           summary: this.resultForm.summary.trim() || null,
           details: this.resultForm.details.trim() || null,
         });
       }
-      this.toast.success(`Lab result saved for order #${this.selectedOrder.order_id}.`);
+      this.toast.success(`Radiology report saved for order #${this.selectedOrder.order_id}.`);
       this.closeResultModal();
       await this.load();
     } catch (e) {
-      this.error = e instanceof Error ? e.message : 'Could not save lab result';
+      this.error = e instanceof Error ? e.message : 'Could not save radiology result';
       this.toast.error(this.error);
     } finally {
       this.saving = false;
@@ -176,7 +176,7 @@ export class LaboratoryPage implements OnInit {
     }
   }
 
-  async completeFromLab(row: LabRow): Promise<void> {
+  async completeFromRad(row: RadRow): Promise<void> {
     this.saving = true;
     this.error = '';
     try {

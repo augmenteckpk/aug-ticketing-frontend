@@ -91,38 +91,10 @@
               </div>
             }
           </div>
-        } @else {
-          <p class="muted">{{ ur.noReady }}</p>
+      } @else {
+        <p class="muted">{{ ur.noReady }}</p>
         }
       </section>
-
-      @if (board.draft_batches.length > 0) {
-        <section class="card">
-          <h2 class="section-title red">{{ ur.nextBatchesTitle }}</h2>
-          @for (b of board.draft_batches; track b.id) {
-            <div class="batch-block">
-              <h3 class="batch-heading">
-                {{ ur.batchSeats(b.batch_index, b.token_numbers.length) }}
-              </h3>
-              <div
-                class="seat-grid"
-                [style.grid-template-columns]="'repeat(auto-fill, minmax(4.5rem, 1fr))'"
-              >
-                @for (tok of seatSlots(b.token_numbers, 20); track $index) {
-                  <div class="seat" [class.cyan]="tok !== null" [class.empty]="tok === null">
-                    {{ tok !== null ? tok : '—' }}
-                  </div>
-                }
-              </div>
-            </div>
-          }
-        </section>
-      } @else {
-        <section class="card">
-          <h2 class="section-title red">{{ ur.nextBatchesShort }}</h2>
-          <p class="muted">{{ ur.noDraftBatches }}</p>
-        </section>
-      }
 
       @if (board.dispatched_earlier.length > 0) {
         <section class="card">

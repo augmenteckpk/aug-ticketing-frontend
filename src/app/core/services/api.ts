@@ -98,6 +98,30 @@ export class ApiService {
     return this.request<T>(path, { method: 'PATCH', body, timeoutMs });
   }
 
+  /** Multipart upload (lab/radiology result files). Do not set Content-Type manually. */
+  async postFormData<T>(path: string, formData: FormData, timeoutMs = 120000): Promise<T> {
+    const baseUrl = `${resolveApiBaseUrl()}/api/v1${path}`;
+    try {
+      const stream = this.http.post<T>(baseUrl, formData).pipe(timeout(timeoutMs));
+      const response = await firstValueFrom(stream);
+      return unwrapApiEnvelope<T>(response as unknown);
+    } catch (e) {
+      throw this.toApiError(e, 'POST', path);
+    }
+  }
+
+  /** Binary download (investigation files) — auth via interceptor. */
+  async getBlob(path: string, timeoutMs = 60000): Promise<Blob> {
+    const baseUrl = `${resolveApiBaseUrl()}/api/v1${path}`;
+    const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}_ts=${Date.now()}`;
+    try {
+      const stream = this.http.get(url, { responseType: 'blob' }).pipe(timeout(timeoutMs));
+      return await firstValueFrom(stream);
+    } catch (e) {
+      throw this.toApiError(e, 'GET', path);
+    }
+  }
+
   private toApiError(e: unknown, _method?: string, _path?: string): ApiError {
     if (e instanceof ApiError) return e;
     if (e instanceof HttpErrorResponse) {

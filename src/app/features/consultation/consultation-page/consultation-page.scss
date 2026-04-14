@@ -29,69 +29,163 @@
   margin: 0.25rem 0 0;
 }
 
-.week-routes {
-  grid-column: 1 / -1;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 0.75rem 0.9rem;
-  background: #f8fafc;
+/* Consultation sheet header (modal top) */
+.consult-sheet-head {
+  margin: -0.15rem 0 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e8ecf1;
 }
 
-.week-routes-title {
+.consult-sheet-head__label {
+  margin: 0;
+  font-size: 0.72rem;
   font-weight: 700;
-  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.consult-sheet-head__title {
+  margin: 0.2rem 0 0;
+  font-size: 1.35rem;
+  font-weight: 700;
   color: #0f172a;
-  margin-bottom: 0.15rem;
+  letter-spacing: -0.02em;
 }
 
-.week-routes-list {
-  list-style: none;
+.consult-sheet-head__patient {
   margin: 0.35rem 0 0;
-  padding: 0;
-  display: grid;
-  gap: 0.2rem;
-  font-size: 0.88rem;
-}
-
-.week-routes-list .wd {
-  display: inline-block;
-  min-width: 2.4rem;
+  font-size: 1rem;
   font-weight: 600;
   color: #334155;
 }
 
-.consultation-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 70;
-  background: rgba(15, 23, 42, 0.45);
+.input-date {
+  min-height: 2.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Weekly routing table (follow-up) */
+.routing-panel {
+  grid-column: 1 / -1;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+}
+
+.routing-panel__head {
+  padding: 0.85rem 1rem 0.75rem;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.routing-panel__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.routing-panel__hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #64748b;
+}
+
+.routing-grid {
+  display: flex;
+  flex-direction: column;
+}
+
+.routing-row {
   display: grid;
-  place-items: center;
-  padding: 1rem;
+  grid-template-columns: 4.25rem minmax(0, 1fr);
+  gap: 0.65rem 0.75rem;
+  align-items: start;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.routing-row:last-child {
+  border-bottom: none;
+}
+
+.routing-row--empty .routing-empty {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+.routing-row__day {
+  padding-top: 0.15rem;
+}
+
+.routing-day-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #475569;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+
+.routing-row__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.routing-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #eef2f7;
+}
+
+.routing-slot__dept {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.3;
+}
+
+.routing-slot__clinic {
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: #475569;
+  padding-left: 0.05rem;
+  border-left: 2px solid #cbd5e1;
+  margin-left: 0.1rem;
+  padding-left: 0.5rem;
 }
 
 .consultation-modal {
-  width: min(1100px, 96vw);
-  max-height: 90vh;
-  overflow: auto;
   border-radius: 14px;
-  background: #fff;
-  padding: 1rem;
   box-shadow: 0 20px 60px rgba(2, 6, 23, 0.25);
-  display: grid;
-  gap: 1rem;
 }
 
 .consultation-modal .page-card {
   margin: 0;
 }
 
-@media (max-width: 900px) {
-  .consultation-modal {
-    width: 98vw;
-    max-height: 94vh;
-    padding: 0.75rem;
-  }
+.subh {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0.75rem 0 0.35rem;
+  color: #0f172a;
 }
 
 @keyframes spin {

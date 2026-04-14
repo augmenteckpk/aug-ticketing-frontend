@@ -7,6 +7,7 @@ import { ApiError, ApiService } from '../../../core/services/api';
 import { SpeechInput } from '../../../ui-kit/speech-input/speech-input';
 import { SlipPrintService } from '../../../core/services/slip-print.service';
 import { ToastService } from '../../../core/services/toast';
+import { todayLocalYmd } from '../../../core/utils/local-date';
 
 type Center = { id: number; name: string; hospital_name?: string; city?: string };
 type Appt = {
@@ -53,7 +54,7 @@ export class RegistrationPage implements OnInit, OnDestroy {
 
   centers: Center[] = [];
   centerId: number | '' = '';
-  date = new Date().toISOString().slice(0, 10);
+  date = todayLocalYmd();
   cnic = '';
   booked: Appt[] = [];
   selected: Appt | null = null;

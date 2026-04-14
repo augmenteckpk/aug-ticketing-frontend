@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ApiService, getToken } from '../../../core/services/api';
 import { resolveApiBaseUrl } from '../../../../environments/api-base';
 import { ToastService } from '../../../core/services/toast';
+import { todayLocalYmd } from '../../../core/utils/local-date';
 
 type DailyReport = {
   date: string;
@@ -41,7 +42,7 @@ type DailyReport = {
   styleUrl: './reports-page.scss',
 })
 export class ReportsPage implements OnInit {
-  date = new Date().toISOString().slice(0, 10);
+  date = todayLocalYmd();
   loading = false;
   error = '';
   data: DailyReport | null = null;

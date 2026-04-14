@@ -2,7 +2,7 @@
   <header class="head">
     <div>
       <h1>Consultation</h1>
-      <p>Doctor consultation, outcomes, and lab orders.</p>
+      <p>Doctor consultation, outcomes, lab and radiology orders.</p>
     </div>
     <button class="btn" (click)="refreshAll()"><span class="material-icons">refresh</span> Refresh</button>
   </header>
@@ -98,14 +98,13 @@
 </section>
 
 @if (selected) {
-  <div class="modal-overlay consultation-overlay" (click)="selected = null">
-    <div class="modal consultation-modal" (click)="$event.stopPropagation()">
+  <div class="modal-overlay" (click)="closeConsultationModal()">
+    <div class="modal modal--xl consultation-modal" (click)="$event.stopPropagation()">
       <section class="page-card">
-        <header class="page-header">
-          <div>
-            <h2>Consultation for Token #{{ selected.token_number }}</h2>
-            <p>{{ selected.patient_name }}</p>
-          </div>
+        <header class="consult-sheet-head">
+          <p class="consult-sheet-head__label">Consultation</p>
+          <h2 class="consult-sheet-head__title">Token #{{ selected.token_number }}</h2>
+          <p class="consult-sheet-head__patient">{{ selected.patient_name }}</p>
         </header>
 
         <div class="form-grid">
@@ -113,22 +112,47 @@
             <select [(ngModel)]="consultForm.consultation_outcome">
               <option value="medication_only">Medication only</option>
               <option value="lab_required">Lab required</option>
+              <option value="radiology_required">Radiology required</option>
               <option value="follow_up">Follow up</option>
               <option value="admission">Admission</option>
             </select>
           </label>
           @if (consultForm.consultation_outcome === 'follow_up') {
             <label>Follow-up advised date
-              <input type="date" [(ngModel)]="consultForm.follow_up_advised_date" />
+              <input type="date" [(ngModel)]="consultForm.follow_up_advised_date" class="input-date" />
             </label>
-            <div class="week-routes" role="region" aria-label="OPD weekday routing for this center">
-              <div class="week-routes-title">Center OPD weekday routing</div>
-              <p class="muted small">Which weekday patients are routed to which department at this center (same rules apply when they book).</p>
-              <ul class="week-routes-list">
+            <div class="routing-panel" role="region" aria-label="Weekly OPD routing for this center">
+              <div class="routing-panel__head">
+                <h3 class="routing-panel__title">Weekly OPD routing</h3>
+                <p class="routing-panel__hint">Where patients are sent by weekday at this center (matches booking).</p>
+              </div>
+              <div class="routing-grid">
                 @for (wd of [0, 1, 2, 3, 4, 5, 6]; track wd) {
-                  <li><span class="wd">{{ weekdayLabels[wd] }}</span> — {{ weekdayRouteLabel(wd) }}</li>
+                  <div
+                    class="routing-row"
+                    [class.routing-row--empty]="!routesForWeekday(wd).length"
+                  >
+                    <div class="routing-row__day">
+                      <span class="routing-day-pill">{{ weekdayLabels[wd] }}</span>
+                    </div>
+                    <div class="routing-row__body">
+                      @if (!routesForWeekday(wd).length) {
+                        <span class="routing-empty">No session</span>
+                      } @else {
+                        @for (rt of routesForWeekday(wd); track routeRowTrackKey(rt)) {
+                          @let clinic = routeClinicLabel(rt);
+                          <div class="routing-slot">
+                            <span class="routing-slot__dept">{{ routeDepartmentLabel(rt) }}</span>
+                            @if (clinic) {
+                              <span class="routing-slot__clinic">{{ clinic }}</span>
+                            }
+                          </div>
+                        }
+                      }
+                    </div>
+                  </div>
                 }
-              </ul>
+              </div>
             </div>
             <label>Follow-up department
               <select
@@ -162,7 +186,7 @@
         </div>
         <div class="actions">
           <button class="btn primary" (click)="saveConsultation()" [disabled]="saving">Save consultation</button>
-          @if (consultForm.consultation_outcome !== 'lab_required') {
+          @if (consultForm.consultation_outcome !== 'lab_required' && consultForm.consultation_outcome !== 'radiology_required') {
             <button class="btn" (click)="completeFromConsultation()" [disabled]="saving">Complete patient</button>
           }
         </div>
@@ -171,26 +195,63 @@
       <section class="page-card">
         <header class="page-header">
           <div>
-            <h2>Lab Orders</h2>
+            <h2>Lab orders</h2>
+            <p class="muted small">Create investigations below; optional return visit after results for doctor review.</p>
           </div>
         </header>
 
         <div class="actions">
-          <button class="btn" (click)="creatingLabOrder = true" [disabled]="saving">Create order</button>
+          <button type="button" class="btn" (click)="openLabOrderModal()" [disabled]="saving">Create lab order</button>
         </div>
 
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Order ID</th><th>Test</th><th>Notes</th><th>Order status</th></tr></thead>
+            <thead><tr><th>ID</th><th>Test</th><th>Notes</th><th>Return review</th><th>Follow-up date</th><th>Status</th></tr></thead>
             <tbody>
               @if (!labOrders.length) {
-                <tr><td colspan="4">No lab orders yet.</td></tr>
+                <tr><td colspan="6">No lab orders yet.</td></tr>
               } @else {
                 @for (o of labOrders; track o.id) {
                   <tr>
                     <td>{{ o.id }}</td>
                     <td>{{ o.test_code || '—' }}</td>
                     <td>{{ o.notes || '—' }}</td>
+                    <td>{{ o.return_for_doctor_review ? 'Yes' : '—' }}</td>
+                    <td>{{ o.follow_up_advised_date || '—' }}</td>
+                    <td>{{ o.status || 'ordered' }}</td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="page-card">
+        <header class="page-header">
+          <div>
+            <h2>Radiology orders</h2>
+          </div>
+        </header>
+
+        <div class="actions">
+          <button type="button" class="btn" (click)="openRadiologyOrderModal()" [disabled]="saving">Create radiology order</button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Study</th><th>Notes</th><th>Return review</th><th>Follow-up date</th><th>Status</th></tr></thead>
+            <tbody>
+              @if (!radOrders.length) {
+                <tr><td colspan="6">No radiology orders yet.</td></tr>
+              } @else {
+                @for (o of radOrders; track o.id) {
+                  <tr>
+                    <td>{{ o.id }}</td>
+                    <td>{{ o.study_code || '—' }}</td>
+                    <td>{{ o.notes || '—' }}</td>
+                    <td>{{ o.return_for_doctor_review ? 'Yes' : '—' }}</td>
+                    <td>{{ o.follow_up_advised_date || '—' }}</td>
                     <td>{{ o.status || 'ordered' }}</td>
                   </tr>
                 }
@@ -201,23 +262,24 @@
       </section>
 
       <div class="actions">
-        <button class="btn" (click)="selected = null">Close</button>
+        <button type="button" class="btn" (click)="closeConsultationModal()">Close</button>
       </div>
     </div>
   </div>
 }
 
 @if (selectedReport) {
-  <div class="modal-overlay consultation-overlay" (click)="closeReportModal()">
-    <div class="modal consultation-modal" (click)="$event.stopPropagation()">
+  <div class="modal-overlay" (click)="closeReportModal()">
+    <div class="modal modal--xl consultation-modal" (click)="$event.stopPropagation()">
       <h3>Follow-up report · Token #{{ selectedReport.appointment.token_number }}</h3>
       <p class="muted">{{ selectedReport.appointment.patient_name || '—' }} · {{ selectedReport.appointment.patient_cnic || '—' }}</p>
+      <h4 class="subh">Laboratory</h4>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Order ID</th><th>Test</th><th>Status</th><th>Summary</th><th>Details</th></tr></thead>
+          <thead><tr><th>Order ID</th><th>Test</th><th>Status</th><th>Summary</th><th>Details</th><th>File</th></tr></thead>
           <tbody>
             @if (!selectedReport.orders.length) {
-              <tr><td colspan="5">No lab orders found for this visit.</td></tr>
+              <tr><td colspan="6">No lab orders.</td></tr>
             } @else {
               @for (o of selectedReport.orders; track o.id) {
                 <tr>
@@ -226,6 +288,29 @@
                   <td>{{ o.status || 'ordered' }}</td>
                   <td>{{ parseResult(o.result).summary || '—' }}</td>
                   <td>{{ parseResult(o.result).details || '—' }}</td>
+                  <td>{{ parseResult(o.result).file_path ? 'Yes' : '—' }}</td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+      <h4 class="subh">Radiology</h4>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Order ID</th><th>Study</th><th>Status</th><th>Summary</th><th>Details</th><th>File</th></tr></thead>
+          <tbody>
+            @if (!selectedReport.radOrders.length) {
+              <tr><td colspan="6">No radiology orders.</td></tr>
+            } @else {
+              @for (o of selectedReport.radOrders; track o.id) {
+                <tr>
+                  <td>{{ o.id }}</td>
+                  <td>{{ o.study_code || '—' }}</td>
+                  <td>{{ o.status || 'ordered' }}</td>
+                  <td>{{ parseResult(o.result).summary || '—' }}</td>
+                  <td>{{ parseResult(o.result).details || '—' }}</td>
+                  <td>{{ parseResult(o.result).file_path ? 'Yes' : '—' }}</td>
                 </tr>
               }
             }
@@ -240,7 +325,7 @@
 }
 
 @if (creatingLabOrder) {
-  <div class="modal-overlay" (click)="creatingLabOrder = false">
+  <div class="modal-overlay modal-overlay--stack" (click)="closeLabOrderModal()">
     <div class="modal" (click)="$event.stopPropagation()">
       <h3>Create lab order</h3>
       <div class="form-grid">
@@ -254,10 +339,74 @@
           placeholder="Urgent if needed"
           [(model)]="labForm.notes"
         />
+        <label>Optional follow-up after lab (review with doctor)
+          <input type="date" [(ngModel)]="labForm.follow_up_advised_date" />
+        </label>
+        <label>Follow-up department (ticket routing)
+          <select
+            [ngModel]="labForm.follow_up_advised_department_id"
+            (ngModelChange)="onLabFollowUpDepartmentChange($event)"
+          >
+            <option [ngValue]="''">— Weekday routing / same as visit —</option>
+            @for (d of departmentsForCenter; track d.id) {
+              <option [ngValue]="d.id">{{ d.name }}</option>
+            }
+          </select>
+        </label>
+        <label>Follow-up OPD / clinic
+          <select [(ngModel)]="labForm.follow_up_advised_clinic_id" [disabled]="!clinicsForLabFollowUp.length">
+            <option [ngValue]="''">—</option>
+            @for (c of clinicsForLabFollowUp; track c.id) {
+              <option [ngValue]="c.id">{{ c.name }}</option>
+            }
+          </select>
+        </label>
+        <app-speech-input label="Follow-up notes" [(model)]="labForm.follow_up_notes" />
+        <label class="check"><input type="checkbox" [(ngModel)]="labForm.return_for_doctor_review" /> Patient should return for doctor review of results</label>
       </div>
       <div class="actions">
-        <button class="btn" (click)="creatingLabOrder = false">Cancel</button>
+        <button type="button" class="btn" (click)="closeLabOrderModal()">Cancel</button>
         <button class="btn primary" (click)="createLabOrder()" [disabled]="saving || !labForm.test_code.trim()">Create</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (creatingRadiologyOrder) {
+  <div class="modal-overlay modal-overlay--stack" (click)="closeRadiologyOrderModal()">
+    <div class="modal modal--lg" (click)="$event.stopPropagation()">
+      <h3>Create radiology order</h3>
+      <div class="form-grid">
+        <app-speech-input label="Study code" placeholder="CXR / CT abdomen" [(model)]="radiologyForm.study_code" />
+        <app-speech-input label="Notes" [(model)]="radiologyForm.notes" />
+        <label>Optional follow-up after imaging
+          <input type="date" [(ngModel)]="radiologyForm.follow_up_advised_date" />
+        </label>
+        <label>Follow-up department (ticket routing)
+          <select
+            [ngModel]="radiologyForm.follow_up_advised_department_id"
+            (ngModelChange)="onRadFollowUpDepartmentChange($event)"
+          >
+            <option [ngValue]="''">— Weekday routing / same as visit —</option>
+            @for (d of departmentsForCenter; track d.id) {
+              <option [ngValue]="d.id">{{ d.name }}</option>
+            }
+          </select>
+        </label>
+        <label>Follow-up OPD / clinic
+          <select [(ngModel)]="radiologyForm.follow_up_advised_clinic_id" [disabled]="!clinicsForRadFollowUp.length">
+            <option [ngValue]="''">—</option>
+            @for (c of clinicsForRadFollowUp; track c.id) {
+              <option [ngValue]="c.id">{{ c.name }}</option>
+            }
+          </select>
+        </label>
+        <app-speech-input label="Follow-up notes" [(model)]="radiologyForm.follow_up_notes" />
+        <label class="check"><input type="checkbox" [(ngModel)]="radiologyForm.return_for_doctor_review" /> Patient should return for doctor review of report</label>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn" (click)="closeRadiologyOrderModal()">Cancel</button>
+        <button class="btn primary" (click)="createRadiologyOrder()" [disabled]="saving || !radiologyForm.study_code.trim()">Create</button>
       </div>
     </div>
   </div>

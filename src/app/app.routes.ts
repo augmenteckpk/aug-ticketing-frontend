@@ -10,6 +10,7 @@ import { RegistrationPage } from './features/reception/registration-page/registr
 import { PreAssessmentPage } from './features/reception/pre-assessment-page/pre-assessment-page';
 import { ConsultationPage } from './features/consultation/consultation-page/consultation-page';
 import { LaboratoryPage } from './features/laboratory/laboratory-page/laboratory-page';
+import { RadiologyPage } from './features/radiology/radiology-page/radiology-page';
 import { QueuePage } from './features/queue/queue-page/queue-page';
 import { HospitalsPage } from './features/admin/hospitals-page/hospitals-page';
 import { CentersPage } from './features/admin/centers-page/centers-page';
@@ -36,6 +37,7 @@ export const routes: Routes = [
       { path: 'pre-assessment', redirectTo: 'waiting-area', pathMatch: 'full' },
       { path: 'consultation', component: ConsultationPage },
       { path: 'laboratory', component: LaboratoryPage },
+      { path: 'radiology', component: RadiologyPage },
       { path: 'queue', component: QueuePage },
       { path: 'hospitals', component: HospitalsPage },
       { path: 'centers', component: CentersPage },

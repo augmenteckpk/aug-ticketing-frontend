@@ -31,12 +31,41 @@
       <p class="muted">Loading queue data...</p>
     </div>
   } @else {
+    @if (rows.length) {
+      <div class="bulk-bar">
+        <label class="bulk-select-all">
+          <input
+            type="checkbox"
+            [checked]="allRowsSelected"
+            (change)="toggleSelectAll($any($event.target).checked)"
+          />
+          Select all
+        </label>
+        <button
+          type="button"
+          class="btn primary"
+          (click)="bulkReadyWithoutVitals()"
+          [disabled]="bulkReadyBusy || !selectedForBulk.size"
+        >
+          Ready (no vitals) for selected
+        </button>
+      </div>
+    }
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Token</th><th>Patient</th><th>CNIC</th><th>Status</th><th>Actions</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Token</th>
+            <th>Patient</th>
+            <th>CNIC</th>
+            <th>Status</th>
+            <th>Actions</th>
+            <th scope="col" class="col-select">Select</th>
+          </tr>
+        </thead>
         <tbody>
           @if (!rows.length) {
-            <tr><td colspan="5">No registered/checked-in patients for this center and date.</td></tr>
+            <tr><td colspan="6">No registered/checked-in patients for this center and date.</td></tr>
           } @else {
             @for (r of rows; track r.id) {
               <tr>
@@ -50,11 +79,19 @@
                     type="button"
                     class="btn"
                     (click)="markReadyWithoutVitals(r)"
-                    [disabled]="readyWithoutId === r.id"
+                    [disabled]="readyWithoutId === r.id || bulkReadyBusy"
                     title="Send to ready pool without vitals (pre-assessment optional)"
                   >
                     Ready (no vitals)
                   </button>
+                </td>
+                <td class="col-select">
+                  <input
+                    type="checkbox"
+                    [checked]="selectedForBulk.has(r.id)"
+                    (change)="toggleBulkRow(r.id, $any($event.target).checked)"
+                    [disabled]="bulkReadyBusy"
+                  />
                 </td>
               </tr>
             }
@@ -67,7 +104,7 @@
 
 @if (selected) {
   <div class="modal-overlay" (click)="closeAssessment()">
-    <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal modal--xl" (click)="$event.stopPropagation()">
       <h3>Pre-assessment for Token #{{ selected.token_number }}</h3>
       <div class="form-grid">
         <label>BP systolic <input type="number" [(ngModel)]="form.bp_systolic" /></label>

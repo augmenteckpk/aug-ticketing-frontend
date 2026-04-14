@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { resolveApiBaseUrl } from '../../../../environments/api-base';
 import { unwrapApiEnvelope } from '../../../core/services/api';
+import { todayLocalYmd } from '../../../core/utils/local-date';
 
 type PublicCenter = { id: number; name: string; city: string; hospital_name?: string | null };
 
@@ -22,14 +23,6 @@ type PublicWaitingBoard = {
   dispatched_earlier: { batch_index: number; token_numbers: number[] }[];
   meta: { refresh_hint_seconds: number; transport: string };
 };
-
-function todayLocalYmd(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
 
 @Component({
   selector: 'app-waiting-board-page',
@@ -83,8 +76,8 @@ export class WaitingBoardPage implements OnInit, OnDestroy {
   showControls = false;
 
   private eventSource: EventSource | null = null;
-  private pollTimer: ReturnType<typeof setInterval> | null = null;
-  private clockTimer: ReturnType<typeof setInterval> | null = null;
+  private pollTimer: number | null = null;
+  private clockTimer: number | null = null;
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -113,7 +106,12 @@ export class WaitingBoardPage implements OnInit, OnDestroy {
     const cid = Number(q.get('center_id'));
     if (Number.isFinite(cid) && cid > 0) this.centerId = cid;
     const d = q.get('date');
-    if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) this.date = d;
+    const dateFromQuery = Boolean(d && /^\d{4}-\d{2}-\d{2}$/.test(d));
+    if (dateFromQuery && d) {
+      this.date = d;
+    } else {
+      this.date = todayLocalYmd();
+    }
 
     this.clockTimer = window.setInterval(() => {
       this.zone.run(() => {
@@ -122,8 +120,12 @@ export class WaitingBoardPage implements OnInit, OnDestroy {
     }, 1000);
 
     await this.loadCenters();
+    let centerWasDefaulted = false;
     if (this.centerId <= 0 && this.centers[0]) {
       this.centerId = this.centers[0].id;
+      centerWasDefaulted = true;
+    }
+    if ((!dateFromQuery || centerWasDefaulted) && this.centerId > 0) {
       await this.syncUrl();
     }
 

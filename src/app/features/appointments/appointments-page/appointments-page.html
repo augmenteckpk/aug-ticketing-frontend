@@ -96,6 +96,20 @@
   <div class="modal-overlay" (click)="creatingWalkIn = false">
     <div class="modal" (click)="$event.stopPropagation()">
       <h3>Issue walk-in token</h3>
+      <p class="walkin-scan-row">
+        <input
+          #cnicCapture
+          type="file"
+          accept="image/*"
+          capture="environment"
+          class="sr-only"
+          (change)="onWalkInCnicPhoto($event)"
+        />
+        <button type="button" class="btn-secondary" (click)="cnicCapture.click()">
+          <span class="material-icons" aria-hidden="true">photo_camera</span>
+          Scan CNIC (camera / photo)
+        </button>
+      </p>
       <div class="walkin-grid">
         <label>
           <span>Center</span>

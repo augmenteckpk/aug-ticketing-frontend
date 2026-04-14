@@ -3,6 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api';
 import { ToastService } from '../../../core/services/toast';
+import { todayLocalYmd } from '../../../core/utils/local-date';
 import { SpeechInput } from '../../../ui-kit/speech-input/speech-input';
 
 type Center = { id: number; name: string; city: string; hospital_name?: string };
@@ -28,7 +29,7 @@ export class AppointmentsPage implements OnInit {
   rows: Appointment[] = [];
 
   centerId: number | '' = '';
-  date = new Date().toISOString().slice(0, 10);
+  date = todayLocalYmd();
   status = '';
 
   creatingWalkIn = false;
@@ -37,7 +38,7 @@ export class AppointmentsPage implements OnInit {
 
   walkIn = {
     center_id: '' as number | '',
-    appointment_date: new Date().toISOString().slice(0, 10),
+    appointment_date: todayLocalYmd(),
     cnic: '',
     first_name: '',
     last_name: '',
@@ -82,6 +83,31 @@ export class AppointmentsPage implements OnInit {
       this.rows = [];
     } finally {
       this.busy = false;
+    }
+  }
+
+  async onWalkInCnicPhoto(ev: Event): Promise<void> {
+    const input = ev.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    try {
+      const { createWorker } = await import('tesseract.js');
+      const worker = await createWorker('eng');
+      const {
+        data: { text },
+      } = await worker.recognize(file);
+      await worker.terminate();
+      const digits = text.replace(/\D/g, '');
+      const m = digits.match(/(\d{13})/);
+      if (m) {
+        const raw = m[1];
+        this.walkIn.cnic = `${raw.slice(0, 5)}-${raw.slice(5, 12)}-${raw.slice(12)}`;
+      } else {
+        this.toast.error('Could not read CNIC from image. Enter manually.');
+      }
+    } catch {
+      this.toast.error('OCR failed. Enter details manually.');
     }
   }
 
