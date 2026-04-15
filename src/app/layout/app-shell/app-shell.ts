@@ -1,11 +1,23 @@
-import { CommonModule } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { CommonModule, DOCUMENT } from '@angular/common';
+import { Component, computed, DestroyRef, effect, inject, signal } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import {
+  NavigationEnd,
+  Router,
+  RouterLink,
+  RouterLinkActive,
+  RouterOutlet,
+} from '@angular/router';
+import { filter, map } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth';
 
 type NavItem = { to: string; label: string; icon: string; perm?: string };
 
 type NavSection = { title: string; items: NavItem[] };
+
+/** Viewports at or below this width use overlay nav + hamburger (tablet & phone). */
+const COMPACT_MAX = '(max-width: 1023.98px)';
 
 @Component({
   selector: 'app-app-shell',
@@ -16,6 +28,51 @@ type NavSection = { title: string; items: NavItem[] };
 export class AppShell {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly breakpoint = inject(BreakpointObserver);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly document = inject(DOCUMENT);
+
+  /** When true, sidebar is off-canvas until opened via menu. */
+  readonly isCompact = toSignal(
+    this.breakpoint.observe(COMPACT_MAX).pipe(map((r) => r.matches)),
+    {
+      initialValue:
+        typeof globalThis !== 'undefined' &&
+        'matchMedia' in globalThis &&
+        globalThis.matchMedia(COMPACT_MAX).matches,
+    },
+  );
+
+  readonly navOpen = signal(false);
+
+  constructor() {
+    effect(() => {
+      if (!this.isCompact()) this.navOpen.set(false);
+    });
+
+    effect(() => {
+      const body = this.document.body;
+      if (this.isCompact() && this.navOpen()) body.style.setProperty('overflow', 'hidden');
+      else body.style.removeProperty('overflow');
+    });
+
+    this.router.events
+      .pipe(
+        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(() => {
+        if (this.isCompact()) this.navOpen.set(false);
+      });
+  }
+
+  toggleNav(): void {
+    this.navOpen.update((v) => !v);
+  }
+
+  closeNav(): void {
+    this.navOpen.set(false);
+  }
 
   readonly sections: NavSection[] = [
     {

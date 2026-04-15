@@ -1,5 +1,24 @@
-<div class="shell">
-  <aside class="sidebar" aria-label="Primary navigation">
+<div
+  class="shell"
+  [class.shell--compact]="isCompact()"
+  [class.shell--nav-open]="isCompact() && navOpen()"
+>
+  @if (isCompact()) {
+    <button
+      type="button"
+      class="nav-backdrop"
+      aria-label="Close navigation menu"
+      [class.nav-backdrop--visible]="navOpen()"
+      (click)="closeNav()"
+    ></button>
+  }
+
+  <aside
+    id="app-sidebar-nav"
+    class="sidebar"
+    aria-label="Primary navigation"
+    [attr.aria-hidden]="isCompact() && !navOpen() ? 'true' : null"
+  >
     <div class="brand">
       <img class="brand-logo" src="/siut-logo.png" alt="SIUT logo" />
       <div class="brand-kicker">OPD ticketing</div>
@@ -8,13 +27,24 @@
       <p class="brand-role">Role: {{ formattedRole() }}</p>
     </div>
 
+    @if (isCompact()) {
+      <button type="button" class="sidebar-close" (click)="closeNav()" aria-label="Close menu">
+        <span class="material-icons" aria-hidden="true">close</span>
+      </button>
+    }
+
     @for (section of visibleSections(); track section.title) {
       <section class="nav-section">
         <h2>{{ section.title }}</h2>
         <ul>
           @for (item of section.items; track item.to) {
             <li>
-              <a [routerLink]="item.to" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: item.to === '/app' }">
+              <a
+                [routerLink]="item.to"
+                routerLinkActive="active"
+                [routerLinkActiveOptions]="{ exact: item.to === '/app' }"
+                (click)="isCompact() && closeNav()"
+              >
                 <span class="material-icons nav-icon" aria-hidden="true">{{ item.icon }}</span>
                 {{ item.label }}
               </a>
@@ -27,7 +57,28 @@
     <button type="button" class="logout" (click)="logout()">Sign out</button>
   </aside>
 
-  <main class="content" id="main-content">
-    <router-outlet />
-  </main>
+  <div class="main-wrap">
+    @if (isCompact()) {
+      <header class="topbar">
+        <button
+          type="button"
+          class="menu-btn"
+          (click)="toggleNav()"
+          [attr.aria-expanded]="navOpen()"
+          aria-controls="app-sidebar-nav"
+          aria-label="Open navigation menu"
+        >
+          <span class="material-icons" aria-hidden="true">menu</span>
+        </button>
+        <div class="topbar-brand">
+          <span class="topbar-title">SIUT</span>
+          <span class="topbar-sub">Staff console</span>
+        </div>
+      </header>
+    }
+
+    <main class="content" id="main-content">
+      <router-outlet />
+    </main>
+  </div>
 </div>
