@@ -1,17 +1,20 @@
 <section class="page-card">
-  <header class="page-header">
+  <header class="head">
     <div>
       <h1>Patients</h1>
       <p>Patient directory and basic demographics management.</p>
     </div>
+    <div class="actions patients-toolbar-actions">
+      <div class="patients-toolbar-search">
+        <app-speech-input [(model)]="search" placeholder="Search patients" />
+      </div>
+      <button type="button" class="btn primary" (click)="creating = true" [disabled]="saving || loading">
+        Create patient
+      </button>
+    </div>
   </header>
 
   @if (error) { <p class="error">{{ error }}</p> }
-
-  <div class="actions">
-    <button class="btn primary" (click)="creating = true" [disabled]="saving || loading">Create patient</button>
-    <app-speech-input [(model)]="search" placeholder="Search patients" />
-  </div>
 
   <div class="table-wrap">
     <table>
@@ -28,11 +31,34 @@
               <td>{{ display(p.first_name) }} {{ display(p.last_name) }}</td>
               <td>{{ display(p.phone) }}</td>
               <td>{{ display(p.date_of_birth) }}</td>
-              <td>{{ display(p.status || 'Active') }}</td>
-              <td class="right actions-cell">
-                <a class="btn ghost" [routerLink]="['/app/patients', p.id]">View</a>
-                <button type="button" class="btn" (click)="editing = { ...p }">Edit</button>
-                <button type="button" class="btn danger" (click)="remove(p)">Delete</button>
+              <td><span [class]="(p.status || 'Active') | entityStatusBadge">{{ display(p.status || 'Active') }}</span></td>
+              <td class="right td-actions">
+                <a
+                  class="btn-icon btn-icon--surface"
+                  [routerLink]="['/app/patients', p.id]"
+                  title="View patient"
+                  aria-label="View patient"
+                >
+                  <span class="material-icons">visibility</span>
+                </a>
+                <button
+                  type="button"
+                  class="btn-icon btn-icon--primary"
+                  title="Edit patient"
+                  aria-label="Edit patient"
+                  (click)="editing = { ...p }"
+                >
+                  <span class="material-icons">edit</span>
+                </button>
+                <button
+                  type="button"
+                  class="btn-icon btn-icon--danger"
+                  title="Delete patient"
+                  aria-label="Delete patient"
+                  (click)="remove(p)"
+                >
+                  <span class="material-icons">delete</span>
+                </button>
               </td>
             </tr>
           }

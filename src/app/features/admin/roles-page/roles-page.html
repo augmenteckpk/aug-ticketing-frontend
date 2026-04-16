@@ -1,17 +1,18 @@
 <section class="page-card">
-  <header class="page-header">
+  <header class="head">
     <div>
       <h1>Roles & Permissions</h1>
       <p>RBAC role setup and permission mapping.</p>
     </div>
+    <div class="actions">
+      <button class="btn primary" (click)="creating = true" [disabled]="saving || loading">Create role</button>
+      <button class="btn-icon btn-icon--surface" type="button" title="Refresh" aria-label="Refresh" (click)="load()" [disabled]="loading">
+        <span class="material-icons" aria-hidden="true">refresh</span>
+      </button>
+    </div>
   </header>
 
   @if (error) { <p class="error">{{ error }}</p> }
-
-  <div class="actions">
-    <button class="btn primary" (click)="creating = true" [disabled]="saving || loading">Create role</button>
-    <button class="btn" (click)="load()" [disabled]="loading"><span class="material-icons">refresh</span> Refresh</button>
-  </div>
 
   <div class="table-wrap">
     <table>
@@ -27,23 +28,29 @@
               <td>{{ r.name }}</td>
               <td>{{ r.description || '—' }}</td>
               <td class="perm-cell">
-                @if (!(r.permissions || []).length) {
-                  <span>—</span>
-                } @else {
-                  @for (perm of rolePermVisible(r.permissions); track perm) {
-                    <span class="badge permission">{{ perm }}</span>
+                <div class="cell-chips">
+                  @if (!(r.permissions || []).length) {
+                    <span>—</span>
+                  } @else {
+                    @for (perm of rolePermVisible(r.permissions); track perm) {
+                      <span class="badge permission">{{ perm }}</span>
+                    }
+                    @if (rolePermHiddenCount(r.permissions) > 0) {
+                      <span
+                        class="badge perm-more"
+                        [attr.title]="rolePermFullTitle(r.permissions)"
+                        >+ {{ rolePermHiddenCount(r.permissions) }} more</span>
+                    }
                   }
-                  @if (rolePermHiddenCount(r.permissions) > 0) {
-                    <span
-                      class="badge perm-more"
-                      [attr.title]="rolePermFullTitle(r.permissions)"
-                      >+ {{ rolePermHiddenCount(r.permissions) }} more</span>
-                  }
-                }
+                </div>
               </td>
-              <td class="right">
-                <button class="btn" (click)="startEdit(r)">Edit</button>
-                <button class="btn danger" (click)="remove(r)">Delete</button>
+              <td class="right td-actions">
+                <button type="button" class="btn-icon btn-icon--primary" title="Edit role" aria-label="Edit role" (click)="startEdit(r)">
+                  <span class="material-icons">edit</span>
+                </button>
+                <button type="button" class="btn-icon btn-icon--danger" title="Delete role" aria-label="Delete role" (click)="remove(r)">
+                  <span class="material-icons">delete</span>
+                </button>
               </td>
             </tr>
           }

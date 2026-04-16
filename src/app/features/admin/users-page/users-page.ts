@@ -5,6 +5,7 @@ import { ApiService } from '../../../core/services/api';
 import { ConfirmService } from '../../../core/services/confirm';
 import { ToastService } from '../../../core/services/toast';
 import { Pagination } from '../../../ui-kit/pagination/pagination';
+import { EntityStatusBadgePipe } from '../../../shared/pipes/status-badge.pipe';
 import { SpeechInput } from '../../../ui-kit/speech-input/speech-input';
 
 type UserRow = { id: number; username: string; email?: string | null; phone?: string | null; role: string; status: string };
@@ -12,7 +13,7 @@ type RoleRow = { id: number; name: string };
 
 @Component({
   selector: 'app-users-page',
-  imports: [CommonModule, FormsModule, Pagination, SpeechInput],
+  imports: [CommonModule, FormsModule, Pagination, SpeechInput, EntityStatusBadgePipe],
   templateUrl: './users-page.html',
   styleUrl: './users-page.scss',
 })

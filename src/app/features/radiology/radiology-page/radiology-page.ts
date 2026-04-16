@@ -3,6 +3,7 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api';
 import { ToastService } from '../../../core/services/toast';
+import { WorkflowStatusBadgePipe } from '../../../shared/pipes/status-badge.pipe';
 import { todayLocalYmd } from '../../../core/utils/local-date';
 
 type Center = { id: number; name: string; hospital_name?: string; city?: string };
@@ -24,7 +25,7 @@ type RadOrderDetail = {
 
 @Component({
   selector: 'app-radiology-page',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, WorkflowStatusBadgePipe],
   templateUrl: './radiology-page.html',
   styleUrl: './radiology-page.scss',
 })

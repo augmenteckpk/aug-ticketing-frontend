@@ -8,7 +8,9 @@
       <button class="btn primary" type="button" [disabled]="filtersLoading || centerId === '' || departmentId === '' || saving" (click)="openCreate()">
         <span class="material-icons">add</span> Add clinic
       </button>
-      <button class="btn" type="button" (click)="load()"><span class="material-icons">refresh</span> Refresh</button>
+      <button class="btn-icon btn-icon--surface" type="button" title="Refresh" aria-label="Refresh" (click)="load()">
+        <span class="material-icons">refresh</span>
+      </button>
     </div>
   </header>
 
@@ -54,11 +56,29 @@
               <td>{{ display(r.clinic_type) }}</td>
               <td>{{ display(r.location) }}</td>
               <td>{{ display(r.schedule) }}</td>
-              <td><span class="badge">{{ display(r.status) }}</span></td>
-              <td class="actions-cell">
-                <button type="button" class="btn-ghost" [disabled]="saving" (click)="openEdit(r, $event)"><span class="material-icons">edit</span> Edit</button>
+              <td><span [class]="r.status | entityStatusBadge">{{ display(r.status) }}</span></td>
+              <td class="right td-actions">
+                <button
+                  type="button"
+                  class="btn-icon btn-icon--primary"
+                  [disabled]="saving"
+                  title="Edit clinic"
+                  aria-label="Edit clinic"
+                  (click)="openEdit(r, $event)"
+                >
+                  <span class="material-icons">edit</span>
+                </button>
                 @if (r.status === 'Active') {
-                  <button type="button" class="btn-danger" [disabled]="saving" (click)="deactivate(r)"><span class="material-icons">block</span> Deactivate</button>
+                  <button
+                    type="button"
+                    class="btn-icon btn-icon--danger"
+                    [disabled]="saving"
+                    title="Deactivate clinic"
+                    aria-label="Deactivate clinic"
+                    (click)="deactivate(r)"
+                  >
+                    <span class="material-icons">block</span>
+                  </button>
                 }
               </td>
             </tr>

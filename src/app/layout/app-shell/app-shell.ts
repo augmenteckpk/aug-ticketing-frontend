@@ -11,6 +11,7 @@ import {
 } from '@angular/router';
 import { filter, map } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth';
+import { StaffNotificationsService } from '../../core/services/staff-notifications';
 
 type NavItem = { to: string; label: string; icon: string; perm?: string };
 
@@ -26,7 +27,8 @@ const COMPACT_MAX = '(max-width: 1023.98px)';
   styleUrl: './app-shell.scss',
 })
 export class AppShell {
-  private readonly auth = inject(AuthService);
+  readonly auth = inject(AuthService);
+  readonly notifications = inject(StaffNotificationsService);
   private readonly router = inject(Router);
   private readonly breakpoint = inject(BreakpointObserver);
   private readonly destroyRef = inject(DestroyRef);
@@ -122,5 +124,14 @@ export class AppShell {
   async logout(): Promise<void> {
     this.auth.logout();
     await this.router.navigate(['/login']);
+  }
+
+  toggleNotifications(event: Event): void {
+    event.stopPropagation();
+    this.notifications.togglePanel();
+  }
+
+  closeNotificationPanel(): void {
+    this.notifications.closePanel();
   }
 }

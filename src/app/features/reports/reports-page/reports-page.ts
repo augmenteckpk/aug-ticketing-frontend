@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ApiService, getToken } from '../../../core/services/api';
 import { resolveApiBaseUrl } from '../../../../environments/api-base';
 import { ToastService } from '../../../core/services/toast';
+import { WorkflowStatusBadgePipe } from '../../../shared/pipes/status-badge.pipe';
 import { todayLocalYmd } from '../../../core/utils/local-date';
 
 type DailyReport = {
@@ -37,7 +38,7 @@ type DailyReport = {
 
 @Component({
   selector: 'app-reports-page',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, WorkflowStatusBadgePipe],
   templateUrl: './reports-page.html',
   styleUrl: './reports-page.scss',
 })

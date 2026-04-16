@@ -1,13 +1,20 @@
-.header-row{display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;margin-bottom:1rem}
-.header-row h1{margin:0;display:flex;gap:.5rem;align-items:center}
-.header-row p{margin:.35rem 0 0;color:var(--color-muted)}
+.head h1 {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+}
+.head h1 .material-icons {
+  font-size: 1.35rem;
+  opacity: 0.92;
+}
 .form-row{display:grid;grid-template-columns:2fr 1fr auto;gap:.6rem;margin-bottom:1rem}
 input,select{border:1px solid var(--color-border);border-radius:.65rem;padding:.55rem .65rem}
 .table-wrap{overflow:auto}
 table{width:100%;border-collapse:collapse}
 th,td{border:1px solid var(--color-border);padding:.6rem;text-align:left}
 th{background:#f1f5f9}
-.badge{border:1px solid var(--color-border);border-radius:999px;padding:.15rem .5rem;background:#f8fafc;font-size:.75rem}
+/* Do not scope `.badge` here — it overrides global entity/workflow colors (see styles.scss). */
 .btn-primary,.btn-secondary,.btn-ghost,.btn-danger{display:inline-flex;align-items:center;gap:.35rem;border-radius:.6rem;padding:.45rem .7rem;border:1px solid var(--color-border);cursor:pointer;text-decoration:none;background:#fff}
 .btn-primary{background:#a32417;color:#fff;border-color:#a32417}
 .btn-danger{border-color:#fecaca;color:#b91c1c}

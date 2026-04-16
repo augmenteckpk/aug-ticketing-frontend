@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { ApiService } from '../../../core/services/api';
 import { ConfirmService } from '../../../core/services/confirm';
 import { ToastService } from '../../../core/services/toast';
+import { EntityStatusBadgePipe } from '../../../shared/pipes/status-badge.pipe';
 import { Pagination } from '../../../ui-kit/pagination/pagination';
 import { SpeechInput } from '../../../ui-kit/speech-input/speech-input';
 
@@ -23,7 +24,7 @@ type Patient = {
 
 @Component({
   selector: 'app-patients-list-page',
-  imports: [CommonModule, FormsModule, Pagination, SpeechInput, RouterLink],
+  imports: [CommonModule, FormsModule, Pagination, SpeechInput, RouterLink, EntityStatusBadgePipe],
   templateUrl: './patients-list-page.html',
   styleUrl: './patients-list-page.scss',
 })

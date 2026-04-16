@@ -13,18 +13,9 @@
     ></button>
   }
 
-  <aside
-    id="app-sidebar-nav"
-    class="sidebar"
-    aria-label="Primary navigation"
-    [attr.aria-hidden]="isCompact() && !navOpen() ? 'true' : null"
-  >
-    <div class="brand">
-      <img class="brand-logo" src="/siut-logo.png" alt="SIUT logo" />
-      <div class="brand-kicker">OPD ticketing</div>
-      <h1>Staff console</h1>
-      <p class="brand-user">User: {{ user()?.username || 'Operator' }}</p>
-      <p class="brand-role">Role: {{ formattedRole() }}</p>
+  <aside id="app-sidebar-nav" class="sidebar" aria-label="Primary navigation" [attr.aria-hidden]="isCompact() && !navOpen() ? 'true' : null">
+    <div class="sidebar-logo">
+      <img class="brand-logo" src="/siut-logo.png" alt="SIUT" />
     </div>
 
     @if (isCompact()) {
@@ -33,49 +24,128 @@
       </button>
     }
 
-    @for (section of visibleSections(); track section.title) {
-      <section class="nav-section">
-        <h2>{{ section.title }}</h2>
-        <ul>
-          @for (item of section.items; track item.to) {
-            <li>
-              <a
-                [routerLink]="item.to"
-                routerLinkActive="active"
-                [routerLinkActiveOptions]="{ exact: item.to === '/app' }"
-                (click)="isCompact() && closeNav()"
-              >
-                <span class="material-icons nav-icon" aria-hidden="true">{{ item.icon }}</span>
-                {{ item.label }}
-              </a>
-            </li>
-          }
-        </ul>
-      </section>
-    }
-
-    <button type="button" class="logout" (click)="logout()">Sign out</button>
+    <div class="sidebar-scroll">
+      @for (section of visibleSections(); track section.title) {
+        <section class="nav-section">
+          <h2>{{ section.title }}</h2>
+          <ul>
+            @for (item of section.items; track item.to) {
+              <li>
+                <a
+                  [routerLink]="item.to"
+                  routerLinkActive="active"
+                  [routerLinkActiveOptions]="{ exact: item.to === '/app' }"
+                  (click)="isCompact() && closeNav()"
+                >
+                  <span class="material-icons nav-icon" aria-hidden="true">{{ item.icon }}</span>
+                  {{ item.label }}
+                </a>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+    </div>
   </aside>
 
-  <div class="main-wrap">
-    @if (isCompact()) {
-      <header class="topbar">
-        <button
-          type="button"
-          class="menu-btn"
-          (click)="toggleNav()"
-          [attr.aria-expanded]="navOpen()"
-          aria-controls="app-sidebar-nav"
-          aria-label="Open navigation menu"
-        >
-          <span class="material-icons" aria-hidden="true">menu</span>
-        </button>
-        <div class="topbar-brand">
-          <span class="topbar-title">SIUT</span>
-          <span class="topbar-sub">Staff console</span>
+  <div class="main-column">
+    <header class="app-header">
+      <div class="app-header-start">
+        @if (isCompact()) {
+          <button
+            type="button"
+            class="menu-btn"
+            (click)="toggleNav()"
+            [attr.aria-expanded]="navOpen()"
+            aria-controls="app-sidebar-nav"
+            aria-label="Open navigation menu"
+          >
+            <span class="material-icons" aria-hidden="true">menu</span>
+          </button>
+        }
+        <div class="app-header-brand">
+          <span class="app-header-kicker">OPD ticketing</span>
+          <span class="app-header-title">Staff console</span>
         </div>
-      </header>
-    }
+      </div>
+      <div class="app-header-end">
+        <div class="app-header-meta">
+          <span><span class="meta-label">User</span> {{ user()?.username || '—' }}</span>
+          <span><span class="meta-label">Role</span> {{ formattedRole() }}</span>
+        </div>
+        @if (auth.can('dashboard.read')) {
+          <div class="notif-anchor">
+            <button
+              type="button"
+              class="btn-icon btn-icon--surface notif-bell"
+              [class.notif-bell--open]="notifications.panelOpen()"
+              title="Notifications"
+              [attr.aria-expanded]="notifications.panelOpen()"
+              aria-haspopup="true"
+              aria-controls="staff-notif-panel"
+              (click)="toggleNotifications($event)"
+            >
+              <span class="material-icons" aria-hidden="true">{{
+                notifications.unreadCount() > 0 ? 'notifications_active' : 'notifications_none'
+              }}</span>
+              @if (notifications.unreadCount() > 0) {
+                <span class="notif-badge" aria-hidden="true">{{ notifications.unreadCount() > 99 ? '99+' : notifications.unreadCount() }}</span>
+              }
+            </button>
+
+            @if (notifications.panelOpen()) {
+              <div class="notif-backdrop" role="presentation" (click)="closeNotificationPanel()"></div>
+              <div
+                id="staff-notif-panel"
+                class="notif-panel"
+                role="dialog"
+                aria-label="Notifications"
+                (click)="$event.stopPropagation()"
+              >
+                <div class="notif-panel__head">
+                  <span class="notif-panel__title">Notifications</span>
+                  @if (notifications.unreadCount() > 0) {
+                    <button type="button" class="notif-panel__mark-all" (click)="notifications.markAllRead()">
+                      Mark all read
+                    </button>
+                  }
+                </div>
+                <div class="notif-panel__body">
+                  @if (notifications.items().length === 0) {
+                    <p class="notif-panel__empty">No notifications found.</p>
+                  } @else {
+                    <ul class="notif-list">
+                      @for (n of notifications.items(); track n.id) {
+                        <li>
+                          <button
+                            type="button"
+                            class="notif-row"
+                            [class.notif-row--unread]="!n.read"
+                            (click)="notifications.openNotification(n)"
+                          >
+                            <span class="notif-row__top">
+                              <span class="notif-row__status" [class.notif-row__status--unread]="!n.read">
+                                {{ n.read ? 'Read' : 'Unread' }}
+                              </span>
+                              <span class="notif-row__meta">{{ n.created_at | date: 'short' }}</span>
+                            </span>
+                            <span class="notif-row__title">{{ n.title }}</span>
+                            <span class="notif-row__body">{{ n.body }}</span>
+                          </button>
+                        </li>
+                      }
+                    </ul>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+        <button type="button" class="btn-icon btn-icon--primary" (click)="logout()" title="Sign out" aria-label="Sign out">
+          <span class="material-icons" aria-hidden="true">logout</span>
+        </button>
+      </div>
+    </header>
 
     <main class="content" id="main-content">
       <router-outlet />

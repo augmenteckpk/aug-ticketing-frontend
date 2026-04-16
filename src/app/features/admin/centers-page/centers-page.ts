@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api';
 import { ConfirmService } from '../../../core/services/confirm';
 import { ToastService } from '../../../core/services/toast';
+import { EntityStatusBadgePipe } from '../../../shared/pipes/status-badge.pipe';
 import { Pagination } from '../../../ui-kit/pagination/pagination';
 import { SpeechInput } from '../../../ui-kit/speech-input/speech-input';
 
@@ -45,7 +46,7 @@ const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 @Component({
   selector: 'app-centers-page',
-  imports: [CommonModule, FormsModule, Pagination, SpeechInput],
+  imports: [CommonModule, FormsModule, Pagination, SpeechInput, EntityStatusBadgePipe],
   templateUrl: './centers-page.html',
   styleUrl: './centers-page.scss',
 })

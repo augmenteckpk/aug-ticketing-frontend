@@ -15,14 +15,97 @@
   margin-bottom: 0.65rem;
 }
 
-.badge {
-  display: inline-block;
-  border-radius: 999px;
-  border: 1px solid #dbe2eb;
-  background: #f8fafc;
-  padding: 0.16rem 0.48rem;
-  font-size: 0.72rem;
+/* Do not redefine global `.badge` / `.badge--*` here — it overrides workflow colors (view encapsulation). */
+
+.walkin-modal h3 {
+  margin-top: 0;
+}
+
+.walkin-hint {
+  margin: 0 0 0.85rem;
+  font-size: 0.86rem;
+  color: var(--color-muted);
+  line-height: 1.45;
+}
+
+.walkin-preview-block {
+  margin-bottom: 1rem;
+}
+
+.walkin-preview-frame {
+  position: relative;
+  border-radius: 0.85rem;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  background: #0f172a;
+  max-height: min(220px, 42vh);
+}
+
+.walkin-preview-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: min(220px, 42vh);
+  object-fit: contain;
+  object-position: center top;
+}
+
+.walkin-preview-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  background: rgb(15 23 42 / 0.55);
+  color: #fff;
   font-weight: 700;
-  text-transform: capitalize;
-  color: #334155;
+  font-size: 0.92rem;
+  letter-spacing: 0.02em;
+}
+
+.walkin-spinner {
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 3px solid rgb(255 255 255 / 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: walkin-spin 0.75s linear infinite;
+}
+
+@keyframes walkin-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.walkin-remove-photo {
+  margin-top: 0.5rem;
+}
+
+.walkin-scan-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0 0 1rem;
+}
+
+.walkin-scan-row .btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.walkin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+@media (max-width: 640px) {
+  .walkin-grid {
+    grid-template-columns: 1fr;
+  }
 }

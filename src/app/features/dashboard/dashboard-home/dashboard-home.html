@@ -1,102 +1,213 @@
 <section class="dashboard">
-  <header class="hero page-card">
-    <div>
-      <p class="kicker">Overview</p>
-      <h1>Dashboard</h1>
-      <p class="sub">Daily OPD ticketing snapshot with center and date filters.</p>
+  <header class="dashboard-hero page-card">
+    <div class="dashboard-hero__main">
+      <div class="dashboard-hero__text">
+        <p class="kicker">Operations overview</p>
+        <h1>Dashboard</h1>
+        
+        <!-- @if (summary && !loading) {
+          <p class="scope-line">{{ scopeDescription }}</p>
+        } -->
+      </div>
+
+      <div class="dashboard-hero__controls" aria-label="Dashboard filters">
+        <div class="preset-row">
+          <span class="preset-row__label">Range</span>
+          <div class="preset-chips" role="group" aria-label="Date range preset">
+            @for (opt of rangeOptions; track opt.id) {
+              <button
+                type="button"
+                class="preset-chip"
+                [class.preset-chip--active]="rangePreset === opt.id"
+                (click)="setPreset(opt.id)"
+                [disabled]="loading"
+              >
+                {{ opt.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="hero-fields">
+          <label class="hero-field">
+            <span>End date</span>
+            <input type="date" [(ngModel)]="date" (change)="loadSummary()" [disabled]="loading" />
+          </label>
+          <label class="hero-field hero-field--grow">
+            <span>Center</span>
+            <select [(ngModel)]="centerId" (change)="loadSummary()" [disabled]="loading">
+              <option [ngValue]="''">All centers</option>
+              @for (c of centers; track c.id) {
+                <option [ngValue]="c.id">{{ c.hospital_name }} — {{ c.name }} ({{ c.city }})</option>
+              }
+            </select>
+          </label>
+          <button
+            type="button"
+            class="btn btn-secondary hero-today-btn"
+            (click)="resetToToday()"
+            [disabled]="loading"
+            title="Set end date to today and range to 1 day"
+          >
+            Today
+          </button>
+        </div>
+      </div>
     </div>
-    <button type="button" class="btn-secondary" (click)="loadSummary()">
+
+    <button
+      type="button"
+      class="btn-icon btn-icon--primary dashboard-hero__refresh"
+      title="Refresh dashboard"
+      aria-label="Refresh dashboard"
+      (click)="loadSummary()"
+      [disabled]="loading"
+    >
       <span class="material-icons" aria-hidden="true">refresh</span>
-      Refresh
     </button>
   </header>
 
-  <section class="filters page-card" aria-label="Dashboard filters">
-    <label>
-      <span>Date</span>
-      <input type="date" [(ngModel)]="date" (change)="loadSummary()" />
-    </label>
-    <label>
-      <span>Center</span>
-      <select [(ngModel)]="centerId" (change)="loadSummary()">
-        <option [ngValue]="''">All centers</option>
-        @for (c of centers; track c.id) {
-          <option [ngValue]="c.id">{{ c.hospital_name }} - {{ c.name }} ({{ c.city }})</option>
-        }
-      </select>
-    </label>
-  </section>
-
-  @if (loading) {
-    <section class="page-card"><p>Loading dashboard data...</p></section>
-  } @else if (error) {
+  @if (loading && !summary) {
+    <section class="page-card dashboard-loading"><p>Loading dashboard…</p></section>
+  } @else if (error && !summary) {
     <section class="page-card"><p class="error" role="alert">{{ error }}</p></section>
   } @else if (summary) {
-    <section class="stat-grid">
-      @for (s of statusOrder; track s.key) {
-        <article class="stat-card page-card">
-          <p class="label">{{ s.label }}</p>
-          <p class="value">{{ summary.byStatus[s.key] || 0 }}</p>
-        </article>
-      }
-    </section>
-
-    <section class="totals page-card">
-      <article>
-        <p>Total tickets</p>
-        <h2>{{ summary.total }}</h2>
-      </article>
-      <article>
-        <p>Patients in system</p>
-        <h2>{{ summary.patients?.total_in_system ?? 0 }}</h2>
-      </article>
-      <article>
-        <p>Patients with visit on date</p>
-        <h2>{{ summary.patients?.with_visit_on_date ?? 0 }}</h2>
-      </article>
-      <a routerLink="/app/patients" class="btn-primary link-btn">Open patient directory</a>
-    </section>
-
-    <section class="charts-grid">
-      <article class="page-card chart-card">
-        <header>
-          <h3>Status distribution</h3>
-          <p>Share of total tickets by workflow state.</p>
-        </header>
-        <div class="donut-wrap">
-          <div class="donut" [style]="donutStyle"></div>
-          <div class="donut-center">
-            <strong>{{ summary.total }}</strong>
-            <span>Total</span>
-          </div>
+    <div class="dashboard-bento">
+      <section class="page-card dashboard-panel" aria-labelledby="registry-heading">
+        <h2 id="registry-heading" class="panel-title">System registry</h2>
+        <p class="panel-desc">Active configuration across the deployment (not filtered by date or center).</p>
+        <div class="metric-grid metric-grid--tight">
+          <article class="metric-card">
+            <p class="metric-card__label">Hospitals</p>
+            <p class="metric-card__value">{{ summary.system?.hospitals ?? '—' }}</p>
+          </article>
+          <article class="metric-card">
+            <p class="metric-card__label">Centers</p>
+            <p class="metric-card__value">{{ summary.system?.centers ?? '—' }}</p>
+          </article>
+          <article class="metric-card">
+            <p class="metric-card__label">Departments</p>
+            <p class="metric-card__value">{{ summary.system?.departments ?? '—' }}</p>
+          </article>
+          <article class="metric-card">
+            <p class="metric-card__label">Clinics</p>
+            <p class="metric-card__value">{{ summary.system?.clinics ?? '—' }}</p>
+          </article>
+          <article class="metric-card">
+            <p class="metric-card__label">Staff users</p>
+            <p class="metric-card__value">{{ summary.system?.users_active ?? '—' }}</p>
+          </article>
+          <article class="metric-card metric-card--accent">
+            <p class="metric-card__label">Registered patients</p>
+            <p class="metric-card__value">{{ summary.patients?.total_in_system ?? 0 }}</p>
+            <p class="metric-card__hint">Total patient records in the system</p>
+          </article>
         </div>
-        <ul class="legend">
-          @for (bar of chartBars; track bar.label) {
-            <li>
-              <span>{{ bar.label }}</span>
-              <strong>{{ bar.value }}</strong>
-            </li>
-          }
-        </ul>
-      </article>
+      </section>
 
-      <article class="page-card chart-card">
-        <header>
-          <h3>Volume by status</h3>
-          <p>Bar view for quick comparison.</p>
-        </header>
-        <div class="bars">
-          @for (bar of chartBars; track bar.label) {
-            <div class="bar-row">
-              <span class="name">{{ bar.label }}</span>
-              <div class="track">
-                <div class="fill" [style.width.%]="bar.pct"></div>
+      <section class="page-card dashboard-panel" aria-labelledby="day-heading">
+        <h2 id="day-heading" class="panel-title">{{ periodTitle() }}</h2>
+        <p class="panel-desc">
+          Ticket workflow and visits for <strong>{{ formatRangeSpan(summary.date_start, summary.date_end) }}</strong>
+          @if (summary.date_start !== summary.date_end) {
+            <span> (aggregated).</span>
+          }
+        </p>
+        <div class="metric-grid">
+          <article class="metric-card metric-card--accent">
+            <p class="metric-card__label">Tokens (appointments)</p>
+            <p class="metric-card__value">{{ summary.total }}</p>
+            <p class="metric-card__hint">In selected range & center scope</p>
+          </article>
+          <article class="metric-card">
+            <p class="metric-card__label">Active in workflow</p>
+            <p class="metric-card__value">{{ pipelineCount }}</p>
+            <p class="metric-card__hint">Booked through dispatched</p>
+          </article>
+          <article class="metric-card">
+            <p class="metric-card__label">Completed</p>
+            <p class="metric-card__value">{{ completedCount }}</p>
+            <p class="metric-card__hint">Marked completed in range</p>
+          </article>
+          <article class="metric-card">
+            <p class="metric-card__label">Completion rate</p>
+            <p class="metric-card__value">{{ completionRate }}%</p>
+            <p class="metric-card__hint">Completed ÷ total tokens</p>
+          </article>
+          <article class="metric-card">
+            <p class="metric-card__label">Patients with visit</p>
+            <p class="metric-card__value">{{ summary.patients?.with_visit_on_date ?? 0 }}</p>
+            <p class="metric-card__hint">Distinct patients with ≥1 appointment in range</p>
+          </article>
+        </div>
+
+        <nav class="quick-links" aria-label="Shortcuts">
+          <a routerLink="/app/appointments" class="quick-links__a">Tokens & appointments</a>
+          <a routerLink="/app/queue" class="quick-links__a">Batch queue</a>
+          <a routerLink="/app/reports" class="quick-links__a">Reports</a>
+          <a routerLink="/app/patients" class="quick-links__a">Patient directory</a>
+        </nav>
+      </section>
+
+      <section class="page-card dashboard-panel dashboard-panel--wide" aria-labelledby="volume-heading">
+        <h2 id="volume-heading" class="panel-title">Appointment volume</h2>
+        <p class="panel-desc">Total tokens issued per day in the selected range (same center filter).</p>
+        <div class="daily-chart" role="img" [attr.aria-label]="'Daily appointment counts for ' + dailyVolume.length + ' days'">
+          @for (row of dailyVolume; track row.date) {
+            <div class="daily-chart__col">
+              <div class="daily-chart__bar-wrap" [attr.title]="row.date + ': ' + row.total + ' appointments'">
+                <div class="daily-chart__bar" [style.height.%]="dailyBarHeight(row.total)"></div>
               </div>
-              <span class="value">{{ bar.value }}</span>
+              <span class="daily-chart__label">{{ shortDayLabel(row.date) }}</span>
+              <span class="daily-chart__value">{{ row.total }}</span>
             </div>
           }
         </div>
-      </article>
-    </section>
+      </section>
+
+      <section class="page-card dashboard-panel dashboard-panel--wide" aria-labelledby="workflow-heading">
+        <header class="workflow-header">
+          <div>
+            <h2 id="workflow-heading" class="panel-title">Workflow breakdown</h2>
+            <p class="panel-desc">
+              Status mix for the same filtered total ({{ summary.total }} tickets). Compare stages to find bottlenecks.
+            </p>
+          </div>
+        </header>
+
+        <div class="table-wrap workflow-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Status</th>
+                <th scope="col" class="right">Count</th>
+                <th scope="col" class="right">Share</th>
+                <th scope="col">Relative volume</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (bar of chartBars; track bar.key) {
+                <tr>
+                  <td>
+                    <span [class]="bar.key | workflowStatusBadge">{{ bar.label }}</span>
+                  </td>
+                  <td class="right tabular">{{ bar.value }}</td>
+                  <td class="right tabular">{{ bar.pct }}%</td>
+                  <td class="workflow-bar-cell">
+                    <div class="workflow-track" role="presentation">
+                      <div
+                        class="workflow-fill"
+                        [style.width.%]="bar.pct"
+                        [style.background]="bar.color"
+                      ></div>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
   }
 </section>

@@ -3,6 +3,19 @@
   gap: 1rem;
 }
 
+.patients-toolbar-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.65rem;
+  min-width: min(100%, 320px);
+}
+
+.patients-toolbar-search {
+  width: 100%;
+  max-width: 420px;
+}
+
 .actions-cell {
   display: flex;
   flex-wrap: wrap;

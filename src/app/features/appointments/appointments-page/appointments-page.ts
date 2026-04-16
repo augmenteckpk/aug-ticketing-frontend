@@ -4,7 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api';
 import { ToastService } from '../../../core/services/toast';
 import { todayLocalYmd } from '../../../core/utils/local-date';
+import { WorkflowStatusBadgePipe } from '../../../shared/pipes/status-badge.pipe';
 import { SpeechInput } from '../../../ui-kit/speech-input/speech-input';
+import { Pagination } from '../../../ui-kit/pagination/pagination';
 
 type Center = { id: number; name: string; city: string; hospital_name?: string };
 type Appointment = {
@@ -18,15 +20,30 @@ type Appointment = {
   department_name?: string | null;
 };
 
+/** Matches `POST /public/cnic-extract` (same as mobile `extractCnicViaBackend`). */
+type CnicExtractApiResponse = {
+  cnic: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  father_name: string | null;
+  gender: string | null;
+  date_of_birth: string | null;
+  name_confidence: 'high' | 'medium' | 'low';
+};
+
+const VISION_EXTRACT_TIMEOUT_MS = 120_000;
+
 @Component({
   selector: 'app-appointments-page',
-  imports: [CommonModule, FormsModule, SpeechInput],
+  imports: [CommonModule, FormsModule, SpeechInput, WorkflowStatusBadgePipe, Pagination],
   templateUrl: './appointments-page.html',
   styleUrl: './appointments-page.scss',
 })
 export class AppointmentsPage implements OnInit {
   centers: Center[] = [];
   rows: Appointment[] = [];
+  page = 1;
+  pageSize = 15;
 
   centerId: number | '' = '';
   date = todayLocalYmd();
@@ -34,7 +51,17 @@ export class AppointmentsPage implements OnInit {
 
   creatingWalkIn = false;
   busy = false;
+  /** AI + OCR pipeline on CNIC photo — separate from list loading. */
+  walkInCnicProcessing = false;
+  /** Shown on preview overlay: AI phase vs OCR fallback. */
+  walkInScanMessage = '';
+  /** Saving walk-in token — separate so the table does not flash “Loading…”. */
+  walkInSaving = false;
   error = '';
+
+  /** Object URL for CNIC scan preview (revoked on clear / close). */
+  walkInCnicPreviewUrl: string | null = null;
+  private walkInPreviewRevokeUrl?: string;
 
   walkIn = {
     center_id: '' as number | '',
@@ -49,8 +76,33 @@ export class AppointmentsPage implements OnInit {
     private readonly toast: ToastService,
   ) {}
 
+  get pagedRows(): Appointment[] {
+    const start = (this.page - 1) * this.pageSize;
+    return this.rows.slice(start, start + this.pageSize);
+  }
+
+  onFilterChange(): void {
+    this.page = 1;
+    void this.loadAppointments();
+  }
+
+  setPage(p: number): void {
+    this.page = p;
+  }
+
+  setPageSize(n: number): void {
+    this.pageSize = n;
+    this.page = 1;
+  }
+
   async ngOnInit(): Promise<void> {
     await Promise.allSettled([this.loadCenters(), this.loadAppointments()]);
+  }
+
+  openWalkInModal(): void {
+    this.clearWalkInCnicPreview();
+    this.walkInScanMessage = '';
+    this.creatingWalkIn = true;
   }
 
   async loadCenters(): Promise<void> {
@@ -78,6 +130,8 @@ export class AppointmentsPage implements OnInit {
       if (this.date) q.set('date', this.date);
       if (this.status) q.set('status', this.status);
       this.rows = await this.api.get<Appointment[]>(`/appointments?${q.toString()}`);
+      const maxPage = Math.max(1, Math.ceil(this.rows.length / this.pageSize));
+      if (this.page > maxPage) this.page = maxPage;
     } catch (e) {
       this.error = e instanceof Error ? e.message : 'Failed to load appointments';
       this.rows = [];
@@ -86,11 +140,106 @@ export class AppointmentsPage implements OnInit {
     }
   }
 
+  clearWalkInCnicPreview(): void {
+    if (this.walkInPreviewRevokeUrl) {
+      URL.revokeObjectURL(this.walkInPreviewRevokeUrl);
+      this.walkInPreviewRevokeUrl = undefined;
+    }
+    this.walkInCnicPreviewUrl = null;
+  }
+
+  closeWalkInModal(): void {
+    this.creatingWalkIn = false;
+    this.walkInScanMessage = '';
+    this.clearWalkInCnicPreview();
+  }
+
+  private mimeForVisionApi(file: File): 'image/jpeg' | 'image/png' | null {
+    const t = file.type.toLowerCase();
+    if (t === 'image/jpeg' || t === 'image/jpg') return 'image/jpeg';
+    if (t === 'image/png') return 'image/png';
+    return null;
+  }
+
+  private async fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const s = String(reader.result ?? '');
+        const comma = s.indexOf(',');
+        resolve(comma >= 0 ? s.slice(comma + 1) : s);
+      };
+      reader.onerror = () => reject(reader.error ?? new Error('read failed'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  private formatCnicDashes13(digits: string): string {
+    const d = digits.replace(/\D/g, '');
+    if (d.length !== 13) return digits;
+    return `${d.slice(0, 5)}-${d.slice(5, 12)}-${d.slice(12)}`;
+  }
+
+  /** Apply server vision result to walk-in fields (CNIC + names when present). */
+  private applyVisionToWalkIn(data: CnicExtractApiResponse): void {
+    const raw = data.cnic?.replace(/\D/g, '') ?? '';
+    if (raw.length === 13) {
+      this.walkIn.cnic = this.formatCnicDashes13(raw);
+    }
+    const fn = data.first_name?.trim();
+    const ln = data.last_name?.trim();
+    if (fn) this.walkIn.first_name = fn;
+    if (ln) this.walkIn.last_name = ln;
+  }
+
+  /**
+   * Primary: `POST /public/cnic-extract` (OpenAI on backend when `OPENAI_API_KEY` is set).
+   * Fallback: Tesseract in the browser (same role as on-device OCR on mobile).
+   */
   async onWalkInCnicPhoto(ev: Event): Promise<void> {
     const input = ev.target as HTMLInputElement;
     const file = input.files?.[0];
     input.value = '';
-    if (!file) return;
+    if (!file || !file.type.startsWith('image/')) return;
+
+    this.clearWalkInCnicPreview();
+    const url = URL.createObjectURL(file);
+    this.walkInPreviewRevokeUrl = url;
+    this.walkInCnicPreviewUrl = url;
+
+    this.walkInCnicProcessing = true;
+    this.walkInScanMessage = '';
+
+    const mime = this.mimeForVisionApi(file);
+    let cnicFromVision = false;
+
+    if (mime) {
+      this.walkInScanMessage = 'Scanning with AI…';
+      try {
+        const image_base64 = await this.fileToBase64(file);
+        const data = await this.api.post<CnicExtractApiResponse>(
+          '/public/cnic-extract',
+          { image_base64, mime_type: mime },
+          VISION_EXTRACT_TIMEOUT_MS,
+        );
+        this.applyVisionToWalkIn(data);
+        const d = data.cnic?.replace(/\D/g, '') ?? '';
+        if (d.length === 13) cnicFromVision = true;
+      } catch {
+        /* Same as mobile: missing API key (503), model errors (502), etc. → OCR fallback, no toast here. */
+      }
+    }
+
+    if (!cnicFromVision) {
+      this.walkInScanMessage = 'Reading CNIC (OCR)…';
+      await this.runTesseractCnic(file);
+    }
+
+    this.walkInCnicProcessing = false;
+    this.walkInScanMessage = '';
+  }
+
+  private async runTesseractCnic(file: File): Promise<void> {
     try {
       const { createWorker } = await import('tesseract.js');
       const worker = await createWorker('eng');
@@ -117,7 +266,7 @@ export class AppointmentsPage implements OnInit {
       this.toast.error(this.error);
       return;
     }
-    this.busy = true;
+    this.walkInSaving = true;
     this.error = '';
     try {
       await this.api.post('/appointments/walk-in', {
@@ -129,17 +278,18 @@ export class AppointmentsPage implements OnInit {
           last_name: this.walkIn.last_name.trim() || null,
         },
       });
-      this.creatingWalkIn = false;
+      this.closeWalkInModal();
       this.walkIn.cnic = '';
       this.walkIn.first_name = '';
       this.walkIn.last_name = '';
+      this.page = 1;
       await this.loadAppointments();
       this.toast.success('Walk-in token created.');
     } catch (e) {
       this.error = e instanceof Error ? e.message : 'Could not create walk-in appointment';
       this.toast.error(this.error);
     } finally {
-      this.busy = false;
+      this.walkInSaving = false;
     }
   }
 

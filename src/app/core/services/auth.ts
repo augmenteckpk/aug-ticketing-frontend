@@ -45,7 +45,11 @@ export class AuthService {
   }
 
   async login(username: string, password: string): Promise<void> {
-    const res = await this.api.post<LoginResponse>('/auth/login', { username, password });
+    const res = await this.api.post<LoginResponse>('/auth/login', {
+      username,
+      password,
+      staff_console: true,
+    });
     setToken(res.token);
     const me = await this.api.get<MeResponse>('/auth/me');
     this._user.set(me);

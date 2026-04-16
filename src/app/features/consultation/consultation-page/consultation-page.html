@@ -4,7 +4,11 @@
       <h1>Consultation</h1>
       <p>Doctor consultation, outcomes, lab and radiology orders.</p>
     </div>
-    <button class="btn" (click)="refreshAll()"><span class="material-icons">refresh</span> Refresh</button>
+    <div class="actions">
+      <button type="button" class="btn-icon btn-icon--surface" title="Refresh" aria-label="Refresh" (click)="refreshAll()">
+        <span class="material-icons" aria-hidden="true">refresh</span>
+      </button>
+    </div>
   </header>
 
   <div class="filters">
@@ -38,14 +42,22 @@
           @if (!rows.length) {
             <tr><td colspan="5">No dispatched visits for consultation.</td></tr>
           } @else {
-            @for (r of rows; track r.id) {
+            @for (r of pagedRows; track r.id) {
               <tr>
                 <td>{{ r.token_number }}</td>
                 <td>{{ r.patient_name }}</td>
                 <td>{{ r.patient_cnic || '—' }}</td>
-                <td>{{ r.status }}</td>
-                <td>
-                  <button class="btn" (click)="selectAppointment(r)">Open</button>
+                <td><span [class]="r.status | workflowStatusBadge">{{ r.status }}</span></td>
+                <td class="td-actions">
+                  <button
+                    type="button"
+                    class="btn-icon btn-icon--primary"
+                    title="Open consultation"
+                    aria-label="Open consultation"
+                    (click)="selectAppointment(r)"
+                  >
+                    <span class="material-icons">open_in_new</span>
+                  </button>
                 </td>
               </tr>
             }
@@ -53,11 +65,20 @@
         </tbody>
       </table>
     </div>
+    @if (rows.length) {
+      <app-pagination
+        [total]="rows.length"
+        [page]="page"
+        [pageSize]="pageSize"
+        (pageChange)="setPageConsultation($event)"
+        (pageSizeChange)="setPageSizeConsultation($event)"
+      />
+    }
   }
 </section>
 
 <section class="page-card">
-  <header class="page-header">
+  <header class="head">
     <div>
       <h2>Follow-up Reports</h2>
       <p>Doctor review table for completed follow-up and lab-completed visits.</p>
@@ -86,8 +107,18 @@
                 <td>{{ r.token_number }}</td>
                 <td>{{ r.patient_name || '—' }}</td>
                 <td>{{ r.patient_cnic || '—' }}</td>
-                <td>{{ r.status }}</td>
-                <td><button class="btn" (click)="openReportModal(r)">View report</button></td>
+                <td><span [class]="r.status | workflowStatusBadge">{{ r.status }}</span></td>
+                <td class="td-actions">
+                  <button
+                    type="button"
+                    class="btn-icon btn-icon--primary"
+                    title="View report"
+                    aria-label="View report"
+                    (click)="openReportModal(r)"
+                  >
+                    <span class="material-icons">description</span>
+                  </button>
+                </td>
               </tr>
             }
           }
@@ -218,7 +249,7 @@
                     <td>{{ o.notes || '—' }}</td>
                     <td>{{ o.return_for_doctor_review ? 'Yes' : '—' }}</td>
                     <td>{{ o.follow_up_advised_date || '—' }}</td>
-                    <td>{{ o.status || 'ordered' }}</td>
+                    <td><span [class]="(o.status || 'ordered') | workflowStatusBadge">{{ o.status || 'ordered' }}</span></td>
                   </tr>
                 }
               }
@@ -252,7 +283,7 @@
                     <td>{{ o.notes || '—' }}</td>
                     <td>{{ o.return_for_doctor_review ? 'Yes' : '—' }}</td>
                     <td>{{ o.follow_up_advised_date || '—' }}</td>
-                    <td>{{ o.status || 'ordered' }}</td>
+                    <td><span [class]="(o.status || 'ordered') | workflowStatusBadge">{{ o.status || 'ordered' }}</span></td>
                   </tr>
                 }
               }
@@ -285,7 +316,7 @@
                 <tr>
                   <td>{{ o.id }}</td>
                   <td>{{ o.test_code || '—' }}</td>
-                  <td>{{ o.status || 'ordered' }}</td>
+                  <td><span [class]="(o.status || 'ordered') | workflowStatusBadge">{{ o.status || 'ordered' }}</span></td>
                   <td>{{ parseResult(o.result).summary || '—' }}</td>
                   <td>{{ parseResult(o.result).details || '—' }}</td>
                   <td>{{ parseResult(o.result).file_path ? 'Yes' : '—' }}</td>
@@ -307,7 +338,7 @@
                 <tr>
                   <td>{{ o.id }}</td>
                   <td>{{ o.study_code || '—' }}</td>
-                  <td>{{ o.status || 'ordered' }}</td>
+                  <td><span [class]="(o.status || 'ordered') | workflowStatusBadge">{{ o.status || 'ordered' }}</span></td>
                   <td>{{ parseResult(o.result).summary || '—' }}</td>
                   <td>{{ parseResult(o.result).details || '—' }}</td>
                   <td>{{ parseResult(o.result).file_path ? 'Yes' : '—' }}</td>

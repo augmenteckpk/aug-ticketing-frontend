@@ -5,11 +5,16 @@
       <p>Tokens, filters, and walk-in issuance.</p>
     </div>
     <div class="actions">
-      <button type="button" class="btn-secondary" (click)="loadAppointments()">
+      <button
+        type="button"
+        class="btn-icon btn-icon--surface"
+        title="Refresh list"
+        aria-label="Refresh appointments"
+        (click)="loadAppointments()"
+      >
         <span class="material-icons" aria-hidden="true">refresh</span>
-        Refresh
       </button>
-      <button type="button" class="btn-primary" (click)="creatingWalkIn = true">
+      <button type="button" class="btn-primary" (click)="openWalkInModal()">
         <span class="material-icons" aria-hidden="true">add</span>
         Walk-in token
       </button>
@@ -19,7 +24,7 @@
   <div class="filters">
     <label>
       <span>Center</span>
-      <select [(ngModel)]="centerId" (change)="loadAppointments()">
+      <select [(ngModel)]="centerId" (change)="onFilterChange()">
         <option [ngValue]="''">All centers</option>
         @for (c of centers; track c.id) {
           <option [ngValue]="c.id">{{ c.hospital_name }} - {{ c.name }} ({{ c.city }})</option>
@@ -28,11 +33,11 @@
     </label>
     <label>
       <span>Date</span>
-      <input type="date" [(ngModel)]="date" (change)="loadAppointments()" />
+      <input type="date" [(ngModel)]="date" (change)="onFilterChange()" />
     </label>
     <label>
       <span>Status</span>
-      <select [(ngModel)]="status" (change)="loadAppointments()">
+      <select [(ngModel)]="status" (change)="onFilterChange()">
         <option value="">All statuses</option>
         <option value="booked">Booked</option>
         <option value="registered">Registered</option>
@@ -68,7 +73,7 @@
         } @else if (rows.length === 0) {
           <tr><td colspan="8">No appointments found.</td></tr>
         } @else {
-          @for (r of rows; track r.id) {
+          @for (r of pagedRows; track r.id) {
             <tr>
               <td>{{ r.token_number }}</td>
               <td>{{ r.patient_name || ('Patient #' + r.id) }}</td>
@@ -76,10 +81,19 @@
               <td>{{ r.center_name || '—' }}</td>
               <td>{{ r.department_name || '—' }}</td>
               <td>{{ r.appointment_date }}</td>
-              <td><span class="badge">{{ r.status }}</span></td>
-              <td>
+              <td><span [class]="r.status | workflowStatusBadge">{{ r.status }}</span></td>
+              <td class="right td-actions">
                 @if (r.status === 'dispatched') {
-                  <button class="btn primary" (click)="completeAppointment(r)" [disabled]="busy">Complete</button>
+                  <button
+                    type="button"
+                    class="btn-icon btn-icon--primary"
+                    title="Mark completed"
+                    aria-label="Mark appointment completed"
+                    (click)="completeAppointment(r)"
+                    [disabled]="busy"
+                  >
+                    <span class="material-icons" aria-hidden="true">task_alt</span>
+                  </button>
                 } @else {
                   —
                 }
@@ -90,26 +104,71 @@
       </tbody>
     </table>
   </div>
+
+  @if (rows.length) {
+    <app-pagination
+      [total]="rows.length"
+      [page]="page"
+      [pageSize]="pageSize"
+      (pageChange)="setPage($event)"
+      (pageSizeChange)="setPageSize($event)"
+    />
+  }
 </section>
 
 @if (creatingWalkIn) {
-  <div class="modal-overlay" (click)="creatingWalkIn = false">
-    <div class="modal" (click)="$event.stopPropagation()">
+  <div class="modal-overlay" (click)="closeWalkInModal()">
+    <div class="modal modal--lg walkin-modal" (click)="$event.stopPropagation()">
       <h3>Issue walk-in token</h3>
-      <p class="walkin-scan-row">
+      <p class="walkin-hint">
+        Take a photo or upload a CNIC image. The server tries
+        <strong>AI scan first</strong>
+        (when configured), then
+        <strong>browser OCR</strong>
+        if needed. The preview shows above during processing.
+      </p>
+
+      @if (walkInCnicPreviewUrl) {
+        <div class="walkin-preview-block">
+          <div class="walkin-preview-frame">
+            <img [src]="walkInCnicPreviewUrl" alt="Selected CNIC image preview" />
+            @if (walkInCnicProcessing) {
+              <div class="walkin-preview-overlay" role="status" aria-live="polite">
+                <span class="walkin-spinner" aria-hidden="true"></span>
+                <span>{{ walkInScanMessage || 'Processing…' }}</span>
+              </div>
+            }
+          </div>
+          <button
+            type="button"
+            class="btn-secondary walkin-remove-photo"
+            (click)="clearWalkInCnicPreview()"
+            [disabled]="walkInCnicProcessing"
+          >
+            Remove photo
+          </button>
+        </div>
+      }
+
+      <div class="walkin-scan-row">
         <input
-          #cnicCapture
+          #cnicCamera
           type="file"
           accept="image/*"
           capture="environment"
           class="sr-only"
           (change)="onWalkInCnicPhoto($event)"
         />
-        <button type="button" class="btn-secondary" (click)="cnicCapture.click()">
+        <input #cnicGallery type="file" accept="image/*" class="sr-only" (change)="onWalkInCnicPhoto($event)" />
+        <button type="button" class="btn-secondary" (click)="cnicCamera.click()" [disabled]="walkInCnicProcessing">
           <span class="material-icons" aria-hidden="true">photo_camera</span>
-          Scan CNIC (camera / photo)
+          Camera
         </button>
-      </p>
+        <button type="button" class="btn-secondary" (click)="cnicGallery.click()" [disabled]="walkInCnicProcessing">
+          <span class="material-icons" aria-hidden="true">photo_library</span>
+          Upload / gallery
+        </button>
+      </div>
       <div class="walkin-grid">
         <label>
           <span>Center</span>
@@ -137,8 +196,15 @@
         </label>
       </div>
       <div class="actions">
-        <button class="btn" (click)="creatingWalkIn = false">Cancel</button>
-        <button class="btn primary" (click)="createWalkIn()">Create token</button>
+        <button type="button" class="btn" (click)="closeWalkInModal()">Cancel</button>
+        <button
+          type="button"
+          class="btn primary"
+          (click)="createWalkIn()"
+          [disabled]="walkInCnicProcessing || walkInSaving"
+        >
+          {{ walkInSaving ? 'Creating…' : 'Create token' }}
+        </button>
       </div>
     </div>
   </div>

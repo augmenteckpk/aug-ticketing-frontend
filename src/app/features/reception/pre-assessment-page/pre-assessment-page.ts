@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api';
+import { WorkflowStatusBadgePipe } from '../../../shared/pipes/status-badge.pipe';
 import { SpeechInput } from '../../../ui-kit/speech-input/speech-input';
 import { SlipPrintService } from '../../../core/services/slip-print.service';
 import { ToastService } from '../../../core/services/toast';
@@ -21,7 +22,7 @@ type PreAssessmentInput = {
 
 @Component({
   selector: 'app-pre-assessment-page',
-  imports: [CommonModule, FormsModule, SpeechInput],
+  imports: [CommonModule, FormsModule, SpeechInput, WorkflowStatusBadgePipe],
   templateUrl: './pre-assessment-page.html',
   styleUrl: './pre-assessment-page.scss',
 })

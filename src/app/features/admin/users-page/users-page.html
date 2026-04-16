@@ -1,17 +1,18 @@
 <section class="page-card">
-  <header class="page-header">
+  <header class="head">
     <div>
       <h1>Users</h1>
       <p>Manage staff accounts and role assignment.</p>
     </div>
+    <div class="actions">
+      <button class="btn primary" (click)="creating = true" [disabled]="saving || loading">Create user</button>
+      <button class="btn-icon btn-icon--surface" type="button" title="Refresh" aria-label="Refresh" (click)="load()" [disabled]="loading">
+        <span class="material-icons" aria-hidden="true">refresh</span>
+      </button>
+    </div>
   </header>
 
   @if (error) { <p class="error">{{ error }}</p> }
-
-  <div class="actions">
-    <button class="btn primary" (click)="creating = true" [disabled]="saving || loading">Create user</button>
-    <button class="btn" (click)="load()" [disabled]="loading"><span class="material-icons">refresh</span> Refresh</button>
-  </div>
 
   <div class="table-wrap">
     <table>
@@ -26,11 +27,27 @@
             <tr>
               <td>{{ u.username }}</td>
               <td>{{ u.role }}</td>
-              <td>{{ u.status }}</td>
+              <td><span [class]="u.status | entityStatusBadge">{{ u.status }}</span></td>
               <td>{{ u.email || '—' }}</td>
-              <td class="right">
-                <button class="btn" (click)="editing = { ...u }">Edit</button>
-                <button class="btn danger" (click)="remove(u)">Delete</button>
+              <td class="right td-actions">
+                <button
+                  type="button"
+                  class="btn-icon btn-icon--primary"
+                  title="Edit user"
+                  aria-label="Edit user"
+                  (click)="editing = { ...u }"
+                >
+                  <span class="material-icons">edit</span>
+                </button>
+                <button
+                  type="button"
+                  class="btn-icon btn-icon--danger"
+                  title="Delete user"
+                  aria-label="Delete user"
+                  (click)="remove(u)"
+                >
+                  <span class="material-icons">delete</span>
+                </button>
               </td>
             </tr>
           }

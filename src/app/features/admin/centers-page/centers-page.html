@@ -1,19 +1,20 @@
 <section class="page-card">
-  <header class="page-header">
+  <header class="head">
     <div>
       <h1>Centers</h1>
       <p>Manage center records and weekday department routing.</p>
+    </div>
+    <div class="actions">
+      <button class="btn primary" (click)="creating = true" [disabled]="saving || loading">Create center</button>
+      <button class="btn-icon btn-icon--surface" type="button" title="Refresh" aria-label="Refresh" (click)="load()" [disabled]="loading">
+        <span class="material-icons" aria-hidden="true">refresh</span>
+      </button>
     </div>
   </header>
 
   @if (error) {
     <div class="error">{{ error }}</div>
   }
-
-  <div class="actions">
-    <button class="btn primary" (click)="creating = true" [disabled]="saving || loading">Create center</button>
-    <button class="btn" (click)="load()" [disabled]="loading"><span class="material-icons">refresh</span> Refresh</button>
-  </div>
 
   <div class="table-wrap">
     <table>
@@ -42,23 +43,41 @@
               <td>{{ row.name }}</td>
               <td>{{ row.hospital_name || row.hospital_id }}</td>
               <td>{{ row.city }}</td>
-              <td>{{ row.status }}</td>
+              <td><span [class]="row.status | entityStatusBadge">{{ row.status }}</span></td>
               <td class="route-cell">
-                @if (!centerRouteLabels(row).length) {
-                  <span>—</span>
-                } @else {
-                  @for (label of routeVisibleLabels(row); track label) {
-                    <span class="badge routing">{{ label }}</span>
+                <div class="cell-chips">
+                  @if (!centerRouteLabels(row).length) {
+                    <span>—</span>
+                  } @else {
+                    @for (label of routeVisibleLabels(row); track label) {
+                      <span class="badge routing">{{ label }}</span>
+                    }
+                    @if (routeHiddenCount(row) > 0) {
+                      <span class="badge route-more" [attr.title]="routeFullTitle(row)"
+                        >+ {{ routeHiddenCount(row) }} more</span>
+                    }
                   }
-                  @if (routeHiddenCount(row) > 0) {
-                    <span class="badge route-more" [attr.title]="routeFullTitle(row)"
-                      >+ {{ routeHiddenCount(row) }} more</span>
-                  }
-                }
+                </div>
               </td>
-              <td class="right">
-                <button class="btn" (click)="editing = { ...row }">Edit</button>
-                <button class="btn danger" (click)="remove(row)">Delete</button>
+              <td class="right td-actions">
+                <button
+                  type="button"
+                  class="btn-icon btn-icon--primary"
+                  title="Edit center"
+                  aria-label="Edit center"
+                  (click)="editing = { ...row }"
+                >
+                  <span class="material-icons">edit</span>
+                </button>
+                <button
+                  type="button"
+                  class="btn-icon btn-icon--danger"
+                  title="Delete center"
+                  aria-label="Delete center"
+                  (click)="remove(row)"
+                >
+                  <span class="material-icons">delete</span>
+                </button>
               </td>
             </tr>
           }
@@ -109,12 +128,17 @@
 }
 
 <section class="page-card">
-  <header class="page-header">
+  <header class="head">
     <div>
       <h2>Weekday routing</h2>
       <p>
         Add one or more rows per weekday — same department can appear with different OPDs, or multiple departments on the same day.
       </p>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn primary" (click)="saveWeekdayRoutes()" [disabled]="saving || routeCenterId === ''">
+        Save routing
+      </button>
     </div>
   </header>
 
@@ -138,7 +162,7 @@
     <p class="muted">Loading weekday routing and clinic options…</p>
   }
 
-  <div class="route-table-wrap" [class.dimmed]="weekdayRoutesLoading">
+  <div class="table-wrap route-table-wrap" [class.dimmed]="weekdayRoutesLoading">
     <table class="route-table">
       <thead>
         <tr>
@@ -182,10 +206,6 @@
       </tbody>
     </table>
     <button type="button" class="btn" (click)="addRouteRow()" [disabled]="routeCenterId === ''">Add route row</button>
-  </div>
-
-  <div class="actions">
-    <button class="btn primary" (click)="saveWeekdayRoutes()" [disabled]="saving || routeCenterId === ''">Save routing</button>
   </div>
 </section>
 

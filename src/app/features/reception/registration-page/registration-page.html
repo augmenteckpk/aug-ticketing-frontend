@@ -1,8 +1,21 @@
 <section class="page-card">
-  <header class="page-header">
+  <header class="head">
     <div>
       <h1>Registration Desk</h1>
       <p>Lookup booked token by CNIC, or scan the visit barcode from the patient app with your device camera, then finalize registration details.</p>
+    </div>
+    <div class="actions">
+      <button class="btn primary" (click)="lookup()" [disabled]="loading || scannerOpen">Lookup booked</button>
+      <button
+        type="button"
+        class="btn reg-scan-btn"
+        (click)="openBarcodeScanner()"
+        [disabled]="loading || scannerOpen"
+        title="Open camera to scan CODE128 visit barcode from patient app"
+      >
+        <span class="material-icons reg-scan-icon" aria-hidden="true">photo_camera</span>
+        Scan visit barcode
+      </button>
     </div>
   </header>
 
@@ -14,19 +27,6 @@
     </label>
     <label>Date <input type="date" [(ngModel)]="date" /></label>
     <app-speech-input label="CNIC" [(model)]="cnic" placeholder="42101-1234567-8" />
-  </div>
-  <div class="actions">
-    <button class="btn primary" (click)="lookup()" [disabled]="loading || scannerOpen">Lookup booked</button>
-    <button
-      type="button"
-      class="btn reg-scan-btn"
-      (click)="openBarcodeScanner()"
-      [disabled]="loading || scannerOpen"
-      title="Open camera to scan CODE128 visit barcode from patient app"
-    >
-      <span class="material-icons reg-scan-icon" aria-hidden="true">photo_camera</span>
-      Scan visit barcode
-    </button>
   </div>
 
   <div class="table-wrap">

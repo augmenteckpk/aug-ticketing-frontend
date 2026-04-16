@@ -99,11 +99,32 @@ p {
   margin-bottom: 0.8rem;
 }
 
+.head h1,
+.page-header h1 {
+  margin: 0;
+  font-size: clamp(1.35rem, 2vw, 1.65rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.head h2,
+.page-header h2 {
+  margin: 0;
+  font-size: clamp(1.15rem, 1.6vw, 1.35rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
 .page-header p,
 .head p,
 .subtitle {
-  margin-top: 0.28rem;
+  margin-top: 0.35rem;
   color: #64748b;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  max-width: 62ch;
 }
 
 .filters,
@@ -112,6 +133,60 @@ p {
   grid-template-columns: repeat(4, minmax(min(100%, 180px), 1fr));
   gap: 0.75rem;
   margin-top: 0.7rem;
+}
+
+/** Filters row: main fields left, optional checkbox / toggle aligned right (lab, radiology, etc.). */
+.filters.filters--split {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+}
+
+.filters.filters--split .filters__group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+  flex: 1 1 auto;
+  min-width: min(100%, 420px);
+}
+
+.filters.filters--split .filters__aside {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.filters.filters--split .filters__aside label.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.filters.filters--split .filters__aside label.check input[type='checkbox'] {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+@media (max-width: 639.98px) {
+  .filters.filters--split {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filters.filters--split .filters__aside {
+    margin-left: 0;
+    justify-content: flex-start;
+  }
 }
 
 @media (max-width: 1023.98px) {
@@ -193,6 +268,31 @@ textarea:focus {
   margin-top: 0.8rem;
 }
 
+.head .actions,
+.page-header .actions {
+  margin-top: 0;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.head .btn-icon,
+.page-header .btn-icon {
+  flex-shrink: 0;
+  margin-top: 0.12rem;
+}
+
+.head .actions .material-icons,
+.page-header .actions .material-icons,
+.btn-primary .material-icons,
+.btn.primary .material-icons,
+button.btn .material-icons {
+  font-size: 1.15rem;
+  width: 1.15rem;
+  height: 1.15rem;
+  vertical-align: middle;
+}
+
 .btn,
 .btn-primary,
 .btn-secondary,
@@ -255,32 +355,40 @@ summary {
 .table-wrap {
   margin-top: 0.85rem;
   overflow: auto;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #d0d9e4;
   border-radius: 0.86rem;
   background: #fff;
 }
 
+.table-wrap table {
+  table-layout: auto;
+}
+
+/** Uniform data tables: full grid (vertical + horizontal lines) everywhere. */
 table {
   width: 100%;
-  min-width: 760px;
+  min-width: min(100%, 680px);
   border-collapse: collapse;
+  border: 1px solid #cdd6e3;
 }
 
 thead th {
   position: sticky;
   top: 0;
   z-index: 2;
-  background: #f8fafc;
+  background: #f1f5f9;
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: #64748b;
+  border: 1px solid #cdd6e3;
+  box-shadow: inset 0 -1px 0 #c5cfdb;
 }
 
 th,
 td {
   padding: 0.72rem 0.78rem;
-  border-bottom: 1px solid #eef2f7;
+  border: 1px solid #e2e8f0;
   text-align: left;
   vertical-align: middle;
   word-break: break-word;
@@ -302,20 +410,165 @@ tbody tr:nth-child(even) {
 .badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   border: 1px solid #dbe2eb;
   border-radius: 999px;
-  padding: 0.15rem 0.5rem;
+  padding: 0.2rem 0.55rem;
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: capitalize;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
   background: #fff;
+  line-height: 1.2;
+  max-width: 100%;
+}
+
+.badge--muted {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+/* OPD / visit workflow */
+.badge--booked {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+.badge--registered {
+  background: #ede9fe;
+  border-color: #c4b5fd;
+  color: #5b21b6;
+}
+.badge--ready {
+  background: #fef3c7;
+  border-color: #fcd34d;
+  color: #b45309;
+}
+.badge--batched {
+  background: #fce7f3;
+  border-color: #f9a8d4;
+  color: #9d174d;
+}
+.badge--dispatched {
+  background: #e0e7ff;
+  border-color: #a5b4fc;
+  color: #3730a3;
+}
+.badge--completed {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #166534;
+}
+.badge--skipped {
+  background: #fef9c3;
+  border-color: #fde047;
+  color: #854d0e;
+}
+.badge--cancelled {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+/* Entity account state */
+.badge--entity-active {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #14532d;
+}
+.badge--entity-inactive {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+.badge--entity-suspended {
+  background: #ffedd5;
+  border-color: #fdba74;
+  color: #9a3412;
 }
 
 .badge.permission {
   background: #eff6ff;
   border-color: #bfdbfe;
   color: #1d4ed8;
+}
+
+/** Icon-only row actions — use with aria-label / title */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  padding: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.btn-icon:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.btn-icon:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-icon .material-icons {
+  font-size: 1.15rem;
+}
+
+.btn-icon--primary {
+  border-color: rgb(163 36 23 / 0.35);
+  color: var(--color-primary);
+  background: rgb(163 36 23 / 0.06);
+}
+
+.btn-icon--danger {
+  border-color: #fecaca;
+  color: #b91c1c;
+  background: #fff5f5;
+}
+
+.btn-icon--danger:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #f87171;
+}
+
+.btn-icon--surface {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+
+.td-actions {
+  vertical-align: middle;
+  text-align: right;
+  white-space: nowrap;
+  width: 1%;
+}
+
+.td-actions .btn-icon + .btn-icon {
+  margin-inline-start: 0.35rem;
+}
+
+/** Flex content inside a cell without breaking table layout */
+.cell-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: min(100%, 520px);
 }
 
 .modal-overlay,

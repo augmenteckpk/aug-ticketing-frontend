@@ -4,22 +4,30 @@
       <h1>Radiology</h1>
       <p>Daily imaging worklist with pending filter.</p>
     </div>
-    <button class="btn" (click)="load()"><span class="material-icons">refresh</span> Refresh</button>
+    <div class="actions">
+      <button type="button" class="btn-icon btn-icon--surface" title="Refresh" aria-label="Refresh" (click)="load()">
+        <span class="material-icons" aria-hidden="true">refresh</span>
+      </button>
+    </div>
   </header>
 
-  <div class="filters">
-    <label>Center
-      <select [(ngModel)]="centerId" (change)="load()">
-        <option [ngValue]="''">All centers</option>
-        @for (c of centers; track c.id) {
-          <option [ngValue]="c.id">{{ c.hospital_name }} - {{ c.name }} ({{ c.city }})</option>
-        }
-      </select>
-    </label>
-    <label>Date
-      <input type="date" [(ngModel)]="date" (change)="load()" />
-    </label>
-    <label class="check"><input type="checkbox" [(ngModel)]="pendingOnly" (change)="load()" /> Pending only</label>
+  <div class="filters filters--split">
+    <div class="filters__group">
+      <label>Center
+        <select [(ngModel)]="centerId" (change)="load()">
+          <option [ngValue]="''">All centers</option>
+          @for (c of centers; track c.id) {
+            <option [ngValue]="c.id">{{ c.hospital_name }} - {{ c.name }} ({{ c.city }})</option>
+          }
+        </select>
+      </label>
+      <label>Date
+        <input type="date" [(ngModel)]="date" (change)="load()" />
+      </label>
+    </div>
+    <div class="filters__aside">
+      <label class="check"><input type="checkbox" [(ngModel)]="pendingOnly" (change)="load()" /> Pending only</label>
+    </div>
   </div>
 
   @if (error) {
@@ -40,17 +48,34 @@
               <td>{{ r.token_number }}</td>
               <td>{{ (r.first_name || '') + ' ' + (r.last_name || '') }}</td>
               <td>{{ r.study_code || '—' }}</td>
-              <td>{{ r.order_status || 'ordered' }}</td>
-              <td>{{ r.appointment_status || '—' }}</td>
-              <td class="actions">
+              <td><span [class]="(r.order_status || 'ordered') | workflowStatusBadge">{{ r.order_status || 'ordered' }}</span></td>
+              <td><span [class]="(r.appointment_status || '') | workflowStatusBadge">{{ r.appointment_status || '—' }}</span></td>
+              <td class="right td-actions">
                 @if ((r.order_status || '').toLowerCase() !== 'completed' && (r.appointment_status || '').toLowerCase() === 'dispatched') {
-                  <button class="btn" (click)="openResultModal(r)">Fill report</button>
+                  <button
+                    type="button"
+                    class="btn-icon btn-icon--primary"
+                    title="Fill report"
+                    aria-label="Fill report"
+                    (click)="openResultModal(r)"
+                  >
+                    <span class="material-icons">edit_note</span>
+                  </button>
                 }
                 @if ((r.order_status || '').toLowerCase() === 'completed' && (r.appointment_status || '').toLowerCase() === 'dispatched') {
-                  <button class="btn primary" (click)="completeFromRad(r)" [disabled]="saving">Complete patient</button>
+                  <button
+                    type="button"
+                    class="btn-icon btn-icon--primary"
+                    title="Complete patient"
+                    aria-label="Complete patient"
+                    (click)="completeFromRad(r)"
+                    [disabled]="saving"
+                  >
+                    <span class="material-icons">task_alt</span>
+                  </button>
                 }
                 @if ((r.appointment_status || '').toLowerCase() === 'completed') {
-                  <span class="badge">Journey completed</span>
+                  <span [class]="'completed' | workflowStatusBadge">Journey completed</span>
                 }
               </td>
             </tr>

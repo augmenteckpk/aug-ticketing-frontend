@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ApiService } from '../../../core/services/api';
+import { EntityStatusBadgePipe, WorkflowStatusBadgePipe } from '../../../shared/pipes/status-badge.pipe';
 
 export type PatientDetail = {
   id: number;
@@ -50,7 +51,7 @@ export type AppointmentRow = {
 
 @Component({
   selector: 'app-patient-detail-page',
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, EntityStatusBadgePipe, WorkflowStatusBadgePipe],
   templateUrl: './patient-detail-page.html',
   styleUrl: './patient-detail-page.scss',
 })

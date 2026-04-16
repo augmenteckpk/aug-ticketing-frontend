@@ -5,13 +5,14 @@ import { ApiService } from '../../../core/services/api';
 import { ConfirmService } from '../../../core/services/confirm';
 import { ToastService } from '../../../core/services/toast';
 import { Pagination } from '../../../ui-kit/pagination/pagination';
+import { EntityStatusBadgePipe } from '../../../shared/pipes/status-badge.pipe';
 import { SpeechInput } from '../../../ui-kit/speech-input/speech-input';
 
 type Hospital = { id: number; name: string; code: string; status: string };
 
 @Component({
   selector: 'app-hospitals-page',
-  imports: [CommonModule, FormsModule, Pagination, SpeechInput],
+  imports: [CommonModule, FormsModule, Pagination, SpeechInput, EntityStatusBadgePipe],
   templateUrl: './hospitals-page.html',
   styleUrl: './hospitals-page.scss',
 })

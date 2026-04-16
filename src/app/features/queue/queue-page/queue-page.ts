@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { WorkflowStatusBadgePipe } from '../../../shared/pipes/status-badge.pipe';
 import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api';
@@ -47,7 +48,7 @@ const EMERGENCY_LEVELS = new Set(['critical_immediate', 'critical_today']);
 
 @Component({
   selector: 'app-queue-page',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, WorkflowStatusBadgePipe],
   templateUrl: './queue-page.html',
   styleUrl: './queue-page.scss',
 })

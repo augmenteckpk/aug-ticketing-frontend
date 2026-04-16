@@ -18,7 +18,10 @@ export const authGuard: CanActivateFn = async () => {
 
   if (user.role === 'patient') {
     auth.logout();
-    await router.navigate(['/login']);
+    await router.navigate(['/login'], {
+      queryParams: { reason: 'staff' },
+      replaceUrl: true,
+    });
     return false;
   }
 

@@ -4,16 +4,19 @@
       <h1>Reporting</h1>
       <p class="subtitle">Daily operational report with center, department and visit breakdown.</p>
     </div>
+    <div class="actions">
+      <button type="button" class="btn-icon btn-icon--surface" title="Refresh report" aria-label="Refresh report" (click)="load()">
+        <span class="material-icons" aria-hidden="true">refresh</span>
+      </button>
+      <button type="button" class="btn primary" (click)="load()">Load report</button>
+      <button type="button" class="btn" (click)="downloadCsv()">Export CSV</button>
+    </div>
   </header>
 
   <div class="filters">
     <label for="reportDate">Date
       <input id="reportDate" type="date" [(ngModel)]="date" (change)="load()" />
     </label>
-  </div>
-  <div class="actions">
-    <button type="button" class="btn primary" (click)="load()">Load report</button>
-    <button type="button" class="btn" (click)="downloadCsv()">Export CSV</button>
   </div>
 
   @if (loading) {
@@ -46,7 +49,10 @@
             <tr><td colspan="2">No status data.</td></tr>
           } @else {
             @for (row of statusRows; track row.key) {
-              <tr><td>{{ row.key }}</td><td>{{ row.value }}</td></tr>
+              <tr>
+                <td><span [class]="row.key | workflowStatusBadge">{{ row.key }}</span></td>
+                <td>{{ row.value }}</td>
+              </tr>
             }
           }
         </tbody>
@@ -86,7 +92,7 @@
                 <td>{{ v.patient_cnic }}</td>
                 <td>{{ v.center_name }}</td>
                 <td>{{ v.department_name || 'Unassigned' }}</td>
-                <td>{{ v.status }}</td>
+                <td><span [class]="v.status | workflowStatusBadge">{{ v.status }}</span></td>
               </tr>
             }
           }

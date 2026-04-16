@@ -3,6 +3,7 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api';
 import { ToastService } from '../../../core/services/toast';
+import { EntityStatusBadgePipe } from '../../../shared/pipes/status-badge.pipe';
 import { SpeechInput } from '../../../ui-kit/speech-input/speech-input';
 
 type Center = { id: number; name: string; hospital_name?: string; city?: string };
@@ -20,7 +21,7 @@ type Clinic = {
 
 @Component({
   selector: 'app-clinics-page',
-  imports: [CommonModule, FormsModule, SpeechInput],
+  imports: [CommonModule, FormsModule, SpeechInput, EntityStatusBadgePipe],
   templateUrl: './clinics-page.html',
   styleUrl: './clinics-page.scss',
 })

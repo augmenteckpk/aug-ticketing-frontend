@@ -47,11 +47,7 @@
 }
 
 .route-cell {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem;
-  max-width: 420px;
+  vertical-align: top;
 }
 
 .badge.route-more {

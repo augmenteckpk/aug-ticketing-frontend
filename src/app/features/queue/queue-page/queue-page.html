@@ -5,8 +5,20 @@
       <p>Live visual queue with ready, active and batch movement.</p>
     </div>
     <div class="actions">
-      <button class="btn" (click)="load()"><span class="material-icons">refresh</span> Refresh</button>
-      <button class="btn primary" (click)="createBatch()" [disabled]="saving"><span class="material-icons">stacks</span> Create batch</button>
+      <button type="button" class="btn-icon btn-icon--surface" title="Refresh" aria-label="Refresh" (click)="load()">
+        <span class="material-icons">refresh</span>
+      </button>
+      <button
+        type="button"
+        class="btn primary"
+        title="Create batch"
+        aria-label="Create batch"
+        (click)="createBatch()"
+        [disabled]="saving"
+      >
+        <span class="material-icons" aria-hidden="true">stacks</span>
+        <span>Create batch</span>
+      </button>
       <label class="live-toggle"><input type="checkbox" [(ngModel)]="live" /> Live auto-refresh</label>
     </div>
   </header>
@@ -113,7 +125,9 @@
             <article class="batch draft">
               <p>Batch #{{ b.batch_index || b.id }}</p>
               <h4>{{ b.item_count }} items</h4>
-              <button class="btn" (click)="openBatchDetails(b.id)">Details</button>
+              <button type="button" class="btn-icon btn-icon--surface" title="Batch details" aria-label="Batch details" (click)="openBatchDetails(b.id)">
+                <span class="material-icons">list_alt</span>
+              </button>
               <button class="btn primary" (click)="dispatchBatch(b.id)" [disabled]="saving">Dispatch</button>
               @if (can('queue.manage')) {
                 <button class="btn" (click)="openSwapModal(b)" [disabled]="saving || !flaggedRows.length">Replace slot</button>
@@ -134,8 +148,10 @@
             <article class="batch dispatched">
               <p>Batch #{{ b.batch_index || b.id }}</p>
               <h4>{{ b.item_count }} items</h4>
-              <button class="btn" (click)="openBatchDetails(b.id)">Details</button>
-              <span class="badge">Dispatched</span>
+              <button type="button" class="btn-icon btn-icon--surface" title="Batch details" aria-label="Batch details" (click)="openBatchDetails(b.id)">
+                <span class="material-icons">list_alt</span>
+              </button>
+              <span [class]="'dispatched' | workflowStatusBadge">Dispatched</span>
             </article>
           }
         </div>
@@ -162,7 +178,7 @@
                   <td>{{ a.patient_name }}</td>
                   <td>{{ a.patient_cnic || '—' }}</td>
                   <td>{{ a.department_name || '—' }}{{ a.location ? (' · ' + a.location) : '' }}</td>
-                  <td>{{ a.status || '—' }}</td>
+                  <td><span [class]="(a.status || '') | workflowStatusBadge">{{ a.status || '—' }}</span></td>
                   <td>
                     @if (selectedBatch.batch.status === 'draft' && can('queue.manage')) {
                       <button class="btn" (click)="swapBatch = selectedBatch; swapRemoveId = a.id; swapAddId = flaggedRows[0]?.id || ''">Replace slot</button>

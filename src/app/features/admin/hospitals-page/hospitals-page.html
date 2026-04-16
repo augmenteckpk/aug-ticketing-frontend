@@ -1,17 +1,19 @@
 <section class="page-card">
-  <div class="header-row">
+  <header class="head">
     <div>
-      <h1><span class="material-icons">local_hospital</span> Hospitals</h1>
+      <h1><span class="material-icons" aria-hidden="true">local_hospital</span> Hospitals</h1>
       <p>Register and maintain hospital sites.</p>
     </div>
-    <button class="btn-secondary" type="button" (click)="load()"><span class="material-icons">refresh</span> Refresh</button>
-  </div>
-
-  <div class="actions">
-    <button class="btn-primary" type="button" [disabled]="saving" (click)="creating = true">
-      <span class="material-icons">add</span> Add
-    </button>
-  </div>
+    <div class="actions">
+      <button type="button" class="btn primary" [disabled]="saving" (click)="creating = true">
+        <span class="material-icons" aria-hidden="true">add</span>
+        Add
+      </button>
+      <button class="btn-icon btn-icon--surface" type="button" title="Refresh" aria-label="Refresh" (click)="load()">
+        <span class="material-icons" aria-hidden="true">refresh</span>
+      </button>
+    </div>
+  </header>
 
   @if (error) { <p class="error" role="alert">{{ error }}</p> }
 
@@ -29,10 +31,26 @@
               <td>{{ r.id }}</td>
               <td>{{ r.name }}</td>
               <td>{{ r.code }}</td>
-              <td><span class="badge">{{ r.status }}</span></td>
-              <td>
-                <button class="btn-ghost" type="button" (click)="editing = { ...r }"><span class="material-icons">edit</span> Edit</button>
-                <button class="btn-danger" type="button" (click)="remove(r)"><span class="material-icons">delete</span> Delete</button>
+              <td><span [class]="r.status | entityStatusBadge">{{ r.status }}</span></td>
+              <td class="td-actions">
+                <button
+                  type="button"
+                  class="btn-icon btn-icon--primary"
+                  title="Edit hospital"
+                  aria-label="Edit hospital"
+                  (click)="editing = { ...r }"
+                >
+                  <span class="material-icons">edit</span>
+                </button>
+                <button
+                  type="button"
+                  class="btn-icon btn-icon--danger"
+                  title="Delete hospital"
+                  aria-label="Delete hospital"
+                  (click)="remove(r)"
+                >
+                  <span class="material-icons">delete</span>
+                </button>
               </td>
             </tr>
           }

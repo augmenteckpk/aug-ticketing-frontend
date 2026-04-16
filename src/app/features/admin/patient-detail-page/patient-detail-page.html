@@ -14,7 +14,12 @@
     <div class="grid">
       <div><span class="k">Patient ID</span><span class="v">{{ patient.id }}</span></div>
       <div><span class="k">CNIC</span><span class="v mono">{{ display(patient.cnic) }}</span></div>
-      <div><span class="k">Status</span><span class="v"><span class="pill">{{ display(patient.status || 'Active') }}</span></span></div>
+      <div>
+        <span class="k">Status</span>
+        <span class="v">
+          <span [class]="(patient.status || 'Active') | entityStatusBadge">{{ display(patient.status || 'Active') }}</span>
+        </span>
+      </div>
       <div><span class="k">First name</span><span class="v">{{ display(patient.first_name) }}</span></div>
       <div><span class="k">Last name</span><span class="v">{{ display(patient.last_name) }}</span></div>
       <div><span class="k">First name (Urdu)</span><span class="v urdu">{{ display(patient.first_name_ur) }}</span></div>
@@ -62,7 +67,7 @@
               <tr>
                 <td>{{ dateOnly(a.appointment_date) }}</td>
                 <td class="mono">#{{ a.token_number }}</td>
-                <td><span class="pill sm">{{ a.status }}</span></td>
+                <td><span [class]="a.status | workflowStatusBadge">{{ a.status }}</span></td>
                 <td>{{ display(a.hospital_name) }}</td>
                 <td>{{ display(a.center_name) }}</td>
                 <td>{{ display(a.department_name) }}</td>

@@ -4,8 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api';
 import { SlipPrintService, type SlipField } from '../../../core/services/slip-print.service';
 import { todayLocalYmd } from '../../../core/utils/local-date';
+import { WorkflowStatusBadgePipe } from '../../../shared/pipes/status-badge.pipe';
 import { SpeechInput } from '../../../ui-kit/speech-input/speech-input';
 import { ToastService } from '../../../core/services/toast';
+import { Pagination } from '../../../ui-kit/pagination/pagination';
 
 type Center = { id: number; name: string; hospital_name?: string; city?: string };
 type Appointment = {
@@ -59,7 +61,7 @@ type ReportModalData = { appointment: Appointment; orders: LabOrder[]; radOrders
 
 @Component({
   selector: 'app-consultation-page',
-  imports: [CommonModule, FormsModule, SpeechInput],
+  imports: [CommonModule, FormsModule, SpeechInput, WorkflowStatusBadgePipe, Pagination],
   templateUrl: './consultation-page.html',
   styleUrl: './consultation-page.scss',
 })
@@ -69,6 +71,8 @@ export class ConsultationPage implements OnInit {
   date = todayLocalYmd();
   rows: Appointment[] = [];
   followUpRows: Appointment[] = [];
+  page = 1;
+  pageSize = 15;
   selected: Appointment | null = null;
   selectedReport: ReportModalData | null = null;
   labOrders: LabOrder[] = [];
@@ -173,8 +177,23 @@ export class ConsultationPage implements OnInit {
     void this.loadFollowUpRows();
   }
 
+  get pagedRows(): Appointment[] {
+    const start = (this.page - 1) * this.pageSize;
+    return this.rows.slice(start, start + this.pageSize);
+  }
+
+  setPageConsultation(p: number): void {
+    this.page = p;
+  }
+
+  setPageSizeConsultation(n: number): void {
+    this.pageSize = n;
+    this.page = 1;
+  }
+
   async onFiltersChanged(): Promise<void> {
     if (!this.bootstrapped) return;
+    this.page = 1;
     await this.load(false);
     void this.loadFollowUpRows();
   }
@@ -198,6 +217,8 @@ export class ConsultationPage implements OnInit {
       const q = new URLSearchParams({ date: this.date, status: 'dispatched' });
       if (this.centerId !== '') q.set('center_id', String(this.centerId));
       this.rows = await this.withTimeout(this.api.get<Appointment[]>(`/appointments?${q.toString()}`, 20000), 21000);
+      const maxPage = Math.max(1, Math.ceil(this.rows.length / this.pageSize));
+      if (this.page > maxPage) this.page = maxPage;
     } catch (e) {
       this.error = e instanceof Error ? e.message : 'Failed to load consultation queue';
       if (!this.bootstrapped) this.rows = [];
