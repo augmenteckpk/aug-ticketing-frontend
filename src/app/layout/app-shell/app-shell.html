@@ -70,8 +70,8 @@
       </div>
       <div class="app-header-end">
         <div class="app-header-meta">
-          <span><span class="meta-label">User</span> {{ user()?.username || '—' }}</span>
-          <span><span class="meta-label">Role</span> {{ formattedRole() }}</span>
+          <span><span class="meta-label">User: </span> {{ user()?.username || '—' }}</span>
+          <span><span class="meta-label">Role: </span> {{ formattedRole() }}</span>
         </div>
         @if (auth.can('dashboard.read')) {
           <div class="notif-anchor">
