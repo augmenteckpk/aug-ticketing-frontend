@@ -2,7 +2,10 @@
   <header class="head">
     <div>
       <h1>Registration Desk</h1>
-      <p>Lookup booked token by CNIC, or scan the visit barcode from the patient app with your device camera, then finalize registration details.</p>
+      <p>
+        Lookup booked token by CNIC, scan the visit barcode (CODE128 on the patient app — not retail UPC), or paste /
+        keyboard-wedge the 32-character code below.
+      </p>
     </div>
     <div class="actions">
       <button class="btn primary" (click)="lookup()" [disabled]="loading || scannerOpen">Lookup booked</button>
@@ -27,6 +30,30 @@
     </label>
     <label>Date <input type="date" [(ngModel)]="date" /></label>
     <app-speech-input label="CNIC" [(model)]="cnic" placeholder="42101-1234567-8" />
+    <label class="wedge-barcode-field">
+      <span>Visit barcode (paste or USB scanner)</span>
+      <div class="wedge-barcode-row">
+        <input
+          type="text"
+          class="wedge-barcode-input"
+          [(ngModel)]="wedgeBarcode"
+          (keydown.enter)="onWedgeBarcodeSubmit()"
+          placeholder="32 hex characters — e.g. from handheld scanner"
+          [disabled]="loading || scannerOpen"
+          autocomplete="off"
+          spellcheck="false"
+          autocapitalize="off"
+        />
+        <button
+          type="button"
+          class="btn"
+          (click)="onWedgeBarcodeSubmit()"
+          [disabled]="loading || scannerOpen || !wedgeBarcode.trim()"
+        >
+          Use code
+        </button>
+      </div>
+    </label>
   </div>
 
   <div class="table-wrap">
@@ -71,7 +98,10 @@
   >
     <div class="barcode-scanner-panel" (click)="$event.stopPropagation()">
       <h2 id="barcode-scanner-title" class="barcode-scanner-title">Scan visit barcode</h2>
-      <p class="barcode-scanner-hint">Point the camera at the barcode on the patient&apos;s phone. The lookup runs automatically after a successful read.</p>
+      <p class="barcode-scanner-hint">
+        Point the camera at the CODE128 bars (turn screen brightness up; avoid glare). Lookup runs after a read. If the
+        camera struggles, use &quot;Visit barcode (paste or USB scanner)&quot; on the page instead.
+      </p>
       <div class="barcode-scanner-video-wrap">
         <video #scannerVideo class="barcode-scanner-video" playsinline muted autoplay></video>
       </div>

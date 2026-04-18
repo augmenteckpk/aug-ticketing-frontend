@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BrowserMultiFormatReader } from '@zxing/browser';
-import { BarcodeFormat, DecodeHintType } from '@zxing/library';
+import { DecodeHintType } from '@zxing/library';
 import { ApiError, ApiService } from '../../../core/services/api';
 import { SpeechInput } from '../../../ui-kit/speech-input/speech-input';
 import { SlipPrintService } from '../../../core/services/slip-print.service';
@@ -22,11 +22,11 @@ type Appt = {
   visit_barcode?: string | null;
   w_number?: string | null;
 };
-/** Patient app: CODE128 of 32-char hex (`newVisitBarcode`). TRY_HARDER helps phone cameras; format hint keeps 1D priority. */
-const VISIT_BARCODE_SCAN_HINTS = new Map<DecodeHintType, unknown>([
-  [DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128]],
-  [DecodeHintType.TRY_HARDER, true],
-]);
+/**
+ * Patient app draws CODE128 (32-char hex), not retail UPC/EAN — dedicated "1D retail" modes often skip it.
+ * Do not lock POSSIBLE_FORMATS to CODE_128 only: ZXing can mis-classify marginal screen captures; TRY_HARDER helps moiré/glare.
+ */
+const VISIT_BARCODE_SCAN_HINTS = new Map<DecodeHintType, unknown>([[DecodeHintType.TRY_HARDER, true]]);
 
 type LookupResponse = {
   appointment: Appt;
@@ -78,6 +78,8 @@ export class RegistrationPage implements OnInit, OnDestroy {
   saving = false;
   error = '';
   scannerOpen = false;
+  /** USB / Bluetooth keyboard-wedge scanners, or paste from tools like Dynamsoft. */
+  wedgeBarcode = '';
   private suppressNoRecordToastOnce = false;
   private scanUserCancelled = false;
 
@@ -172,11 +174,11 @@ export class RegistrationPage implements OnInit, OnDestroy {
         this.stopBarcodeScanner();
         return;
       }
-      const code = this.normalizeScannedVisitBarcode(result.getText());
+      const raw = result.getText();
       this.stopBarcodeScanner();
       this.scannerOpen = false;
       this.cdr.detectChanges();
-      await this.lookupVisitBarcodeWithCode(code);
+      await this.lookupVisitBarcodeWithCode(raw);
     } catch (e) {
       if (this.scanUserCancelled) return;
       this.stopBarcodeScanner();
@@ -198,22 +200,40 @@ export class RegistrationPage implements OnInit, OnDestroy {
   }
 
   /**
-   * Extract the 32-char hex token (same rules as backend `parseVisitBarcode`).
-   * Prefer the first `[0-9a-f]{32}` block so stray punctuation / label text does not destroy the string.
+   * Extract the 32-char hex visit token (same idea as backend `parseVisitBarcode`).
+   * Prefer the first `[0-9a-f]{32}` block so label text / prefixes from scanners do not break lookup.
    */
-  private normalizeScannedVisitBarcode(raw: string): string {
+  private visitTokenFromScan(raw: string): string | null {
     const n = String(raw ?? '')
       .trim()
       .toLowerCase()
       .replace(/\s+/g, '');
     const block = n.match(/[0-9a-f]{32}/);
     if (block) return block[0];
-    return n.replace(/[^0-9a-f]/g, '');
+    const only = n.replace(/[^0-9a-f]/g, '');
+    return /^[0-9a-f]{32}$/.test(only) ? only : null;
   }
 
-  private async lookupVisitBarcodeWithCode(code: string): Promise<void> {
-    if (code.length < 32 || !/^[0-9a-f]+$/.test(code)) {
-      this.toast.error('Scanned value is not a valid visit barcode. Use the barcode on the patient app (CODE128), hold steady, and try again.');
+  async onWedgeBarcodeSubmit(): Promise<void> {
+    const raw = this.wedgeBarcode.trim();
+    if (!raw) {
+      this.toast.error('Enter or scan the visit barcode first.');
+      return;
+    }
+    if (!this.visitTokenFromScan(raw)) {
+      this.toast.error('Not a valid visit barcode (32 hex characters, as on the patient app).');
+      return;
+    }
+    this.wedgeBarcode = '';
+    await this.lookupVisitBarcodeWithCode(raw);
+  }
+
+  private async lookupVisitBarcodeWithCode(raw: string): Promise<void> {
+    const code = this.visitTokenFromScan(raw);
+    if (!code) {
+      this.toast.error(
+        'Scanned value is not a valid visit barcode. Use CODE128 from the patient app, USB scanner / paste field, or CNIC lookup.',
+      );
       return;
     }
     this.loading = true;

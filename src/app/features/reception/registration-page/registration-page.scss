@@ -78,3 +78,21 @@
 .action-cell .btn + .btn {
   margin-left: 0.45rem;
 }
+
+.wedge-barcode-field {
+  grid-column: 1 / -1;
+}
+
+.wedge-barcode-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.wedge-barcode-input {
+  flex: 1 1 12rem;
+  min-width: 0;
+  font-family: ui-monospace, monospace;
+  font-size: 0.875rem;
+}
