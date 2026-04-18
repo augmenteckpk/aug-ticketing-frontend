@@ -3,8 +3,8 @@
     <div>
       <h1>Registration Desk</h1>
       <p>
-        Lookup booked token by CNIC, scan the visit barcode (CODE128 on the patient app — not retail UPC), or paste /
-        keyboard-wedge the 32-character code below.
+        Lookup booked token by CNIC, or scan the visit barcode (CODE128 on the patient app — not retail UPC) with the
+        camera.
       </p>
     </div>
     <div class="actions">
@@ -30,30 +30,6 @@
     </label>
     <label>Date <input type="date" [(ngModel)]="date" /></label>
     <app-speech-input label="CNIC" [(model)]="cnic" placeholder="42101-1234567-8" />
-    <label class="wedge-barcode-field">
-      <span>Visit barcode (paste or USB scanner)</span>
-      <div class="wedge-barcode-row">
-        <input
-          type="text"
-          class="wedge-barcode-input"
-          [(ngModel)]="wedgeBarcode"
-          (keydown.enter)="onWedgeBarcodeSubmit()"
-          placeholder="32 hex characters — e.g. from handheld scanner"
-          [disabled]="loading || scannerOpen"
-          autocomplete="off"
-          spellcheck="false"
-          autocapitalize="off"
-        />
-        <button
-          type="button"
-          class="btn"
-          (click)="onWedgeBarcodeSubmit()"
-          [disabled]="loading || scannerOpen || !wedgeBarcode.trim()"
-        >
-          Use code
-        </button>
-      </div>
-    </label>
   </div>
 
   <div class="table-wrap">
@@ -99,42 +75,11 @@
     <div class="barcode-scanner-panel" (click)="$event.stopPropagation()">
       <h2 id="barcode-scanner-title" class="barcode-scanner-title">Scan visit barcode</h2>
       <p class="barcode-scanner-hint">
-        Point the camera at the CODE128 bars (turn screen brightness up; avoid glare). Lookup runs after a read. If the
-        camera struggles, use &quot;Visit barcode (paste or USB scanner)&quot; on the page instead.
+        Point the camera at the CODE128 bars on the patient&apos;s phone (brightness up; avoid glare). Lookup runs
+        automatically when a valid visit barcode is read.
       </p>
       <div class="barcode-scanner-video-wrap">
         <video #scannerVideo class="barcode-scanner-video" playsinline muted autoplay></video>
-      </div>
-      <div class="barcode-scan-debug" aria-live="polite">
-        <div class="barcode-scan-debug-title">Scanner debug (continuous)</div>
-        <p class="barcode-scan-debug-note">
-          Numbers update ~8×/s. <strong>NotFound</strong> means no barcode in that frame (expected while aiming).
-          <strong>Checksum/format</strong> = saw a candidate bar pattern that failed checks. If
-          <strong>Wrong payload</strong> fills, the camera read a code that is not the 32-char visit token.
-        </p>
-        <dl class="barcode-scan-debug-grid">
-          <dt>Elapsed</dt>
-          <dd>{{ scanDebugElapsedDisplay }} s</dd>
-          <dt>Frames</dt>
-          <dd>{{ scanDebugFrames }}</dd>
-          <dt>Camera</dt>
-          <dd class="barcode-scan-debug-wrap">{{ scanDebugCameraLabel }}</dd>
-          <dt>NotFound</dt>
-          <dd>{{ scanDebugNotFoundCount }}</dd>
-          <dt>Checksum / format</dt>
-          <dd>{{ scanDebugSoftErrors }}</dd>
-          <dt>Other error</dt>
-          <dd class="barcode-scan-debug-mono barcode-scan-debug-wrap">{{ scanDebugLastHardError || '—' }}</dd>
-          <dt>Wrong payload</dt>
-          <dd class="barcode-scan-debug-mono barcode-scan-debug-wrap">
-            @if (scanDebugLastRejectedFormat || scanDebugLastRejectedRaw) {
-              <span class="barcode-scan-debug-fmt">{{ scanDebugLastRejectedFormat }}</span>
-              {{ scanDebugLastRejectedRaw }}
-            } @else {
-              —
-            }
-          </dd>
-        </dl>
       </div>
       <div class="barcode-scanner-actions">
         <button type="button" class="btn" (click)="cancelBarcodeScanner()">Cancel</button>

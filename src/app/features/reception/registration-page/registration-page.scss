@@ -26,9 +26,8 @@
 }
 
 .barcode-scanner-panel {
-  width: min(100%, 32rem);
-  max-height: min(92vh, 52rem);
-  overflow: auto;
+  width: min(100%, 28rem);
+  max-height: min(90vh, 40rem);
   background: #fff;
   border-radius: 1rem;
   padding: 1.25rem;
@@ -72,91 +71,10 @@
   margin-top: 1rem;
 }
 
-.barcode-scan-debug {
-  margin-top: 0.85rem;
-  padding: 0.65rem 0.75rem;
-  border-radius: 0.5rem;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  font-size: 0.8125rem;
-  color: #334155;
-}
-
-.barcode-scan-debug-title {
-  font-weight: 700;
-  color: #0f172a;
-  margin-bottom: 0.35rem;
-}
-
-.barcode-scan-debug-note {
-  margin: 0 0 0.5rem;
-  line-height: 1.4;
-  color: #64748b;
-  font-size: 0.75rem;
-}
-
-.barcode-scan-debug-grid {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.25rem 0.65rem;
-  margin: 0;
-  align-items: baseline;
-}
-
-.barcode-scan-debug-grid dt {
-  margin: 0;
-  font-weight: 600;
-  color: #475569;
-  white-space: nowrap;
-}
-
-.barcode-scan-debug-grid dd {
-  margin: 0;
-  min-width: 0;
-}
-
-.barcode-scan-debug-mono {
-  font-family: ui-monospace, 'Cascadia Code', monospace;
-  font-size: 0.75rem;
-}
-
-.barcode-scan-debug-fmt {
-  display: inline-block;
-  margin-right: 0.35rem;
-  padding: 0.05rem 0.25rem;
-  border-radius: 0.2rem;
-  background: #e2e8f0;
-  font-size: 0.7rem;
-  font-weight: 600;
-}
-
-.barcode-scan-debug-wrap {
-  overflow-wrap: anywhere;
-  word-break: break-all;
-}
-
 .action-cell {
   white-space: nowrap;
 }
 
 .action-cell .btn + .btn {
   margin-left: 0.45rem;
-}
-
-.wedge-barcode-field {
-  grid-column: 1 / -1;
-}
-
-.wedge-barcode-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.wedge-barcode-input {
-  flex: 1 1 12rem;
-  min-width: 0;
-  font-family: ui-monospace, monospace;
-  font-size: 0.875rem;
 }
