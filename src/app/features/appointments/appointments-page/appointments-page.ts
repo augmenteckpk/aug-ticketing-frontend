@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api';
 import { ToastService } from '../../../core/services/toast';
@@ -74,6 +74,7 @@ export class AppointmentsPage implements OnInit {
   constructor(
     private readonly api: ApiService,
     private readonly toast: ToastService,
+    private readonly cdr: ChangeDetectorRef,
   ) {}
 
   get pagedRows(): Appointment[] {
@@ -158,6 +159,12 @@ export class AppointmentsPage implements OnInit {
     const t = file.type.toLowerCase();
     if (t === 'image/jpeg' || t === 'image/jpg') return 'image/jpeg';
     if (t === 'image/png') return 'image/png';
+    // Camera/gallery on some browsers leaves MIME empty — still send bytes (usually JPEG).
+    if (t === '' || t === 'application/octet-stream') {
+      const n = file.name.toLowerCase();
+      if (n.endsWith('.png')) return 'image/png';
+      return 'image/jpeg';
+    }
     return null;
   }
 
@@ -188,8 +195,33 @@ export class AppointmentsPage implements OnInit {
     }
     const fn = data.first_name?.trim();
     const ln = data.last_name?.trim();
-    if (fn) this.walkIn.first_name = fn;
+    if (fn)     this.walkIn.first_name = fn;
     if (ln) this.walkIn.last_name = ln;
+  }
+
+  /**
+   * HttpClient may still deliver `{ data, message, status }` if unwrap mismatches;
+   * also handles nested `data` once.
+   */
+  private coalesceCnicExtract(body: unknown): CnicExtractApiResponse | null {
+    if (!body || typeof body !== 'object') return null;
+    const o = body as Record<string, unknown>;
+    const inner = o['data'];
+    if (inner && typeof inner === 'object' && ('cnic' in inner || 'first_name' in inner)) {
+      return this.coalesceCnicExtract(inner);
+    }
+    if ('cnic' in o || 'first_name' in o || 'last_name' in o) {
+      return {
+        cnic: (o['cnic'] as string | null) ?? null,
+        first_name: (o['first_name'] as string | null) ?? null,
+        last_name: (o['last_name'] as string | null) ?? null,
+        father_name: (o['father_name'] as string | null) ?? null,
+        gender: (o['gender'] as string | null) ?? null,
+        date_of_birth: (o['date_of_birth'] as string | null) ?? null,
+        name_confidence: (o['name_confidence'] as CnicExtractApiResponse['name_confidence']) ?? 'medium',
+      };
+    }
+    return null;
   }
 
   /**
@@ -217,14 +249,19 @@ export class AppointmentsPage implements OnInit {
       this.walkInScanMessage = 'Scanning with AI…';
       try {
         const image_base64 = await this.fileToBase64(file);
-        const data = await this.api.post<CnicExtractApiResponse>(
+        const raw = await this.api.post<unknown>(
           '/public/cnic-extract',
           { image_base64, mime_type: mime },
           VISION_EXTRACT_TIMEOUT_MS,
         );
-        this.applyVisionToWalkIn(data);
-        const d = data.cnic?.replace(/\D/g, '') ?? '';
-        if (d.length === 13) cnicFromVision = true;
+        const data = this.coalesceCnicExtract(raw);
+        if (data) {
+          this.applyVisionToWalkIn(data);
+          const d = data.cnic?.replace(/\D/g, '') ?? '';
+          if (d.length === 13) cnicFromVision = true;
+          this.cdr.detectChanges();
+          this.toast.success('CNIC details filled from scan — review and tap Create token.');
+        }
       } catch {
         /* Same as mobile: missing API key (503), model errors (502), etc. → OCR fallback, no toast here. */
       }
@@ -237,6 +274,7 @@ export class AppointmentsPage implements OnInit {
 
     this.walkInCnicProcessing = false;
     this.walkInScanMessage = '';
+    this.cdr.detectChanges();
   }
 
   private async runTesseractCnic(file: File): Promise<void> {
@@ -252,6 +290,7 @@ export class AppointmentsPage implements OnInit {
       if (m) {
         const raw = m[1];
         this.walkIn.cnic = `${raw.slice(0, 5)}-${raw.slice(5, 12)}-${raw.slice(12)}`;
+        this.cdr.detectChanges();
       } else {
         this.toast.error('Could not read CNIC from image. Enter manually.');
       }

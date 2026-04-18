@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 
 type SpeechRecognitionCtor = new () => {
   lang: string;
@@ -15,7 +14,7 @@ type SpeechRecognitionCtor = new () => {
 
 @Component({
   selector: 'app-speech-input',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule],
   templateUrl: './speech-input.html',
   styleUrl: './speech-input.scss',
 })
@@ -65,6 +64,11 @@ export class SpeechInput {
     this.recognizer.onerror = () => {
       this.listening = false;
     };
+  }
+
+  onValueInput(ev: Event): void {
+    const el = ev.target as HTMLInputElement | null;
+    this.modelChange.emit(el?.value ?? '');
   }
 
   toggle(): void {
