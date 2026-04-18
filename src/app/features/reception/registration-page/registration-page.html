@@ -105,6 +105,37 @@
       <div class="barcode-scanner-video-wrap">
         <video #scannerVideo class="barcode-scanner-video" playsinline muted autoplay></video>
       </div>
+      <div class="barcode-scan-debug" aria-live="polite">
+        <div class="barcode-scan-debug-title">Scanner debug (continuous)</div>
+        <p class="barcode-scan-debug-note">
+          Numbers update ~8×/s. <strong>NotFound</strong> means no barcode in that frame (expected while aiming).
+          <strong>Checksum/format</strong> = saw a candidate bar pattern that failed checks. If
+          <strong>Wrong payload</strong> fills, the camera read a code that is not the 32-char visit token.
+        </p>
+        <dl class="barcode-scan-debug-grid">
+          <dt>Elapsed</dt>
+          <dd>{{ scanDebugElapsedDisplay }} s</dd>
+          <dt>Frames</dt>
+          <dd>{{ scanDebugFrames }}</dd>
+          <dt>Camera</dt>
+          <dd class="barcode-scan-debug-wrap">{{ scanDebugCameraLabel }}</dd>
+          <dt>NotFound</dt>
+          <dd>{{ scanDebugNotFoundCount }}</dd>
+          <dt>Checksum / format</dt>
+          <dd>{{ scanDebugSoftErrors }}</dd>
+          <dt>Other error</dt>
+          <dd class="barcode-scan-debug-mono barcode-scan-debug-wrap">{{ scanDebugLastHardError || '—' }}</dd>
+          <dt>Wrong payload</dt>
+          <dd class="barcode-scan-debug-mono barcode-scan-debug-wrap">
+            @if (scanDebugLastRejectedFormat || scanDebugLastRejectedRaw) {
+              <span class="barcode-scan-debug-fmt">{{ scanDebugLastRejectedFormat }}</span>
+              {{ scanDebugLastRejectedRaw }}
+            } @else {
+              —
+            }
+          </dd>
+        </dl>
+      </div>
       <div class="barcode-scanner-actions">
         <button type="button" class="btn" (click)="cancelBarcodeScanner()">Cancel</button>
       </div>

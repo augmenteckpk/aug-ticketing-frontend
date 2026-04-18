@@ -1,8 +1,22 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  NgZone,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { BrowserMultiFormatReader } from '@zxing/browser';
-import { DecodeHintType } from '@zxing/library';
+import { BrowserMultiFormatReader, type IScannerControls } from '@zxing/browser';
+import {
+  ChecksumException,
+  DecodeHintType,
+  FormatException,
+  NotFoundException,
+  type Result,
+} from '@zxing/library';
 import { ApiError, ApiService } from '../../../core/services/api';
 import { SpeechInput } from '../../../ui-kit/speech-input/speech-input';
 import { SlipPrintService } from '../../../core/services/slip-print.service';
@@ -80,6 +94,19 @@ export class RegistrationPage implements OnInit, OnDestroy {
   scannerOpen = false;
   /** USB / Bluetooth keyboard-wedge scanners, or paste from tools like Dynamsoft. */
   wedgeBarcode = '';
+  /** ZXing continuous-scan controls — must `.stop()` to release camera. */
+  private scannerControls: IScannerControls | null = null;
+  /** Live stats while the visit-barcode modal is open (continuous decode). */
+  scanDebugFrames = 0;
+  scanDebugStartedAt = 0;
+  scanDebugElapsedDisplay = '0.0';
+  scanDebugCameraLabel = '';
+  scanDebugNotFoundCount = 0;
+  scanDebugSoftErrors = 0;
+  scanDebugLastHardError = '';
+  scanDebugLastRejectedRaw = '';
+  scanDebugLastRejectedFormat = '';
+  private scanDebugLastUiMs = 0;
   private suppressNoRecordToastOnce = false;
   private scanUserCancelled = false;
 
@@ -88,6 +115,7 @@ export class RegistrationPage implements OnInit, OnDestroy {
     private readonly slipPrint: SlipPrintService,
     private readonly toast: ToastService,
     private readonly cdr: ChangeDetectorRef,
+    private readonly ngZone: NgZone,
   ) {}
 
   private resetPatientForm(): void {
@@ -148,12 +176,60 @@ export class RegistrationPage implements OnInit, OnDestroy {
   }
 
   private stopBarcodeScanner(): void {
+    try {
+      this.scannerControls?.stop();
+    } catch {
+      /* ZXing stop may throw if already torn down */
+    }
+    this.scannerControls = null;
     const el = this.scannerVideoRef?.nativeElement;
     if (el?.srcObject) {
       const stream = el.srcObject as MediaStream;
       stream.getTracks().forEach((t) => t.stop());
       el.srcObject = null;
     }
+  }
+
+  private resetScanDebug(): void {
+    this.scanDebugFrames = 0;
+    this.scanDebugStartedAt = Date.now();
+    this.scanDebugElapsedDisplay = '0.0';
+    this.scanDebugCameraLabel = '';
+    this.scanDebugNotFoundCount = 0;
+    this.scanDebugSoftErrors = 0;
+    this.scanDebugLastHardError = '';
+    this.scanDebugLastRejectedRaw = '';
+    this.scanDebugLastRejectedFormat = '';
+    this.scanDebugLastUiMs = 0;
+  }
+
+  private debugScanTick(result: Result | undefined, err: unknown): void {
+    this.scanDebugFrames++;
+    if (err) {
+      if (err instanceof NotFoundException) {
+        this.scanDebugNotFoundCount++;
+      } else if (err instanceof ChecksumException || err instanceof FormatException) {
+        this.scanDebugSoftErrors++;
+      } else {
+        const msg =
+          err instanceof Error ? `${err.name}: ${err.message || ''}` : String(err);
+        this.scanDebugLastHardError = msg.slice(0, 220);
+      }
+    }
+    if (result) {
+      const raw = result.getText();
+      const fmt = String(result.getBarcodeFormat());
+      const token = this.visitTokenFromScan(raw);
+      if (!token) {
+        this.scanDebugLastRejectedRaw = raw.slice(0, 96);
+        this.scanDebugLastRejectedFormat = fmt;
+      }
+    }
+    const t = Date.now();
+    if (t - this.scanDebugLastUiMs < 120) return;
+    this.scanDebugLastUiMs = t;
+    this.scanDebugElapsedDisplay = ((t - this.scanDebugStartedAt) / 1000).toFixed(1);
+    this.cdr.detectChanges();
   }
 
   private async runBarcodeScan(): Promise<void> {
@@ -164,21 +240,55 @@ export class RegistrationPage implements OnInit, OnDestroy {
       this.cdr.detectChanges();
       return;
     }
+    this.resetScanDebug();
     const reader = new BrowserMultiFormatReader(VISIT_BARCODE_SCAN_HINTS);
     try {
       const devices = await BrowserMultiFormatReader.listVideoInputDevices();
-      const back = devices.find((d) => /back|rear|environment/i.test(d.label));
-      const deviceId = back?.deviceId;
-      const result = await reader.decodeOnceFromVideoDevice(deviceId, video);
       if (this.scanUserCancelled) {
-        this.stopBarcodeScanner();
+        this.scannerOpen = false;
+        this.cdr.detectChanges();
         return;
       }
-      const raw = result.getText();
-      this.stopBarcodeScanner();
-      this.scannerOpen = false;
+      const back = devices.find((d) => /back|rear|environment/i.test(d.label));
+      const deviceId = back?.deviceId;
+      this.scanDebugCameraLabel = back?.label || devices[0]?.label || '(default camera)';
       this.cdr.detectChanges();
-      await this.lookupVisitBarcodeWithCode(raw);
+
+      const videoConstraints: MediaTrackConstraints = deviceId
+        ? {
+            deviceId: { exact: deviceId },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          }
+        : {
+            facingMode: 'environment',
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          };
+
+      const controls = await reader.decodeFromConstraints({ video: videoConstraints }, video, (result, err, ctrl) => {
+        if (this.scanUserCancelled) {
+          ctrl.stop();
+          return;
+        }
+        this.ngZone.run(() => {
+          this.debugScanTick(result, err);
+          if (result) {
+            const raw = result.getText();
+            const token = this.visitTokenFromScan(raw);
+            if (token) {
+              ctrl.stop();
+              this.scannerControls = null;
+              this.scannerOpen = false;
+              this.cdr.detectChanges();
+              void this.lookupVisitBarcodeWithCode(raw);
+            }
+          }
+        });
+      });
+
+      this.scannerControls = controls;
+      this.cdr.detectChanges();
     } catch (e) {
       if (this.scanUserCancelled) return;
       this.stopBarcodeScanner();
