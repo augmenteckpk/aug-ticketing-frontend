@@ -22,9 +22,10 @@ type Appt = {
   visit_barcode?: string | null;
   w_number?: string | null;
 };
-/** Patient app encodes visit tokens as CODE128 over 32-char lowercase hex (backend `newVisitBarcode`). */
+/** Patient app: CODE128 of 32-char hex (`newVisitBarcode`). TRY_HARDER helps phone cameras; format hint keeps 1D priority. */
 const VISIT_BARCODE_SCAN_HINTS = new Map<DecodeHintType, unknown>([
   [DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128]],
+  [DecodeHintType.TRY_HARDER, true],
 ]);
 
 type LookupResponse = {
@@ -197,16 +198,17 @@ export class RegistrationPage implements OnInit, OnDestroy {
   }
 
   /**
-   * Strip whitespace and non-hex noise; keep up to 40 chars (API max). Tokens are 32-char hex from the server.
+   * Extract the 32-char hex token (same rules as backend `parseVisitBarcode`).
+   * Prefer the first `[0-9a-f]{32}` block so stray punctuation / label text does not destroy the string.
    */
   private normalizeScannedVisitBarcode(raw: string): string {
-    const hex = String(raw ?? '')
+    const n = String(raw ?? '')
       .trim()
       .toLowerCase()
-      .replace(/\s+/g, '')
-      .replace(/[^0-9a-f]/g, '');
-    if (hex.length >= 32) return hex.slice(0, 40);
-    return hex;
+      .replace(/\s+/g, '');
+    const block = n.match(/[0-9a-f]{32}/);
+    if (block) return block[0];
+    return n.replace(/[^0-9a-f]/g, '');
   }
 
   private async lookupVisitBarcodeWithCode(code: string): Promise<void> {
