@@ -270,6 +270,12 @@
   transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 8px 0 40px -12px rgb(15 23 42 / 0.35);
   border-right: 1px solid #e2e8f0;
+  /* Drawer sits above main content (z-index); disable hit-testing when closed so the first tap reaches the page. */
+  pointer-events: none;
+}
+
+.shell.shell--compact.shell--nav-open .sidebar {
+  pointer-events: auto;
 }
 
 .shell.shell--compact .sidebar-close {

@@ -2,23 +2,35 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api';
+import { AuthService } from '../../../core/services/auth';
 import { ToastService } from '../../../core/services/toast';
+import { centerIdFromOpd, consoleIsAdmin, listCenterIdForRequest, listDateForRequest } from '../../../core/utils/listing-scope';
 import { todayLocalYmd } from '../../../core/utils/local-date';
 import { WorkflowStatusBadgePipe } from '../../../shared/pipes/status-badge.pipe';
 import { SpeechInput } from '../../../ui-kit/speech-input/speech-input';
 import { Pagination } from '../../../ui-kit/pagination/pagination';
 
 type Center = { id: number; name: string; city: string; hospital_name?: string };
+type OpdPickRow = { id: number; name: string; display_code: string; center_id: number; center_label: string; sort_order: number };
 type Appointment = {
   id: number;
   appointment_date: string;
   token_number: number;
+  ticket_display?: string | null;
   status: string;
   patient_name?: string | null;
   patient_cnic?: string | null;
   center_name?: string | null;
-  department_name?: string | null;
+  opd_name?: string | null;
+  opd_display_code?: string | null;
 };
+
+type OpdBookingBlock = {
+  opd: { id: number; name: string; display_code: string };
+  clinics: { clinic_id: number; clinic_name: string | null; ticket_prefix: string; sort_order: number }[];
+};
+
+type OpdBookingOptionsResponse = { date: string; weekday: number; opds: OpdBookingBlock[] };
 
 /** Matches `POST /public/cnic-extract` (same as mobile `extractCnicViaBackend`). */
 type CnicExtractApiResponse = {
@@ -41,6 +53,9 @@ const VISION_EXTRACT_TIMEOUT_MS = 120_000;
 })
 export class AppointmentsPage implements OnInit {
   centers: Center[] = [];
+  /** Admin: OPD filter replaces center picker on the list. */
+  opdPickList: OpdPickRow[] = [];
+  filterOpdId: number | '' = '';
   rows: Appointment[] = [];
   page = 1;
   pageSize = 15;
@@ -66,16 +81,35 @@ export class AppointmentsPage implements OnInit {
   walkIn = {
     center_id: '' as number | '',
     appointment_date: todayLocalYmd(),
+    opd_id: '' as number | '',
+    clinic_id: '' as number | '',
     cnic: '',
     first_name: '',
     last_name: '',
   };
 
+  /** Roster for selected center + walk-in date (weekday-filtered clinics). */
+  walkInBooking: OpdBookingOptionsResponse | null = null;
+  walkInBookingLoading = false;
+
   constructor(
     private readonly api: ApiService,
+    private readonly auth: AuthService,
     private readonly toast: ToastService,
     private readonly cdr: ChangeDetectorRef,
   ) {}
+
+  isAdmin(): boolean {
+    return consoleIsAdmin(this.auth.user());
+  }
+
+  private syncListScope(): void {
+    this.date = listDateForRequest(this.auth.user(), this.date);
+    this.centerId = listCenterIdForRequest(this.auth.user(), this.centerId);
+    if (this.isAdmin()) {
+      this.centerId = centerIdFromOpd(this.opdPickList, this.filterOpdId);
+    }
+  }
 
   get pagedRows(): Appointment[] {
     const start = (this.page - 1) * this.pageSize;
@@ -100,34 +134,121 @@ export class AppointmentsPage implements OnInit {
     await Promise.allSettled([this.loadCenters(), this.loadAppointments()]);
   }
 
-  openWalkInModal(): void {
+  async openWalkInModal(): Promise<void> {
     this.clearWalkInCnicPreview();
     this.walkInScanMessage = '';
+    this.walkIn.opd_id = '';
+    this.walkIn.clinic_id = '';
+    this.walkInBooking = null;
+    this.walkIn.appointment_date = listDateForRequest(this.auth.user(), this.walkIn.appointment_date);
+    const wc = listCenterIdForRequest(this.auth.user(), this.walkIn.center_id);
+    if (wc !== '') this.walkIn.center_id = wc;
     this.creatingWalkIn = true;
+    await this.loadWalkInBookingOptions();
+    this.cdr.detectChanges();
+  }
+
+  walkInClinicsForSelectedOpd(): OpdBookingBlock["clinics"] {
+    const oid = this.walkIn.opd_id;
+    if (oid === '' || !this.walkInBooking?.opds?.length) return [];
+    const block = this.walkInBooking.opds.find((x) => x.opd.id === oid);
+    return block?.clinics ?? [];
+  }
+
+  async loadWalkInBookingOptions(): Promise<void> {
+    if (this.walkIn.center_id === '' || !this.walkIn.appointment_date) {
+      this.walkInBooking = null;
+      return;
+    }
+    this.walkInBookingLoading = true;
+    try {
+      const q = new URLSearchParams({ date: this.walkIn.appointment_date });
+      this.walkInBooking = await this.api.get<OpdBookingOptionsResponse>(
+        `/centers/${Number(this.walkIn.center_id)}/opd-booking-options?${q}`,
+      );
+      const opds = this.walkInBooking.opds ?? [];
+      if (this.walkIn.opd_id !== '' && !opds.some((b) => b.opd.id === this.walkIn.opd_id)) {
+        this.walkIn.opd_id = '';
+        this.walkIn.clinic_id = '';
+      }
+      const clinics = this.walkInClinicsForSelectedOpd();
+      if (this.walkIn.clinic_id !== '' && !clinics.some((c) => c.clinic_id === this.walkIn.clinic_id)) {
+        this.walkIn.clinic_id = '';
+      }
+    } catch {
+      this.walkInBooking = null;
+      this.toast.error('Could not load OPD / clinic options for this date.');
+    } finally {
+      this.walkInBookingLoading = false;
+    }
+  }
+
+  async onWalkInCenterOrDateChanged(): Promise<void> {
+    this.walkIn.opd_id = '';
+    this.walkIn.clinic_id = '';
+    if (this.creatingWalkIn) await this.loadWalkInBookingOptions();
+    this.cdr.detectChanges();
+  }
+
+  onWalkInOpdChanged(): void {
+    this.walkIn.clinic_id = '';
+    this.cdr.detectChanges();
   }
 
   async loadCenters(): Promise<void> {
+    const ms = 20000;
+    if (this.isAdmin()) {
+      try {
+        this.opdPickList = await this.api.get<OpdPickRow[]>('/public/opds', ms);
+      } catch {
+        this.opdPickList = [];
+      }
+      if (this.filterOpdId === '' && this.opdPickList[0]) this.filterOpdId = this.opdPickList[0].id;
+      this.centerId = centerIdFromOpd(this.opdPickList, this.filterOpdId);
+    } else {
+      const c = this.auth.user()?.opd_center_id;
+      if (c != null) this.centerId = c;
+    }
     try {
-      this.centers = await this.api.get<Center[]>('/centers');
-      if (!this.centers.length) this.centers = await this.api.get<Center[]>('/public/centers');
-      if (this.walkIn.center_id === '' && this.centers[0]) this.walkIn.center_id = this.centers[0].id;
+      this.centers = await this.api.get<Center[]>('/centers', ms);
+      if (!this.centers.length) this.centers = await this.api.get<Center[]>('/public/centers', ms);
+      const walkInCenter = listCenterIdForRequest(this.auth.user(), this.walkIn.center_id as number | '');
+      if (walkInCenter !== '') this.walkIn.center_id = walkInCenter;
+      else if (this.walkIn.center_id === '' && this.centers[0]) this.walkIn.center_id = this.centers[0].id;
     } catch (e) {
       try {
-        this.centers = await this.api.get<Center[]>('/public/centers');
-        if (this.walkIn.center_id === '' && this.centers[0]) this.walkIn.center_id = this.centers[0].id;
+        this.centers = await this.api.get<Center[]>('/public/centers', ms);
+        const walkInCenter = listCenterIdForRequest(this.auth.user(), this.walkIn.center_id as number | '');
+        if (walkInCenter !== '') this.walkIn.center_id = walkInCenter;
+        else if (this.walkIn.center_id === '' && this.centers[0]) this.walkIn.center_id = this.centers[0].id;
       } catch {
         this.centers = [];
         this.error = e instanceof Error ? e.message : 'Failed to load centers';
       }
     }
+    if (this.isAdmin() && this.walkIn.center_id === '' && this.centers[0]) {
+      this.walkIn.center_id = this.centers[0].id;
+    }
+  }
+
+  async onAdminOpdChanged(): Promise<void> {
+    this.centerId = centerIdFromOpd(this.opdPickList, this.filterOpdId);
+    this.page = 1;
+    await this.loadAppointments();
   }
 
   async loadAppointments(): Promise<void> {
+    this.syncListScope();
     this.busy = true;
     this.error = '';
     try {
       const q = new URLSearchParams();
-      if (this.centerId !== '') q.set('center_id', String(this.centerId));
+      if (this.isAdmin()) {
+        if (this.filterOpdId !== '') q.set('opd_id', String(this.filterOpdId));
+        else if (this.centerId !== '') q.set('center_id', String(this.centerId));
+      } else if (this.centerId !== '') {
+        q.set('center_id', String(this.centerId));
+      }
       if (this.date) q.set('date', this.date);
       if (this.status) q.set('status', this.status);
       this.rows = await this.api.get<Appointment[]>(`/appointments?${q.toString()}`);
@@ -152,6 +273,7 @@ export class AppointmentsPage implements OnInit {
   closeWalkInModal(): void {
     this.creatingWalkIn = false;
     this.walkInScanMessage = '';
+    this.walkInBooking = null;
     this.clearWalkInCnicPreview();
   }
 
@@ -305,12 +427,19 @@ export class AppointmentsPage implements OnInit {
       this.toast.error(this.error);
       return;
     }
+    if (this.walkIn.opd_id === '' || this.walkIn.clinic_id === '') {
+      this.error = 'Select OPD and clinic so the ticket prefix matches the roster (e.g. SKS-0001, DVC-0001).';
+      this.toast.error(this.error);
+      return;
+    }
     this.walkInSaving = true;
     this.error = '';
     try {
       await this.api.post('/appointments/walk-in', {
         center_id: Number(this.walkIn.center_id),
         appointment_date: this.walkIn.appointment_date,
+        opd_id: Number(this.walkIn.opd_id),
+        clinic_id: Number(this.walkIn.clinic_id),
         patient: {
           cnic: this.walkIn.cnic.trim(),
           first_name: this.walkIn.first_name.trim(),
@@ -321,6 +450,8 @@ export class AppointmentsPage implements OnInit {
       this.walkIn.cnic = '';
       this.walkIn.first_name = '';
       this.walkIn.last_name = '';
+      this.walkIn.opd_id = '';
+      this.walkIn.clinic_id = '';
       this.page = 1;
       await this.loadAppointments();
       this.toast.success('Walk-in token created.');

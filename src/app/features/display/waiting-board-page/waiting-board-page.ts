@@ -1,26 +1,37 @@
 import { CommonModule } from '@angular/common';
 import { Component, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, ParamMap, Router } from '@angular/router';
+import { Subject, takeUntil } from 'rxjs';
 import { resolveApiBaseUrl } from '../../../../environments/api-base';
 import { unwrapApiEnvelope } from '../../../core/services/api';
 import { todayLocalYmd } from '../../../core/utils/local-date';
 
-type PublicCenter = { id: number; name: string; city: string; hospital_name?: string | null };
+type PublicOpdOption = {
+  id: number;
+  name: string;
+  display_code: string;
+  center_id: number;
+  center_label?: string;
+};
 
-type PublicWaitingBoard = {
-  center: { id: number; name: string; city: string; hospital_name?: string | null };
-  date: string;
-  server_time: string;
-  ready_queue: { token_numbers: number[]; count: number };
-  draft_batches: { id: number; batch_index: number; token_numbers: number[] }[];
-  latest_dispatched: {
+type PublicOpdWaitingBoard = {
+  opd: {
     id: number;
-    batch_index: number;
-    token_numbers: number[];
-    dispatched_at: string | null;
-  } | null;
-  dispatched_earlier: { batch_index: number; token_numbers: number[] }[];
+    name: string;
+    display_code: string;
+    center: { id: number; name: string; city: string; hospital_name?: string | null };
+  };
+  date: string;
+  weekday: number;
+  server_time: string;
+  columns: {
+    ticket_prefix: string;
+    clinic_name: string | null;
+    clinic_id: number;
+    sort_order: number;
+    tickets: { ticket_display: string; token_number: number; status: string }[];
+  }[];
   meta: { refresh_hint_seconds: number; transport: string };
 };
 
@@ -33,51 +44,44 @@ type PublicWaitingBoard = {
 export class WaitingBoardPage implements OnInit, OnDestroy {
   readonly apiBase = resolveApiBaseUrl();
 
-  /** Urdu waiting-area LED screen labels (parity with React WaitingBoardPage). */
+  /** Urdu labels — waiting-area display. */
   readonly ur = {
-    displayEyebrow: 'او پی ڈی · انتظار کی اسکرین',
-    displayTitle: 'موجودہ قطار اور گروپ',
-    selectCenter: 'سینٹر منتخب کریں',
-    localTime: 'مقامی وقت',
-    liveSse: 'براہ راست (SSE)',
-    polling: 'وقفے سے تازہ',
-    center: 'کلینک سینٹر',
+    /** Shown after OPD name in the main title. */
+    screenTitleUr: 'او پی ڈی · انتظار کی اسکرین',
+    opd: 'او پی ڈی',
     date: 'تاریخ',
     applyBookmark: 'لاگو کریں اور لنک محفوظ کریں',
     loading: 'لوڈ ہو رہا ہے…',
-    readyLaneTitle: 'تیار قطار — اگلے گروپ میں',
-    readyLaneBody:
-      'پیشگی معائنہ مکمل۔ یہ ٹوکن ابھی کسی گروپ میں نہیں۔ عملہ اگلا گروپ بناتے وقت اس فہرست کے اوپر سے لیتا ہے۔',
-    noReady: 'تیار قطار میں اس وقت کوئی نہیں۔',
-    nextBatchesTitle: 'اگلے گروپس (تیار، بھیجنے کے منتظر)',
-    batchSeats: (batchIndex: number, count: number) => `گروپ نمبر ${batchIndex} · ${count} نشستیں`,
-    noDraftBatches:
-      'ابھی کوئی ڈرافٹ گروپ نہیں — سسٹم میں «قطار اور گروپ» سے تیار قطار سے گروپ بنائیں۔',
-    nextBatchesShort: 'اگلے گروپس',
-    earlierToday: 'آج پہلے',
-    batchList: (batchIndex: number, tokens: string) => `گروپ ${batchIndex}: ${tokens}`,
-    withDoctorTitle: 'اب ڈاکٹر کے پاس',
-    batchNumber: (n: number) => `(گروپ نمبر ${n})`,
-    noDispatchYet: '— ابھی کوئی گروپ نہیں بھیجا گیا',
-    whenDispatch: 'جب کوآرڈینیٹر گروپ بھیجیں گے تو ٹوکن نمبر یہاں دکھائی دیں گے۔',
-    invalidPayload: 'بورڈ کا ڈیٹا درست نہیں۔',
-    failedLoad: 'لوڈ نہیں ہو سکا۔',
+    liveSse: 'براہ راست (SSE)',
+    polling: 'وقفے سے تازہ',
+    noRoster: 'اس دن کے لیے کوئی کلینک شیڈول نہیں — ایڈمن میں او پی ڈی کا ہفتہ وار روستر سیٹ کریں۔',
+    noTickets: '—',
     openControls: 'اختیارات کھولیں',
     closeControls: 'اختیارات بند کریں',
+    failedLoad: 'لوڈ نہیں ہو سکا۔',
+    invalidPayload: 'بورڈ کا ڈیٹا درست نہیں۔',
+    localTime: 'مقامی وقت',
+    pickOpdHint: 'او پی ڈی منتخب کریں یا URL میں ?opd_id= استعمال کریں۔',
   } as const;
 
-  centers: PublicCenter[] = [];
-  centerId = 0;
+  allOpds: PublicOpdOption[] = [];
+  opdId = 0;
   date = todayLocalYmd();
-  board: PublicWaitingBoard | null = null;
+  board: PublicOpdWaitingBoard | null = null;
   error = '';
   liveClock = new Date();
   sseOk = false;
   showControls = false;
+  opdsLoading = false;
 
   private eventSource: EventSource | null = null;
   private pollTimer: number | null = null;
   private clockTimer: number | null = null;
+  /** If calendar day rolls while the screen stays open, keep queue on “today”. */
+  private dayRollTimer: number | null = null;
+  private readonly destroy$ = new Subject<void>();
+  /** After first bootstrap, URL-driven param changes refresh the board. */
+  private routeHydrated = false;
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -85,62 +89,96 @@ export class WaitingBoardPage implements OnInit, OnDestroy {
     private readonly zone: NgZone,
   ) {}
 
-  get subtitle(): string {
-    if (!this.board) return '';
-    const c = this.board.center;
-    const hosp = c.hospital_name ? `${c.hospital_name} · ` : '';
-    return `${hosp}${c.name} · ${c.city}`;
+  /** OPD name for header (from board or dropdown list). */
+  get headerOpdName(): string {
+    if (this.board?.opd?.name) return this.board.opd.name;
+    const o = this.allOpds.find((x) => x.id === this.opdId);
+    return o?.name ?? '';
   }
 
-  seatSlots(tokens: number[], minSlots: number): (number | null)[] {
-    const n = Math.max(minSlots, tokens.length);
-    return Array.from({ length: n }, (_, i) => (tokens[i] !== undefined ? tokens[i]! : null));
+  private readonly onVisibilityChange = (): void => {
+    if (document.visibilityState !== 'visible') return;
+    this.rollDateToTodayIfNeeded();
+  };
+
+  columnAccentClass(i: number): string {
+    return `accent-${i % 8}`;
   }
 
-  readyMinSlots(board: PublicWaitingBoard): number {
-    return Math.min(40, Math.max(20, board.ready_queue.count));
-  }
-
-  async ngOnInit(): Promise<void> {
-    const q = this.route.snapshot.queryParamMap;
-    const cid = Number(q.get('center_id'));
-    if (Number.isFinite(cid) && cid > 0) this.centerId = cid;
-    const d = q.get('date');
-    const dateFromQuery = Boolean(d && /^\d{4}-\d{2}-\d{2}$/.test(d));
-    if (dateFromQuery && d) {
-      this.date = d;
-    } else {
-      this.date = todayLocalYmd();
-    }
-
+  ngOnInit(): void {
     this.clockTimer = window.setInterval(() => {
       this.zone.run(() => {
         this.liveClock = new Date();
       });
     }, 1000);
 
-    await this.loadCenters();
-    let centerWasDefaulted = false;
-    if (this.centerId <= 0 && this.centers[0]) {
-      this.centerId = this.centers[0].id;
-      centerWasDefaulted = true;
-    }
-    if ((!dateFromQuery || centerWasDefaulted) && this.centerId > 0) {
-      await this.syncUrl();
-    }
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
+    this.dayRollTimer = window.setInterval(() => {
+      this.zone.run(() => this.rollDateToTodayIfNeeded());
+    }, 60_000);
 
-    await this.refreshBoard();
-    this.connectSse();
-    this.startPollingWhenOffline();
+    this.route.queryParamMap.pipe(takeUntil(this.destroy$)).subscribe((params) => {
+      const changed = this.applyQueryParams(params);
+      if (this.routeHydrated && changed) {
+        this.zone.run(() => this.reconnectSse());
+      }
+    });
+
+    void this.bootstrap();
   }
 
   ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    if (this.dayRollTimer != null) {
+      window.clearInterval(this.dayRollTimer);
+      this.dayRollTimer = null;
+    }
     this.eventSource?.close();
     this.clearPollTimer();
     if (this.clockTimer) window.clearInterval(this.clockTimer);
   }
 
-  /** Match React: poll every 8s only while SSE is not connected. */
+  /**
+   * Lobby board: always use “today” in the local browser (do not pin queue to a stale `date` in the URL).
+   * Only `opd_id` is read from the query string.
+   */
+  private applyQueryParams(params: ParamMap): boolean {
+    let changed = false;
+    const oid = Number(params.get('opd_id'));
+    if (Number.isFinite(oid) && oid > 0 && this.opdId !== oid) {
+      this.opdId = oid;
+      changed = true;
+    }
+    return changed;
+  }
+
+  /** When the calendar day changes (tab sleep or midnight), move the board to today. */
+  private rollDateToTodayIfNeeded(): void {
+    const t = todayLocalYmd();
+    if (this.date >= t) return;
+    this.date = t;
+    if (this.routeHydrated) {
+      void this.syncUrlThenReconnect();
+    }
+  }
+
+  private async syncUrlThenReconnect(): Promise<void> {
+    await this.syncUrl();
+    this.reconnectSse();
+  }
+
+  private async bootstrap(): Promise<void> {
+    this.date = todayLocalYmd();
+    await this.loadAllOpds();
+    if (this.opdId <= 0 && this.allOpds[0]) this.opdId = this.allOpds[0]!.id;
+    await this.syncUrl();
+    this.routeHydrated = true;
+    this.reconnectSse();
+    this.startPollingWhenOffline();
+  }
+
   private startPollingWhenOffline(): void {
     if (this.sseOk) return;
     if (this.pollTimer != null) return;
@@ -149,25 +187,28 @@ export class WaitingBoardPage implements OnInit, OnDestroy {
     }, 8000);
   }
 
-  async loadCenters(): Promise<void> {
+  async loadAllOpds(): Promise<void> {
+    this.opdsLoading = true;
     try {
-      const res = await fetch(`${this.apiBase}/api/v1/public/centers`);
+      const res = await fetch(`${this.apiBase}/api/v1/public/opds`);
       const text = await res.text();
       const data = text ? (JSON.parse(text) as unknown) : null;
       if (!res.ok) {
-        const err = data as { error?: string; message?: string };
-        throw new Error(err?.message ?? err?.error ?? res.statusText);
+        this.allOpds = [];
+        return;
       }
-      this.centers = unwrapApiEnvelope<PublicCenter[]>(data);
+      this.allOpds = unwrapApiEnvelope<PublicOpdOption[]>(data);
     } catch {
-      this.centers = [];
+      this.allOpds = [];
+    } finally {
+      this.opdsLoading = false;
     }
   }
 
   async refreshBoard(): Promise<void> {
-    if (this.centerId <= 0) return;
+    if (this.opdId <= 0) return;
     try {
-      const q = `center_id=${this.centerId}&date=${encodeURIComponent(this.date)}`;
+      const q = `opd_id=${this.opdId}&date=${encodeURIComponent(this.date)}`;
       const res = await fetch(`${this.apiBase}/api/v1/public/waiting-board?${q}`);
       const text = await res.text();
       const data = text ? (JSON.parse(text) as unknown) : null;
@@ -175,17 +216,25 @@ export class WaitingBoardPage implements OnInit, OnDestroy {
         const err = data as { error?: string; message?: string };
         throw new Error(err?.message ?? err?.error ?? res.statusText);
       }
-      this.board = unwrapApiEnvelope<PublicWaitingBoard>(data);
+      this.board = unwrapApiEnvelope<PublicOpdWaitingBoard>(data);
       this.error = '';
+      if (this.board && !this.allOpds.some((o) => o.id === this.opdId)) {
+        await this.loadAllOpds();
+      }
     } catch (e) {
       this.error = e instanceof Error ? e.message : this.ur.failedLoad;
+      this.board = null;
     }
   }
 
   async syncUrl(): Promise<void> {
     await this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { center_id: this.centerId > 0 ? this.centerId : undefined, date: this.date },
+      queryParams: {
+        opd_id: this.opdId > 0 ? this.opdId : undefined,
+        date: this.date,
+        center_id: undefined,
+      },
       replaceUrl: true,
     });
   }
@@ -193,6 +242,11 @@ export class WaitingBoardPage implements OnInit, OnDestroy {
   async applyBookmarkAndRefresh(): Promise<void> {
     await this.syncUrl();
     this.showControls = false;
+    this.reconnectSse();
+  }
+
+  async onOpdOrDateChanged(): Promise<void> {
+    await this.syncUrl();
     this.reconnectSse();
   }
 
@@ -206,14 +260,10 @@ export class WaitingBoardPage implements OnInit, OnDestroy {
     this.startPollingWhenOffline();
   }
 
-  onCenterOrDateChanged(): void {
-    this.reconnectSse();
-  }
-
   private connectSse(): void {
-    if (this.centerId <= 0) return;
+    if (this.opdId <= 0) return;
     this.eventSource?.close();
-    const q = `center_id=${this.centerId}&date=${encodeURIComponent(this.date)}`;
+    const q = `opd_id=${this.opdId}&date=${encodeURIComponent(this.date)}`;
     const es = new EventSource(`${this.apiBase}/api/v1/public/waiting-board/stream?${q}`);
 
     es.onopen = () => {
@@ -225,7 +275,7 @@ export class WaitingBoardPage implements OnInit, OnDestroy {
 
     es.addEventListener('board', (ev) => {
       try {
-        const payload = unwrapApiEnvelope<PublicWaitingBoard>(
+        const payload = unwrapApiEnvelope<PublicOpdWaitingBoard>(
           JSON.parse((ev as MessageEvent).data as string),
         );
         this.zone.run(() => {

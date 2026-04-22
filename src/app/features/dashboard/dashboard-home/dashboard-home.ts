@@ -3,11 +3,20 @@ import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../../core/services/api';
+import { AuthService } from '../../../core/services/auth';
+import { consoleIsAdmin, listDateForRequest } from '../../../core/utils/listing-scope';
+import { todayLocalYmd } from '../../../core/utils/local-date';
 import { WorkflowStatusBadgePipe } from '../../../shared/pipes/status-badge.pipe';
 import { ToastService } from '../../../core/services/toast';
-import { todayLocalYmd } from '../../../core/utils/local-date';
 
-type Center = { id: number; name: string; city: string; hospital_name?: string };
+type OpdFilterRow = {
+  id: number;
+  name: string;
+  display_code: string;
+  center_id: number;
+  center_label: string;
+  sort_order: number;
+};
 
 export type DashboardRangePreset = 'day' | 'yesterday' | '7d' | '30d' | 'month';
 
@@ -17,6 +26,7 @@ type Summary = {
   date_end: string;
   range: DashboardRangePreset;
   center_id: number | null;
+  opd_id?: number | null;
   byStatus: Record<string, number>;
   total: number;
   daily_volume?: Array<{ date: string; total: number }>;
@@ -24,7 +34,7 @@ type Summary = {
   system?: {
     hospitals: number;
     centers: number;
-    departments: number;
+    opds: number;
     clinics: number;
     users_active: number;
   };
@@ -51,8 +61,9 @@ const STATUS_BAR_COLORS: Record<string, string> = {
 export class DashboardHome implements OnInit {
   date = todayLocalYmd();
   rangePreset: DashboardRangePreset = 'day';
-  centerId: number | '' = '';
-  centers: Center[] = [];
+  /** Admin: filter dashboard aggregates by OPD (replaces legacy “center” picker). */
+  filterOpdId: number | '' = '';
+  opdFilterList: OpdFilterRow[] = [];
   summary: Summary | null = null;
   loading = false;
   error = '';
@@ -80,8 +91,13 @@ export class DashboardHome implements OnInit {
 
   constructor(
     private readonly api: ApiService,
+    private readonly auth: AuthService,
     private readonly toast: ToastService,
   ) {}
+
+  isAdmin(): boolean {
+    return consoleIsAdmin(this.auth.user());
+  }
 
   get chartBars(): Array<{ key: string; label: string; value: number; pct: number; color: string }> {
     const summary = this.summary;
@@ -126,6 +142,7 @@ export class DashboardHome implements OnInit {
   }
 
   setPreset(p: DashboardRangePreset): void {
+    if (!this.isAdmin()) return;
     this.rangePreset = p;
     if (p === 'day' || p === 'yesterday' || p === 'month') {
       this.date = todayLocalYmd();
@@ -134,6 +151,7 @@ export class DashboardHome implements OnInit {
   }
 
   resetToToday(): void {
+    if (!this.isAdmin()) return;
     this.date = todayLocalYmd();
     this.rangePreset = 'day';
     void this.loadSummary();
@@ -160,13 +178,15 @@ export class DashboardHome implements OnInit {
     const start = this.summary.date_start ?? this.summary.date;
     const end = this.summary.date_end ?? this.summary.date;
     const rangePart = this.formatRangeSpan(start, end);
-    if (this.centerId === '') {
-      return `${rangePart} · All centers`;
+    if (!this.isAdmin()) {
+      return `${rangePart} · Your OPD (today)`;
     }
-    const c = this.centers.find((x) => x.id === this.centerId);
-    if (!c) return `${rangePart} · One center`;
-    const hosp = c.hospital_name ? `${c.hospital_name} · ` : '';
-    return `${rangePart} · ${hosp}${c.name} (${c.city})`;
+    if (this.filterOpdId !== '') {
+      const o = this.opdFilterList.find((x) => x.id === this.filterOpdId);
+      const label = o ? `${o.center_label} — ${o.name} (${o.display_code})` : 'Selected OPD';
+      return `${rangePart} · ${label}`;
+    }
+    return `${rangePart} · All OPDs`;
   }
 
   formatRangeSpan(start: string, end: string): string {
@@ -197,22 +217,14 @@ export class DashboardHome implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
-    await Promise.allSettled([this.loadCenters(), this.loadSummary()]);
-  }
-
-  async loadCenters(): Promise<void> {
-    try {
-      this.centers = await this.api.get<Center[]>('/centers');
-      if (!this.centers.length) this.centers = await this.api.get<Center[]>('/public/centers');
-    } catch (e) {
+    if (this.isAdmin()) {
       try {
-        this.centers = await this.api.get<Center[]>('/public/centers');
+        this.opdFilterList = await this.api.get<OpdFilterRow[]>('/public/opds');
       } catch {
-        this.centers = [];
-        this.error = e instanceof Error ? e.message : 'Failed to load centers';
-        this.toast.error(this.error);
+        this.opdFilterList = [];
       }
     }
+    await this.loadSummary();
   }
 
   async loadSummary(): Promise<void> {
@@ -220,9 +232,10 @@ export class DashboardHome implements OnInit {
     this.error = '';
     try {
       const q = new URLSearchParams();
-      q.set('date', this.date);
-      q.set('range', this.rangePreset);
-      if (this.centerId !== '') q.set('center_id', String(this.centerId));
+      const effDate = listDateForRequest(this.auth.user(), this.date);
+      q.set('date', effDate);
+      q.set('range', this.isAdmin() ? this.rangePreset : 'day');
+      if (this.isAdmin() && this.filterOpdId !== '') q.set('opd_id', String(this.filterOpdId));
       this.summary = await this.api.get<Summary>(`/dashboard/summary?${q.toString()}`);
     } catch (e) {
       this.summary = null;

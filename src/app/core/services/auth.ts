@@ -10,6 +10,10 @@ export type MeResponse = {
   role: string;
   role_id: number;
   patient_id: number | null;
+  /** Staff counter scope; null = not assigned or admin. */
+  opd_id: number | null;
+  /** Center hosting the assigned OPD (for list APIs); null if no OPD. */
+  opd_center_id: number | null;
   permissions: string[];
 };
 

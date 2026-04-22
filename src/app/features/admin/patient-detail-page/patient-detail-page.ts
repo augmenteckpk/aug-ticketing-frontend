@@ -41,7 +41,8 @@ export type AppointmentRow = {
   hospital_name?: string | null;
   center_name?: string | null;
   center_city?: string | null;
-  department_name?: string | null;
+  opd_display_code?: string | null;
+  opd_name?: string | null;
   clinic_name?: string | null;
   registered_at?: string | null;
   checked_in_at?: string | null;

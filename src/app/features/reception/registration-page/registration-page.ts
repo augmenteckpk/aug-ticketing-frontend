@@ -4,12 +4,15 @@ import { FormsModule } from '@angular/forms';
 import { BrowserMultiFormatReader, type IScannerControls } from '@zxing/browser';
 import { DecodeHintType } from '@zxing/library';
 import { ApiError, ApiService } from '../../../core/services/api';
+import { AuthService } from '../../../core/services/auth';
+import { centerIdFromOpd, consoleIsAdmin, listCenterIdForRequest, listDateForRequest } from '../../../core/utils/listing-scope';
 import { SpeechInput } from '../../../ui-kit/speech-input/speech-input';
 import { SlipPrintService } from '../../../core/services/slip-print.service';
 import { ToastService } from '../../../core/services/toast';
 import { todayLocalYmd } from '../../../core/utils/local-date';
 
 type Center = { id: number; name: string; hospital_name?: string; city?: string };
+type OpdPickRow = { id: number; name: string; display_code: string; center_id: number; center_label: string; sort_order: number };
 type Appt = {
   id: number;
   token_number: number;
@@ -21,6 +24,10 @@ type Appt = {
   status: string;
   visit_barcode?: string | null;
   w_number?: string | null;
+  opd_name?: string | null;
+  opd_display_code?: string | null;
+  clinic_name?: string | null;
+  ticket_display?: string | null;
 };
 /**
  * Patient app draws CODE128 (32-char hex), not retail UPC/EAN — dedicated "1D retail" modes often skip it.
@@ -54,6 +61,8 @@ export class RegistrationPage implements OnInit, OnDestroy {
   @ViewChild('scannerVideo') scannerVideoRef?: ElementRef<HTMLVideoElement>;
 
   centers: Center[] = [];
+  opdPickList: OpdPickRow[] = [];
+  filterOpdId: number | '' = '';
   centerId: number | '' = '';
   date = todayLocalYmd();
   cnic = '';
@@ -85,11 +94,21 @@ export class RegistrationPage implements OnInit, OnDestroy {
 
   constructor(
     private readonly api: ApiService,
+    private readonly auth: AuthService,
     private readonly slipPrint: SlipPrintService,
     private readonly toast: ToastService,
     private readonly cdr: ChangeDetectorRef,
     private readonly ngZone: NgZone,
   ) {}
+
+  isAdmin(): boolean {
+    return consoleIsAdmin(this.auth.user());
+  }
+
+  onAdminOpdChanged(): void {
+    this.centerId = centerIdFromOpd(this.opdPickList, this.filterOpdId);
+    this.cdr.detectChanges();
+  }
 
   private resetPatientForm(): void {
     this.patient = {
@@ -109,14 +128,26 @@ export class RegistrationPage implements OnInit, OnDestroy {
 
   async ngOnInit(): Promise<void> {
     const ms = 20000;
+    if (this.isAdmin()) {
+      try {
+        this.opdPickList = await this.api.get<OpdPickRow[]>('/public/opds', ms);
+      } catch (e) {
+        this.opdPickList = [];
+        this.error = e instanceof Error ? e.message : 'Failed to load OPDs';
+      }
+      if (this.filterOpdId === '' && this.opdPickList[0]) this.filterOpdId = this.opdPickList[0].id;
+      this.centerId = centerIdFromOpd(this.opdPickList, this.filterOpdId);
+    } else {
+      const c = this.auth.user()?.opd_center_id;
+      if (c != null) this.centerId = c;
+    }
+    this.date = listDateForRequest(this.auth.user(), this.date);
     try {
       this.centers = await this.api.get<Center[]>('/centers', ms);
       if (!this.centers.length) this.centers = await this.api.get<Center[]>('/public/centers', ms);
-      if (this.centers[0]) this.centerId = this.centers[0].id;
     } catch (e) {
       try {
         this.centers = await this.api.get<Center[]>('/public/centers', ms);
-        if (this.centers[0]) this.centerId = this.centers[0].id;
       } catch {
         this.centers = [];
         this.error = e instanceof Error ? e.message : 'Failed to load centers';
@@ -303,8 +334,13 @@ export class RegistrationPage implements OnInit, OnDestroy {
   }
 
   async lookup(): Promise<void> {
-    if (this.centerId === '' || !this.cnic.trim()) {
-      this.toast.error('Center and CNIC are required for lookup.');
+    if (this.isAdmin()) {
+      this.centerId = centerIdFromOpd(this.opdPickList, this.filterOpdId);
+    }
+    const day = listDateForRequest(this.auth.user(), this.date);
+    const cid = listCenterIdForRequest(this.auth.user(), this.centerId);
+    if (cid === '' || !this.cnic.trim()) {
+      this.toast.error('Site and CNIC are required for lookup.');
       return;
     }
     this.loading = true;
@@ -312,8 +348,8 @@ export class RegistrationPage implements OnInit, OnDestroy {
     try {
       const q = new URLSearchParams({
         cnic: this.cnic.trim(),
-        center_id: String(this.centerId),
-        date: this.date,
+        center_id: String(cid),
+        date: day,
       });
       const result = await this.api.get<LookupResponse>(`/appointments/lookup-booked?${q.toString()}`);
       this.booked = [result.appointment];
@@ -386,12 +422,16 @@ export class RegistrationPage implements OnInit, OnDestroy {
         20000,
       );
       this.toast.success('Patient check-in confirmed.');
-      this.slipPrint.print('OPD Ticket Slip', 'Registration confirmed ticket', [
-        { label: 'Token', value: String(selected.token_number) },
+      const opdLine = [selected.opd_display_code, selected.opd_name].filter(Boolean).join(' · ') || '—';
+      const ticketLine = updated.ticket_display?.trim() || String(selected.token_number);
+      this.slipPrint.print('OPD Ticket Slip', 'Registration — OPD visit ticket', [
+        { label: 'Ticket', value: ticketLine },
         { label: 'W number', value: updated.w_number?.trim() || '-' },
         { label: 'Patient', value: selected.patient_name || this.patient.first_name || '-' },
         { label: 'CNIC', value: selected.patient_cnic || this.cnic || '-' },
-        { label: 'Center', value: selected.center_name || this.centerLabel() },
+        { label: 'OPD', value: opdLine },
+        { label: 'Clinic', value: selected.clinic_name || updated.clinic_name || '—' },
+        { label: 'Campus / center', value: selected.center_name || this.centerLabel() },
         { label: 'Visit date', value: this.date },
         { label: 'Status', value: 'registered' },
       ]);

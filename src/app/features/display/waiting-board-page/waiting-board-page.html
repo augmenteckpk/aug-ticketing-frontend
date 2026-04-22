@@ -1,10 +1,15 @@
 <div class="urdu-display-root" dir="rtl" lang="ur">
   <header class="board-header">
-    <p class="eyebrow">{{ ur.displayEyebrow }}</p>
     <div class="board-header-inner">
       <div class="board-title-block">
-        <h1 class="display-title">{{ ur.displayTitle }}</h1>
-        <p class="subtitle">{{ subtitle || ur.selectCenter }}</p>
+        <h1 class="display-title">
+          <span class="title-ur">{{ ur.screenTitleUr }}</span>
+          @if (headerOpdName) {
+            <span class="opd-name" dir="ltr" lang="en">{{ headerOpdName }}</span>
+            <span class="title-sep" aria-hidden="true">&nbsp;</span>
+          }
+          
+        </h1>
       </div>
       <div class="board-header-actions">
         <div class="clock-card">
@@ -33,16 +38,19 @@
       <div class="controls-panel">
         <div class="controls-row">
           <label class="field">
-            <span class="field-label">{{ ur.center }}</span>
+            <span class="field-label">{{ ur.opd }}</span>
             <select
               class="field-control"
-              [(ngModel)]="centerId"
-              (ngModelChange)="onCenterOrDateChanged()"
+              [(ngModel)]="opdId"
+              (ngModelChange)="onOpdOrDateChanged()"
+              [disabled]="opdsLoading || !allOpds.length"
             >
-              <option [ngValue]="0">—</option>
-              @for (c of centers; track c.id) {
-                <option [ngValue]="c.id">
-                  {{ c.hospital_name ? c.hospital_name + ' — ' : '' }}{{ c.name }}
+              @for (o of allOpds; track o.id) {
+                <option [ngValue]="o.id">
+                  {{ o.name }} ({{ o.display_code }})
+                  @if (o.center_label) {
+                    — {{ o.center_label }}
+                  }
                 </option>
               }
             </select>
@@ -54,7 +62,7 @@
               type="date"
               dir="ltr"
               [(ngModel)]="date"
-              (ngModelChange)="onCenterOrDateChanged()"
+              (ngModelChange)="onOpdOrDateChanged()"
             />
           </label>
           <button type="button" class="btn-apply" (click)="applyBookmarkAndRefresh()">
@@ -72,74 +80,36 @@
   }
 
   <main class="board-main">
-    @if (!board && !error) {
+    @if (opdId <= 0 && !error) {
+      <p class="loading-line">{{ ur.pickOpdHint }}</p>
+    } @else if (!board && !error) {
       <p class="loading-line">{{ ur.loading }}</p>
     }
 
     @if (board) {
-      <section class="card">
-        <h2 class="section-title violet">{{ ur.readyLaneTitle }}</h2>
-        <p class="section-body">{{ ur.readyLaneBody }}</p>
-        @if (board.ready_queue.token_numbers.length) {
-          <div
-            class="seat-grid"
-            [style.grid-template-columns]="'repeat(auto-fill, minmax(4.5rem, 1fr))'"
-          >
-            @for (tok of seatSlots(board.ready_queue.token_numbers, readyMinSlots(board)); track $index) {
-              <div class="seat" [class.violet]="tok !== null" [class.empty]="tok === null">
-                {{ tok !== null ? tok : '—' }}
-              </div>
-            }
-          </div>
+      @if (!board.columns.length) {
+        <p class="roster-empty">{{ ur.noRoster }}</p>
       } @else {
-        <p class="muted">{{ ur.noReady }}</p>
-        }
-      </section>
-
-      @if (board.dispatched_earlier.length > 0) {
-        <section class="card">
-          <h2 class="earlier-title">{{ ur.earlierToday }}</h2>
-          <ul class="earlier-list">
-            @for (b of board.dispatched_earlier; track b.batch_index) {
-              <li class="earlier-chip" dir="ltr">
-                {{ ur.batchList(b.batch_index, b.token_numbers.join(', ')) }}
-              </li>
-            }
-          </ul>
-        </section>
-      }
-
-      <section class="card">
-        <h2 class="section-title amber with-pulse">
-          <span class="pulse-dot" aria-hidden="true"></span>
-          {{ ur.withDoctorTitle }}
-          <span class="batch-meta">
-            @if (board.latest_dispatched) {
-              {{ ur.batchNumber(board.latest_dispatched.batch_index) }}
-            } @else {
-              {{ ur.noDispatchYet }}
-            }
-          </span>
-        </h2>
-        @if (board.latest_dispatched; as latest) {
-          @if (latest.token_numbers.length) {
-            <div
-              class="seat-grid"
-              [style.grid-template-columns]="'repeat(auto-fill, minmax(4.5rem, 1fr))'"
-            >
-              @for (tok of seatSlots(latest.token_numbers, 20); track $index) {
-                <div class="seat" [class.amber]="tok !== null" [class.empty]="tok === null">
-                  {{ tok !== null ? tok : '—' }}
-                </div>
-              }
-            </div>
-          } @else {
-            <p class="empty-doctor">{{ ur.whenDispatch }}</p>
+        <div class="columns-wrap" dir="ltr">
+          @for (col of board.columns; track col.clinic_id; let i = $index) {
+            <section class="token-column" [ngClass]="columnAccentClass(i)">
+              <header class="column-head">
+                <span class="prefix">{{ col.ticket_prefix }}</span>
+                <span class="clinic-name">{{ col.clinic_name || 'Clinic' }}</span>
+              </header>
+              <ul class="token-list">
+                @for (t of col.tickets; track t.token_number) {
+                  <li class="token-chip" [class.ready]="t.status === 'ready'">
+                    {{ t.ticket_display }}
+                  </li>
+                } @empty {
+                  <li class="token-chip empty">{{ ur.noTickets }}</li>
+                }
+              </ul>
+            </section>
           }
-        } @else {
-          <p class="empty-doctor">{{ ur.whenDispatch }}</p>
-        }
-      </section>
+        </div>
+      }
     }
   </main>
 </div>

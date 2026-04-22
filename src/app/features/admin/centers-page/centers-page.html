@@ -2,7 +2,7 @@
   <header class="head">
     <div>
       <h1>Centers</h1>
-      <p>Manage center records and weekday department routing.</p>
+      <p>Manage center records under each hospital. OPDs, clinics, and weekday ticket rosters are configured under Administration → OPDs and Clinics.</p>
     </div>
     <div class="actions">
       <button class="btn primary" (click)="creating = true" [disabled]="saving || loading">Create center</button>
@@ -24,18 +24,17 @@
           <th>Hospital</th>
           <th>City</th>
           <th>Status</th>
-          <th>Weekday routing</th>
           <th class="right">Actions</th>
         </tr>
       </thead>
       <tbody>
         @if (loading) {
           <tr>
-            <td colspan="6" class="muted">Loading centers...</td>
+            <td colspan="5" class="muted">Loading centers...</td>
           </tr>
         } @else if (!rows.length) {
           <tr>
-            <td colspan="6" class="muted">No centers available.</td>
+            <td colspan="5" class="muted">No centers available.</td>
           </tr>
         } @else {
           @for (row of paged; track row.id) {
@@ -44,21 +43,6 @@
               <td>{{ row.hospital_name || row.hospital_id }}</td>
               <td>{{ row.city }}</td>
               <td><span [class]="row.status | entityStatusBadge">{{ row.status }}</span></td>
-              <td class="route-cell">
-                <div class="cell-chips">
-                  @if (!centerRouteLabels(row).length) {
-                    <span>—</span>
-                  } @else {
-                    @for (label of routeVisibleLabels(row); track label) {
-                      <span class="badge routing">{{ label }}</span>
-                    }
-                    @if (routeHiddenCount(row) > 0) {
-                      <span class="badge route-more" [attr.title]="routeFullTitle(row)"
-                        >+ {{ routeHiddenCount(row) }} more</span>
-                    }
-                  }
-                </div>
-              </td>
               <td class="right td-actions">
                 <button
                   type="button"
@@ -126,88 +110,6 @@
     </div>
   </div>
 }
-
-<section class="page-card">
-  <header class="head">
-    <div>
-      <h2>Weekday routing</h2>
-      <p>
-        Add one or more rows per weekday — same department can appear with different OPDs, or multiple departments on the same day.
-      </p>
-    </div>
-    <div class="actions">
-      <button type="button" class="btn primary" (click)="saveWeekdayRoutes()" [disabled]="saving || routeCenterId === ''">
-        Save routing
-      </button>
-    </div>
-  </header>
-
-  <div class="form-grid">
-    <label>
-      Center
-      <select
-        [(ngModel)]="routeCenterId"
-        (ngModelChange)="onRouteCenterChange()"
-        [disabled]="weekdayRoutesLoading"
-      >
-        <option [ngValue]="''">Select center</option>
-        @for (c of rows; track c.id) {
-          <option [ngValue]="c.id">{{ c.name }}</option>
-        }
-      </select>
-    </label>
-  </div>
-
-  @if (weekdayRoutesLoading) {
-    <p class="muted">Loading weekday routing and clinic options…</p>
-  }
-
-  <div class="table-wrap route-table-wrap" [class.dimmed]="weekdayRoutesLoading">
-    <table class="route-table">
-      <thead>
-        <tr>
-          <th>Weekday</th>
-          <th>Department</th>
-          <th>OPD / clinic</th>
-          <th class="right"></th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (row of routeRows; track row._key) {
-          <tr>
-            <td>
-              <select [(ngModel)]="row.weekday">
-                @for (idx of [0, 1, 2, 3, 4, 5, 6]; track idx) {
-                  <option [ngValue]="idx">{{ weekdayLabels[idx] }}</option>
-                }
-              </select>
-            </td>
-            <td>
-              <select [(ngModel)]="row.department_id" (ngModelChange)="onRouteRowDeptChange(row)">
-                <option [ngValue]="''">—</option>
-                @for (d of departments; track d.id) {
-                  <option [ngValue]="d.id">{{ d.name }}</option>
-                }
-              </select>
-            </td>
-            <td>
-              <select [(ngModel)]="row.clinic_id" [disabled]="row.department_id === ''">
-                <option [ngValue]="''">Any in department</option>
-                @for (cl of clinicsForRouteRow(row); track cl.id) {
-                  <option [ngValue]="cl.id">{{ cl.name }}</option>
-                }
-              </select>
-            </td>
-            <td class="right">
-              <button type="button" class="btn danger ghost" (click)="removeRouteRow(row._key)">Remove</button>
-            </td>
-          </tr>
-        }
-      </tbody>
-    </table>
-    <button type="button" class="btn" (click)="addRouteRow()" [disabled]="routeCenterId === ''">Add route row</button>
-  </div>
-</section>
 
 @if (editing) {
   <div class="modal-overlay" (click)="editing = null">

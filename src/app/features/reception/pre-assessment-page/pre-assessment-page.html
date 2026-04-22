@@ -13,17 +13,20 @@
 
   <div class="pre-assessment-toolbar">
     <div class="pre-assessment-toolbar__filters">
-      <label>Center
-        <select [(ngModel)]="centerId" (change)="onFiltersChanged()">
-          <option [ngValue]="''">All centers</option>
-          @for (c of centers; track c.id) {
-            <option [ngValue]="c.id">{{ c.hospital_name }} - {{ c.name }} ({{ c.city }})</option>
-          }
-        </select>
-      </label>
-      <label>Date
-        <input type="date" [(ngModel)]="date" (change)="onFiltersChanged()" />
-      </label>
+      @if (isAdmin()) {
+        <label>OPD
+          <select [(ngModel)]="filterOpdId" (change)="onAdminOpdChanged()">
+            @for (o of opdPickList; track o.id) {
+              <option [ngValue]="o.id">{{ o.center_label }} — {{ o.name }} ({{ o.display_code }})</option>
+            }
+          </select>
+        </label>
+        <label>Date
+          <input type="date" [(ngModel)]="date" (change)="onFiltersChanged()" />
+        </label>
+      } @else {
+        <p class="muted staff-scope-hint">Showing <strong>today</strong> for <strong>your assigned OPD</strong>.</p>
+      }
     </div>
     @if (!loading && rows.length) {
       <div class="pre-assessment-toolbar__bulk">

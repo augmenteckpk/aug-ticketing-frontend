@@ -14,7 +14,7 @@ import { RadiologyPage } from './features/radiology/radiology-page/radiology-pag
 import { QueuePage } from './features/queue/queue-page/queue-page';
 import { HospitalsPage } from './features/admin/hospitals-page/hospitals-page';
 import { CentersPage } from './features/admin/centers-page/centers-page';
-import { DepartmentsPage } from './features/admin/departments-page/departments-page';
+import { OpdsPage } from './features/admin/opds-page/opds-page';
 import { ClinicsPage } from './features/admin/clinics-page/clinics-page';
 import { PatientsListPage } from './features/admin/patients-list-page/patients-list-page';
 import { PatientDetailPage } from './features/admin/patient-detail-page/patient-detail-page';
@@ -41,7 +41,7 @@ export const routes: Routes = [
       { path: 'queue', component: QueuePage },
       { path: 'hospitals', component: HospitalsPage },
       { path: 'centers', component: CentersPage },
-      { path: 'departments', component: DepartmentsPage },
+      { path: 'opds', component: OpdsPage },
       { path: 'clinics', component: ClinicsPage },
       { path: 'patients', component: PatientsListPage },
       { path: 'patients/:patientId', component: PatientDetailPage },

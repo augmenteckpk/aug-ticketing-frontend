@@ -2,11 +2,14 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api';
+import { AuthService } from '../../../core/services/auth';
 import { ToastService } from '../../../core/services/toast';
 import { WorkflowStatusBadgePipe } from '../../../shared/pipes/status-badge.pipe';
+import { centerIdFromOpd, consoleIsAdmin, listCenterIdForRequest, listDateForRequest } from '../../../core/utils/listing-scope';
 import { todayLocalYmd } from '../../../core/utils/local-date';
 
 type Center = { id: number; name: string; hospital_name?: string; city?: string };
+type OpdPickRow = { id: number; name: string; display_code: string; center_id: number; center_label: string; sort_order: number };
 type LabRow = {
   order_id: number;
   appointment_id: number;
@@ -31,6 +34,8 @@ type LabOrderDetail = {
 })
 export class LaboratoryPage implements OnInit {
   centers: Center[] = [];
+  opdPickList: OpdPickRow[] = [];
+  filterOpdId: number | '' = '';
   centerId: number | '' = '';
   date = todayLocalYmd();
   pendingOnly = false;
@@ -47,9 +52,42 @@ export class LaboratoryPage implements OnInit {
 
   constructor(
     private readonly api: ApiService,
+    private readonly auth: AuthService,
     private readonly toast: ToastService,
     private readonly cdr: ChangeDetectorRef,
   ) {}
+
+  isAdmin(): boolean {
+    return consoleIsAdmin(this.auth.user());
+  }
+
+  private async loadListingBootstrap(): Promise<void> {
+    const ms = 20000;
+    if (this.isAdmin()) {
+      try {
+        this.opdPickList = await this.api.get<OpdPickRow[]>('/public/opds', ms);
+      } catch {
+        this.opdPickList = [];
+      }
+      if (this.filterOpdId === '' && this.opdPickList[0]) this.filterOpdId = this.opdPickList[0].id;
+      this.centerId = centerIdFromOpd(this.opdPickList, this.filterOpdId);
+    } else {
+      const c = this.auth.user()?.opd_center_id;
+      if (c != null) this.centerId = c;
+    }
+    try {
+      this.centers = await this.api.get<Center[]>('/centers', ms);
+      if (!this.centers.length) this.centers = await this.api.get<Center[]>('/public/centers', ms);
+    } catch (e) {
+      try {
+        this.centers = await this.api.get<Center[]>('/public/centers', ms);
+      } catch {
+        this.centers = [];
+        this.error = e instanceof Error ? e.message : 'Failed to load centers';
+      }
+    }
+    this.cdr.detectChanges();
+  }
 
   private async withTimeout<T>(promise: Promise<T>, ms = 8000): Promise<T> {
     return await Promise.race([
@@ -59,21 +97,13 @@ export class LaboratoryPage implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
+    await this.loadListingBootstrap();
     await this.load();
-    try {
-      this.centers = await this.api.get<Center[]>('/centers', 20000);
-      if (!this.centers.length) this.centers = await this.api.get<Center[]>('/public/centers', 20000);
-      if (this.centers[0]) this.centerId = this.centers[0].id;
-    } catch (e) {
-      try {
-        this.centers = await this.api.get<Center[]>('/public/centers', 20000);
-        if (this.centers[0]) this.centerId = this.centers[0].id;
-      } catch {
-        this.centers = [];
-        this.error = e instanceof Error ? e.message : 'Failed to load centers';
-      }
-    }
-    this.cdr.detectChanges();
+  }
+
+  async onAdminOpdChanged(): Promise<void> {
+    this.centerId = centerIdFromOpd(this.opdPickList, this.filterOpdId);
+    await this.load();
   }
 
   async load(): Promise<void> {
@@ -88,8 +118,15 @@ export class LaboratoryPage implements OnInit {
       this.cdr.detectChanges();
     }, 9000);
     try {
+      this.date = listDateForRequest(this.auth.user(), this.date);
+      if (!this.isAdmin()) {
+        this.centerId = listCenterIdForRequest(this.auth.user(), this.centerId);
+      } else {
+        this.centerId = centerIdFromOpd(this.opdPickList, this.filterOpdId);
+      }
       const params = new URLSearchParams({ date: this.date, pending_only: this.pendingOnly ? '1' : '0' });
-      if (this.centerId !== '') params.set('center_id', String(this.centerId));
+      if (this.isAdmin() && this.filterOpdId !== '') params.set('opd_id', String(this.filterOpdId));
+      else if (this.centerId !== '') params.set('center_id', String(this.centerId));
       this.rows = await this.withTimeout(this.api.get<LabRow[]>(`/lab/worklist?${params.toString()}`, 20000));
     } catch (e) {
       this.error = e instanceof Error ? e.message : 'Failed to load lab worklist';

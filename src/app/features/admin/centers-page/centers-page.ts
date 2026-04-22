@@ -9,13 +9,6 @@ import { Pagination } from '../../../ui-kit/pagination/pagination';
 import { SpeechInput } from '../../../ui-kit/speech-input/speech-input';
 
 type Hospital = { id: number; name: string };
-type CenterWeekdayRoute = {
-  weekday: number;
-  department_id: number;
-  department_name?: string;
-  clinic_id?: number | null;
-  clinic_name?: string | null;
-};
 type Center = {
   id: number;
   hospital_id: number;
@@ -24,25 +17,7 @@ type Center = {
   city: string;
   address?: string | null;
   status: string;
-  weekday_routes?: CenterWeekdayRoute[];
 };
-type RouteRow = {
-  id?: number;
-  weekday: number;
-  department_id: number;
-  clinic_id?: number | null;
-  clinic?: { id: number; name?: string } | null;
-};
-type RouteEditorRow = {
-  _key: number;
-  weekday: number;
-  department_id: number | '';
-  clinic_id: number | '';
-};
-type ClinicOpt = { id: number; name: string };
-type Department = { id: number; name: string };
-
-const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 @Component({
   selector: 'app-centers-page',
@@ -51,22 +26,12 @@ const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   styleUrl: './centers-page.scss',
 })
 export class CentersPage implements OnInit {
-  /** Table column: show this many weekday route badges, then "+ N more". */
-  readonly routePreviewMax = 3;
-
   hospitals: Hospital[] = [];
   rows: Center[] = [];
-  departments: Department[] = [];
 
   form = { hospital_id: '' as number | '', name: '', city: '', address: '' };
-  routeCenterId: number | '' = '';
-  /** Editable rows: multiple departments / OPDs per weekday allowed */
-  routeRows: RouteEditorRow[] = [];
-  clinicsByRouteKey: Record<number, ClinicOpt[]> = {};
 
   loading = false;
-  /** Weekday editor fetches routes + clinic lists — do not block the centers table (same idea as queue / pre-assessment). */
-  weekdayRoutesLoading = false;
   saving = false;
   error = '';
   private loadRunId = 0;
@@ -75,8 +40,6 @@ export class CentersPage implements OnInit {
   page = 1;
   pageSize = 10;
 
-  readonly weekdayLabels = WEEKDAY_LABELS;
-
   constructor(
     private readonly api: ApiService,
     private readonly confirm: ConfirmService,
@@ -84,7 +47,6 @@ export class CentersPage implements OnInit {
     private readonly cdr: ChangeDetectorRef,
   ) {}
 
-  /** Same as registration / queue / pre-assessment: authenticated list, then public fallback if empty or error. */
   private async fetchCentersList(ms: number): Promise<Center[]> {
     try {
       const rows = await this.api.get<Center[]>('/centers', ms);
@@ -117,38 +79,16 @@ export class CentersPage implements OnInit {
       this.cdr.detectChanges();
     }, guardMs);
     try {
-      const [rows, hospitalsRes, departmentsRes] = await Promise.all([
+      const [rows, hospitalsRes] = await Promise.all([
         this.fetchCentersList(ms),
         this.api.get<Hospital[]>('/hospitals', ms).catch(() => [] as Hospital[]),
-        this.api.get<Department[]>('/departments', ms).catch(() => [] as Department[]),
       ]);
       if (this.loadRunId !== runId) return;
 
       this.rows = rows;
       this.hospitals = hospitalsRes;
-      this.departments = departmentsRes;
 
       if (this.form.hospital_id === '' && this.hospitals[0]) this.form.hospital_id = this.hospitals[0].id;
-      if (this.routeCenterId === '' && this.rows[0]) {
-        this.routeCenterId = this.rows[0].id;
-      }
-
-      this.loading = false;
-      this.cdr.detectChanges();
-      clearTimeout(guard);
-
-      if (this.routeCenterId !== '') {
-        this.weekdayRoutesLoading = true;
-        this.cdr.detectChanges();
-        try {
-          await this.loadWeekdayRoutes(Number(this.routeCenterId));
-        } finally {
-          if (this.loadRunId === runId) {
-            this.weekdayRoutesLoading = false;
-            this.cdr.detectChanges();
-          }
-        }
-      }
     } catch (e) {
       if (this.loadRunId !== runId) return;
       this.error = e instanceof Error ? e.message : 'Failed to load centers';
@@ -206,29 +146,6 @@ export class CentersPage implements OnInit {
     this.page = 1;
   }
 
-  centerRouteLabels(row: Center): string[] {
-    const routes = [...(row.weekday_routes ?? [])].sort((a, b) => a.weekday - b.weekday);
-    return routes.map((r) => {
-      const day = WEEKDAY_LABELS[r.weekday] ?? String(r.weekday);
-      const name = (r.department_name ?? '').trim() || `Dept #${r.department_id}`;
-      const opd = (r.clinic_name ?? '').trim();
-      return opd ? `${day}: ${name} · ${opd}` : `${day}: ${name}`;
-    });
-  }
-
-  routeVisibleLabels(row: Center): string[] {
-    return this.centerRouteLabels(row).slice(0, this.routePreviewMax);
-  }
-
-  routeHiddenCount(row: Center): number {
-    const n = this.centerRouteLabels(row).length;
-    return Math.max(0, n - this.routePreviewMax);
-  }
-
-  routeFullTitle(row: Center): string {
-    return this.centerRouteLabels(row).join(', ');
-  }
-
   async saveEdit(): Promise<void> {
     if (!this.editing) return;
     this.saving = true;
@@ -269,112 +186,6 @@ export class CentersPage implements OnInit {
     } catch (e) {
       this.error = e instanceof Error ? e.message : 'Could not delete center';
       this.toast.error(this.error);
-    }
-  }
-
-  async loadWeekdayRoutes(centerId: number): Promise<void> {
-    this.routeRows = [];
-    this.clinicsByRouteKey = {};
-    try {
-      const rows = await this.api.get<RouteRow[]>(`/centers/${centerId}/weekday-routes`, 25000);
-      const base = Date.now();
-      this.routeRows = rows.map((r, i) => {
-        const cid = r.clinic_id ?? r.clinic?.id ?? null;
-        return {
-          _key: base + i,
-          weekday: r.weekday,
-          department_id: r.department_id,
-          clinic_id: cid != null ? Number(cid) : '',
-        };
-      });
-      await Promise.all(this.routeRows.map((row) => this.refreshClinicsForRouteRow(centerId, row)));
-    } catch {
-      this.routeRows = [];
-      this.clinicsByRouteKey = {};
-    }
-  }
-
-  private async refreshClinicsForRouteRow(centerId: number, row: RouteEditorRow): Promise<void> {
-    if (row.department_id === '') {
-      this.clinicsByRouteKey[row._key] = [];
-      return;
-    }
-    try {
-      const q = new URLSearchParams({
-        center_id: String(centerId),
-        department_id: String(row.department_id),
-        active_only: 'true',
-      });
-      const list = await this.api.get<ClinicOpt[]>(`/clinics?${q.toString()}`, 25000);
-      this.clinicsByRouteKey[row._key] = list ?? [];
-    } catch {
-      this.clinicsByRouteKey[row._key] = [];
-    }
-  }
-
-  async onRouteRowDeptChange(row: RouteEditorRow): Promise<void> {
-    row.clinic_id = '';
-    if (this.routeCenterId === '') return;
-    await this.refreshClinicsForRouteRow(Number(this.routeCenterId), row);
-    this.cdr.detectChanges();
-  }
-
-  addRouteRow(): void {
-    this.routeRows.push({
-      _key: Date.now(),
-      weekday: 1,
-      department_id: '',
-      clinic_id: '',
-    });
-  }
-
-  removeRouteRow(key: number): void {
-    this.routeRows = this.routeRows.filter((r) => r._key !== key);
-    delete this.clinicsByRouteKey[key];
-  }
-
-  clinicsForRouteRow(row: RouteEditorRow): ClinicOpt[] {
-    return this.clinicsByRouteKey[row._key] ?? [];
-  }
-
-  async saveWeekdayRoutes(): Promise<void> {
-    if (this.routeCenterId === '') return;
-    const body = this.routeRows
-      .filter((r) => r.department_id !== '')
-      .map((r) => ({
-        weekday: Number(r.weekday),
-        department_id: Number(r.department_id),
-        clinic_id: r.clinic_id === '' ? null : Number(r.clinic_id),
-      }));
-    this.saving = true;
-    try {
-      await this.api.request(`/centers/${this.routeCenterId}/weekday-routes`, { method: 'PUT', body, timeoutMs: 30000 });
-      this.weekdayRoutesLoading = true;
-      this.cdr.detectChanges();
-      try {
-        await this.loadWeekdayRoutes(Number(this.routeCenterId));
-      } finally {
-        this.weekdayRoutesLoading = false;
-        this.cdr.detectChanges();
-      }
-      this.toast.success('Weekday routing saved.');
-    } catch (e) {
-      this.error = e instanceof Error ? e.message : 'Could not save weekday routes';
-      this.toast.error(this.error);
-    } finally {
-      this.saving = false;
-    }
-  }
-
-  async onRouteCenterChange(): Promise<void> {
-    if (this.routeCenterId === '') return;
-    this.weekdayRoutesLoading = true;
-    this.cdr.detectChanges();
-    try {
-      await this.loadWeekdayRoutes(Number(this.routeCenterId));
-    } finally {
-      this.weekdayRoutesLoading = false;
-      this.cdr.detectChanges();
     }
   }
 }

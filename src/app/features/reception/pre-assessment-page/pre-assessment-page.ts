@@ -2,6 +2,8 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api';
+import { AuthService } from '../../../core/services/auth';
+import { centerIdFromOpd, consoleIsAdmin, listCenterIdForRequest, listDateForRequest } from '../../../core/utils/listing-scope';
 import { WorkflowStatusBadgePipe } from '../../../shared/pipes/status-badge.pipe';
 import { SpeechInput } from '../../../ui-kit/speech-input/speech-input';
 import { SlipPrintService } from '../../../core/services/slip-print.service';
@@ -9,7 +11,19 @@ import { ToastService } from '../../../core/services/toast';
 import { todayLocalYmd } from '../../../core/utils/local-date';
 
 type Center = { id: number; name: string; hospital_name?: string; city?: string };
-type QueueRow = { id: number; token_number: number; patient_name: string; patient_cnic?: string; status: string };
+type OpdPickRow = { id: number; name: string; display_code: string; center_id: number; center_label: string; sort_order: number };
+type QueueRow = {
+  id: number;
+  token_number: number;
+  patient_name: string;
+  patient_cnic?: string;
+  status: string;
+  center_name?: string | null;
+  opd_name?: string | null;
+  opd_display_code?: string | null;
+  clinic_name?: string | null;
+  ticket_display?: string | null;
+};
 type PreAssessmentInput = {
   bp_systolic: number | null;
   bp_diastolic: number | null;
@@ -28,6 +42,8 @@ type PreAssessmentInput = {
 })
 export class PreAssessmentPage implements OnInit {
   centers: Center[] = [];
+  opdPickList: OpdPickRow[] = [];
+  filterOpdId: number | '' = '';
   centerId: number | '' = '';
   date = todayLocalYmd();
   rows: QueueRow[] = [];
@@ -56,15 +72,39 @@ export class PreAssessmentPage implements OnInit {
 
   constructor(
     private readonly api: ApiService,
+    private readonly auth: AuthService,
     private readonly slipPrint: SlipPrintService,
     private readonly toast: ToastService,
     private readonly cdr: ChangeDetectorRef,
   ) {}
 
+  isAdmin(): boolean {
+    return consoleIsAdmin(this.auth.user());
+  }
+
+  private syncListScope(): void {
+    this.date = listDateForRequest(this.auth.user(), this.date);
+    this.centerId = listCenterIdForRequest(this.auth.user(), this.centerId);
+    if (this.isAdmin()) {
+      this.centerId = centerIdFromOpd(this.opdPickList, this.filterOpdId);
+    }
+  }
+
   private async ensureCenterSelected(): Promise<void> {
     if (this.centerId !== '') return;
-    if (!this.centers.length) await this.loadCenters();
-    if (this.centerId === '' && this.centers[0]) this.centerId = this.centers[0].id;
+    if (this.isAdmin()) {
+      if (!this.opdPickList.length) await this.loadCenters();
+      if (this.filterOpdId === '' && this.opdPickList[0]) this.filterOpdId = this.opdPickList[0].id;
+      this.centerId = centerIdFromOpd(this.opdPickList, this.filterOpdId);
+      return;
+    }
+    const c = this.auth.user()?.opd_center_id;
+    if (c != null) this.centerId = c;
+  }
+
+  async onAdminOpdChanged(): Promise<void> {
+    this.centerId = centerIdFromOpd(this.opdPickList, this.filterOpdId);
+    await this.onFiltersChanged();
   }
 
   async ngOnInit(): Promise<void> {
@@ -74,21 +114,29 @@ export class PreAssessmentPage implements OnInit {
 
   private async loadCenters(): Promise<void> {
     const ms = 20000;
+    if (this.isAdmin()) {
+      try {
+        this.opdPickList = await this.api.get<OpdPickRow[]>('/public/opds', ms);
+      } catch (e) {
+        this.opdPickList = [];
+        this.error = e instanceof Error ? e.message : 'Failed to load OPDs';
+      }
+      if (this.filterOpdId === '' && this.opdPickList[0]) this.filterOpdId = this.opdPickList[0].id;
+      this.centerId = centerIdFromOpd(this.opdPickList, this.filterOpdId);
+      return;
+    }
+    const c = this.auth.user()?.opd_center_id;
+    if (c != null) this.centerId = c;
     try {
       this.centers = await this.api.get<Center[]>('/centers', ms);
       if (!this.centers.length) this.centers = await this.api.get<Center[]>('/public/centers', ms);
-      if (this.centers[0]) this.centerId = this.centers[0].id;
     } catch (e) {
       try {
         this.centers = await this.api.get<Center[]>('/public/centers', ms);
-        if (this.centers[0]) this.centerId = this.centers[0].id;
       } catch {
         this.centers = [];
         this.error = e instanceof Error ? e.message : 'Failed to load centers';
       }
-    }
-    if (this.centerId === '' && this.centers[0]) {
-      this.centerId = this.centers[0].id;
     }
   }
 
@@ -98,8 +146,8 @@ export class PreAssessmentPage implements OnInit {
   }
 
   async load(showSpinner = !this.bootstrapped): Promise<void> {
+    this.syncListScope();
     await this.ensureCenterSelected();
-    if (this.centerId === '' && this.centers[0]) this.centerId = this.centers[0].id;
     const runId = ++this.loadRunId;
     const hasVisibleData = this.rows.length > 0;
     const useSpinner = showSpinner && !hasVisibleData;
@@ -116,7 +164,8 @@ export class PreAssessmentPage implements OnInit {
     const apptMs = 20000;
     try {
       const base = new URLSearchParams({ date: this.date });
-      if (this.centerId !== '') base.set('center_id', String(this.centerId));
+      if (this.isAdmin() && this.filterOpdId !== '') base.set('opd_id', String(this.filterOpdId));
+      else if (this.centerId !== '') base.set('center_id', String(this.centerId));
       const qRegistered = new URLSearchParams(base);
       qRegistered.set('status', 'registered');
       const qCheckedIn = new URLSearchParams(base);
@@ -249,10 +298,14 @@ export class PreAssessmentPage implements OnInit {
         medical_history_notes: this.form.medical_history_notes.trim() || null,
       });
       this.toast.success('Pre-assessment saved. Patient moved to ready pool.');
-      this.slipPrint.print('Pre-Assessment Slip', 'Vitals and triage notes', [
-        { label: 'Token', value: String(selected.token_number) },
+      const opdLine = [selected.opd_display_code, selected.opd_name].filter(Boolean).join(' · ') || '—';
+      this.slipPrint.print('Pre-Assessment Slip', 'Vitals and triage — OPD visit', [
+        { label: 'Ticket', value: selected.ticket_display?.trim() || String(selected.token_number) },
         { label: 'Patient', value: selected.patient_name || '-' },
         { label: 'CNIC', value: selected.patient_cnic || '-' },
+        { label: 'OPD', value: opdLine },
+        { label: 'Clinic', value: selected.clinic_name || '—' },
+        { label: 'Campus / center', value: selected.center_name || '—' },
         { label: 'Visit date', value: this.date },
         { label: 'BP', value: `${this.form.bp_systolic ?? '-'} / ${this.form.bp_diastolic ?? '-'}` },
         { label: 'Weight (kg)', value: this.form.weight_kg == null ? '-' : String(this.form.weight_kg) },

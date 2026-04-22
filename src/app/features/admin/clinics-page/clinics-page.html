@@ -2,10 +2,10 @@
   <header class="head">
     <div>
       <h1>Clinics</h1>
-      <p>OPD stations by center and department — create, edit, or deactivate (new clinics attach to the department’s default specialty).</p>
+      <p>Clinics under each OPD for the selected center — create, edit, or deactivate.</p>
     </div>
     <div class="head-actions">
-      <button class="btn primary" type="button" [disabled]="filtersLoading || centerId === '' || departmentId === '' || saving" (click)="openCreate()">
+      <button class="btn primary" type="button" [disabled]="filtersLoading || centerId === '' || opdId === '' || saving" (click)="openCreate()">
         <span class="material-icons">add</span> Add clinic
       </button>
       <button class="btn-icon btn-icon--surface" type="button" title="Refresh" aria-label="Refresh" (click)="load()">
@@ -15,7 +15,7 @@
   </header>
 
   @if (filtersLoading) {
-    <p class="muted">Loading centers and departments…</p>
+    <p class="muted">Loading centers and OPDs…</p>
   }
 
   <div class="filters">
@@ -26,10 +26,10 @@
         }
       </select>
     </label>
-    <label>Department
-      <select [(ngModel)]="departmentId" (ngModelChange)="onDepartmentChanged()" [disabled]="filtersLoading || !departments.length">
-        @for (d of departments; track d.id) {
-          <option [ngValue]="d.id">{{ d.name }}</option>
+    <label>OPD
+      <select [(ngModel)]="opdId" (ngModelChange)="onOpdChanged()" [disabled]="filtersLoading || !opds.length">
+        @for (d of opds; track d.id) {
+          <option [ngValue]="d.id">{{ d.display_code }} — {{ d.name }}</option>
         }
       </select>
     </label>
@@ -42,7 +42,7 @@
 
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Department</th><th>Clinic</th><th>Type</th><th>Location</th><th>Schedule</th><th>Status</th><th>Actions</th></tr></thead>
+      <thead><tr><th>OPD</th><th>Clinic</th><th>Type</th><th>Location</th><th>Schedule</th><th>Status</th><th>Actions</th></tr></thead>
       <tbody>
         @if (loading) {
           <tr><td colspan="7">Loading...</td></tr>
@@ -51,7 +51,7 @@
         } @else {
           @for (r of rows; track r.id) {
             <tr>
-              <td>{{ display(r.department_name) }}</td>
+              <td>{{ display(r.opd_display_code ?? r.opd_name) }}</td>
               <td>{{ display(r.name) }}</td>
               <td>{{ display(r.clinic_type) }}</td>
               <td>{{ display(r.location) }}</td>
@@ -93,7 +93,7 @@
   <div class="modal-backdrop" (click)="closeCreate()">
     <div class="modal modal--lg" (click)="$event.stopPropagation()">
       <h2>Add clinic (OPD)</h2>
-      <p class="muted small">Must be under a center that already includes this department. Uses the department’s default specialty bucket.</p>
+      <p class="muted small">Clinic is created under the selected OPD for this center.</p>
       <label class="field"><span>Name</span><app-speech-input [(model)]="form.name" placeholder="e.g. Urology OPD — Stone clinic" /></label>
       <label class="field"><span>Type</span><input [(ngModel)]="form.clinic_type" placeholder="OPD" /></label>
       <label class="field"><span>Location</span><app-speech-input [(model)]="form.location" placeholder="Wing / floor (optional)" /></label>
@@ -111,6 +111,13 @@
   <div class="modal-backdrop" (click)="closeEdit()">
     <div class="modal modal--lg" (click)="$event.stopPropagation()">
       <h2>Edit clinic</h2>
+      <label class="field"><span>OPD</span>
+        <select [(ngModel)]="editing.opd_id">
+          @for (d of opds; track d.id) {
+            <option [ngValue]="d.id">{{ d.display_code }} — {{ d.name }}</option>
+          }
+        </select>
+      </label>
       <label class="field"><span>Name</span><app-speech-input [(model)]="editing.name" placeholder="Name" /></label>
       <label class="field"><span>Type</span><input [(ngModel)]="editing.clinic_type" placeholder="OPD" /></label>
       <label class="field"><span>Location</span><app-speech-input [model]="editing.location ?? ''" (modelChange)="editing.location = $event" placeholder="Location" /></label>

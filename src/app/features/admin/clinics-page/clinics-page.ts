@@ -7,7 +7,7 @@ import { EntityStatusBadgePipe } from '../../../shared/pipes/status-badge.pipe';
 import { SpeechInput } from '../../../ui-kit/speech-input/speech-input';
 
 type Center = { id: number; name: string; hospital_name?: string; city?: string };
-type Department = { id: number; name: string; status?: string };
+type Opd = { id: number; name: string; display_code: string; status?: string };
 type Clinic = {
   id: number;
   name: string;
@@ -15,8 +15,9 @@ type Clinic = {
   status?: string | null;
   location?: string | null;
   schedule?: string | null;
-  department_id?: number | null;
-  department_name?: string | null;
+  opd_id?: number | null;
+  opd_name?: string | null;
+  opd_display_code?: string | null;
 };
 
 @Component({
@@ -30,11 +31,11 @@ export class ClinicsPage implements OnInit {
   private loadRunId = 0;
 
   centers: Center[] = [];
-  departments: Department[] = [];
+  opds: Opd[] = [];
   rows: Clinic[] = [];
 
   centerId: number | '' = '';
-  departmentId: number | '' = '';
+  opdId: number | '' = '';
   activeOnly = true;
   filtersLoading = false;
   loading = false;
@@ -73,7 +74,7 @@ export class ClinicsPage implements OnInit {
   }
 
   private scopeQuery(): string {
-    return `center_id=${encodeURIComponent(String(this.centerId))}&department_id=${encodeURIComponent(String(this.departmentId))}`;
+    return `center_id=${encodeURIComponent(String(this.centerId))}`;
   }
 
   async ngOnInit(): Promise<void> {
@@ -89,11 +90,11 @@ export class ClinicsPage implements OnInit {
       this.centers = await this.fetchCentersList(ms);
       if (this.centerId === '' && this.centers[0]) this.centerId = this.centers[0].id;
       this.cdr.detectChanges();
-      await this.loadDepartmentsForCenter();
+      await this.loadOpdsForCenter();
     } catch (e) {
       this.error = e instanceof Error ? e.message : 'Failed to load centers';
       this.centers = [];
-      this.departments = [];
+      this.opds = [];
       this.toast.error(this.error);
     } finally {
       this.filtersLoading = false;
@@ -101,33 +102,33 @@ export class ClinicsPage implements OnInit {
     }
   }
 
-  async loadDepartmentsForCenter(): Promise<void> {
+  async loadOpdsForCenter(): Promise<void> {
     const ms = this.apiMs;
     if (this.centerId === '' || this.centerId == null) {
-      this.departments = [];
-      this.departmentId = '';
+      this.opds = [];
+      this.opdId = '';
       return;
     }
     try {
-      this.departments = await this.api.get<Department[]>(`/departments?center_id=${this.centerId}&active_only=true`, ms);
-      if (this.departmentId === '' && this.departments[0]) this.departmentId = this.departments[0].id;
-      if (this.departmentId !== '' && !this.departments.some((d) => d.id === this.departmentId)) {
-        this.departmentId = this.departments[0]?.id ?? '';
+      this.opds = await this.api.get<Opd[]>(`/opds?center_id=${this.centerId}`, ms);
+      if (this.opdId === '' && this.opds[0]) this.opdId = this.opds[0].id;
+      if (this.opdId !== '' && !this.opds.some((d) => d.id === this.opdId)) {
+        this.opdId = this.opds[0]?.id ?? '';
       }
     } catch {
-      this.departments = [];
-      this.departmentId = '';
+      this.opds = [];
+      this.opdId = '';
     }
     this.cdr.detectChanges();
   }
 
   async onCenterChanged(): Promise<void> {
-    this.departmentId = '';
-    await this.loadDepartmentsForCenter();
+    this.opdId = '';
+    await this.loadOpdsForCenter();
     await this.load();
   }
 
-  async onDepartmentChanged(): Promise<void> {
+  async onOpdChanged(): Promise<void> {
     await this.load();
   }
 
@@ -168,7 +169,7 @@ export class ClinicsPage implements OnInit {
   }
 
   async load(showSpinner = true): Promise<void> {
-    if (this.centerId === '' || this.departmentId === '') {
+    if (this.centerId === '' || this.opdId === '') {
       this.rows = [];
       this.loading = false;
       this.cdr.detectChanges();
@@ -189,7 +190,7 @@ export class ClinicsPage implements OnInit {
     try {
       const params = new URLSearchParams({
         center_id: String(this.centerId),
-        department_id: String(this.departmentId),
+        opd_id: String(this.opdId),
         active_only: this.activeOnly ? '1' : '0',
       });
       const payload = await this.api.get<Clinic[] | { data?: Clinic[] }>(
@@ -213,8 +214,8 @@ export class ClinicsPage implements OnInit {
   }
 
   async createClinic(): Promise<void> {
-    if (this.centerId === '' || this.departmentId === '' || !this.form.name.trim()) {
-      this.toast.error('Center, department, and clinic name are required.');
+    if (this.centerId === '' || this.opdId === '' || !this.form.name.trim()) {
+      this.toast.error('Center, OPD, and clinic name are required.');
       return;
     }
     this.saving = true;
@@ -223,7 +224,7 @@ export class ClinicsPage implements OnInit {
         '/clinics',
         {
           center_id: Number(this.centerId),
-          department_id: Number(this.departmentId),
+          opd_id: Number(this.opdId),
           name: this.form.name.trim(),
           clinic_type: this.form.clinic_type.trim() || 'OPD',
           location: this.form.location.trim() || null,
@@ -246,7 +247,7 @@ export class ClinicsPage implements OnInit {
 
   async saveEdit(): Promise<void> {
     if (!this.editing) return;
-    if (this.centerId === '' || this.departmentId === '') return;
+    if (this.centerId === '') return;
     this.saving = true;
     try {
       await this.api.patch(
@@ -257,6 +258,7 @@ export class ClinicsPage implements OnInit {
           location: this.editing.location?.trim() ? this.editing.location.trim() : null,
           schedule: this.editing.schedule?.trim() ? this.editing.schedule.trim() : null,
           status: (this.editing.status === 'Inactive' ? 'Inactive' : 'Active') as 'Active' | 'Inactive',
+          opd_id: this.editing.opd_id != null ? Number(this.editing.opd_id) : Number(this.opdId),
         },
         this.apiMs,
       );
@@ -272,8 +274,8 @@ export class ClinicsPage implements OnInit {
   }
 
   async deactivate(row: Clinic): Promise<void> {
-    if (this.centerId === '' || this.departmentId === '') return;
-    if (!confirm(`Deactivate OPD/clinic “${row.name}”? It will be hidden when “Active only” is on.`)) return;
+    if (this.centerId === '') return;
+    if (!confirm(`Deactivate clinic “${row.name}”? It will be hidden when “Active only” is on.`)) return;
     this.saving = true;
     try {
       await this.api.request(`/clinics/${row.id}?${this.scopeQuery()}`, { method: 'DELETE', timeoutMs: this.apiMs });

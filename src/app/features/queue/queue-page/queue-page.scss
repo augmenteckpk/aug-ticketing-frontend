@@ -153,6 +153,157 @@
   background: #eff6ff;
 }
 
+.doctor-lane-section {
+  border-color: #c7d2fe;
+  background: linear-gradient(180deg, #f8fafc 0%, #fff 38%);
+}
+
+.doctor-lane-lead {
+  font-size: 0.88rem;
+  line-height: 1.45;
+  margin-bottom: 0.75rem;
+}
+
+.doctor-batch-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.doctor-batch-card {
+  align-content: start;
+}
+
+.doctor-batch-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.doctor-batch-label {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.doctor-batch-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.doctor-room-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.metric {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.35rem 0.55rem;
+  border-radius: 0.55rem;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  min-width: 4.25rem;
+}
+
+.metric__n {
+  font-size: 1.15rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.metric__l {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.metric--cleared .metric__n {
+  color: #15803d;
+}
+
+.metric--open .metric__n {
+  color: #b45309;
+}
+
+.metric--total .metric__n {
+  color: #1d4ed8;
+}
+
+.slot-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0.45rem 0;
+  min-height: 2.25rem;
+  align-items: center;
+}
+
+.slot {
+  width: 14px;
+  height: 22px;
+  border-radius: 4px;
+  border: 1px solid #cbd5e1;
+  flex-shrink: 0;
+}
+
+.slot--done {
+  background: linear-gradient(180deg, #bbf7d0, #86efac);
+  border-color: #4ade80;
+}
+
+.slot--open {
+  background: linear-gradient(180deg, #fde68a, #fcd34d);
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.25);
+  animation: slotPulse 2.4s ease-in-out infinite;
+}
+
+.slot--inline {
+  display: inline-block;
+  vertical-align: middle;
+  width: 10px;
+  height: 16px;
+  margin: 0 0.15rem;
+}
+
+.slot-overflow {
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+.remaining-tokens {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+.remaining-tokens-modal {
+  margin-top: 0.35rem;
+}
+
+.doctor-room-fallback {
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+@keyframes slotPulse {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.08);
+  }
+}
+
 .batch h4 {
   margin: 0;
 }

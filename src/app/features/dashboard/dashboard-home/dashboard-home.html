@@ -11,47 +11,51 @@
       </div>
 
       <div class="dashboard-hero__controls" aria-label="Dashboard filters">
-        <div class="preset-row">
-          <span class="preset-row__label">Range</span>
-          <div class="preset-chips" role="group" aria-label="Date range preset">
-            @for (opt of rangeOptions; track opt.id) {
-              <button
-                type="button"
-                class="preset-chip"
-                [class.preset-chip--active]="rangePreset === opt.id"
-                (click)="setPreset(opt.id)"
-                [disabled]="loading"
-              >
-                {{ opt.label }}
-              </button>
-            }
-          </div>
-        </div>
-
-        <div class="hero-fields">
-          <label class="hero-field">
-            <span>End date</span>
-            <input type="date" [(ngModel)]="date" (change)="loadSummary()" [disabled]="loading" />
-          </label>
-          <label class="hero-field hero-field--grow">
-            <span>Center</span>
-            <select [(ngModel)]="centerId" (change)="loadSummary()" [disabled]="loading">
-              <option [ngValue]="''">All centers</option>
-              @for (c of centers; track c.id) {
-                <option [ngValue]="c.id">{{ c.hospital_name }} — {{ c.name }} ({{ c.city }})</option>
+        @if (isAdmin()) {
+          <div class="preset-row">
+            <span class="preset-row__label">Range</span>
+            <div class="preset-chips" role="group" aria-label="Date range preset">
+              @for (opt of rangeOptions; track opt.id) {
+                <button
+                  type="button"
+                  class="preset-chip"
+                  [class.preset-chip--active]="rangePreset === opt.id"
+                  (click)="setPreset(opt.id)"
+                  [disabled]="loading"
+                >
+                  {{ opt.label }}
+                </button>
               }
-            </select>
-          </label>
-          <button
-            type="button"
-            class="btn btn-secondary hero-today-btn"
-            (click)="resetToToday()"
-            [disabled]="loading"
-            title="Set end date to today and range to 1 day"
-          >
-            Today
-          </button>
-        </div>
+            </div>
+          </div>
+
+          <div class="hero-fields">
+            <label class="hero-field">
+              <span>End date</span>
+              <input type="date" [(ngModel)]="date" (change)="loadSummary()" [disabled]="loading" />
+            </label>
+            <label class="hero-field hero-field--grow">
+              <span>OPD</span>
+              <select [(ngModel)]="filterOpdId" (change)="loadSummary()" [disabled]="loading || !opdFilterList.length">
+                <option [ngValue]="''">All OPDs</option>
+                @for (o of opdFilterList; track o.id) {
+                  <option [ngValue]="o.id">{{ o.center_label }} — {{ o.name }} ({{ o.display_code }})</option>
+                }
+              </select>
+            </label>
+            <button
+              type="button"
+              class="btn btn-secondary hero-today-btn"
+              (click)="resetToToday()"
+              [disabled]="loading"
+              title="Set end date to today and range to 1 day"
+            >
+              Today
+            </button>
+          </div>
+        } @else {
+          <p class="muted staff-scope-hint">Showing <strong>today</strong> for <strong>your assigned OPD</strong>. Range and date filters are available to administrators only.</p>
+        }
       </div>
     </div>
 
@@ -86,8 +90,8 @@
             <p class="metric-card__value">{{ summary.system?.centers ?? '—' }}</p>
           </article>
           <article class="metric-card">
-            <p class="metric-card__label">Departments</p>
-            <p class="metric-card__value">{{ summary.system?.departments ?? '—' }}</p>
+            <p class="metric-card__label">OPDs</p>
+            <p class="metric-card__value">{{ summary.system?.opds ?? '—' }}</p>
           </article>
           <article class="metric-card">
             <p class="metric-card__label">Clinics</p>

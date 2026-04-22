@@ -2,7 +2,7 @@
   <header class="head">
     <div>
       <h1>Users</h1>
-      <p>Manage staff accounts and role assignment.</p>
+      <p>Manage staff accounts, roles, and OPD assignment (staff see only their OPD’s visits and queues).</p>
     </div>
     <div class="actions">
       <button class="btn primary" (click)="creating = true" [disabled]="saving || loading">Create user</button>
@@ -16,17 +16,18 @@
 
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Username</th><th>Role</th><th>Status</th><th>Email</th><th class="right">Actions</th></tr></thead>
+      <thead><tr><th>Username</th><th>Role</th><th>OPD</th><th>Status</th><th>Email</th><th class="right">Actions</th></tr></thead>
       <tbody>
         @if (loading) {
-          <tr><td colspan="5">Loading...</td></tr>
+          <tr><td colspan="6">Loading...</td></tr>
         } @else if (!rows.length) {
-          <tr><td colspan="5">No users found.</td></tr>
+          <tr><td colspan="6">No users found.</td></tr>
         } @else {
           @for (u of paged; track u.id) {
             <tr>
               <td>{{ u.username }}</td>
               <td>{{ u.role }}</td>
+              <td>{{ opdLabel(u) }}</td>
               <td><span [class]="u.status | entityStatusBadge">{{ u.status }}</span></td>
               <td>{{ u.email || '—' }}</td>
               <td class="right td-actions">
@@ -35,7 +36,7 @@
                   class="btn-icon btn-icon--primary"
                   title="Edit user"
                   aria-label="Edit user"
-                  (click)="editing = { ...u }"
+                  (click)="openEdit(u)"
                 >
                   <span class="material-icons">edit</span>
                 </button>
@@ -77,6 +78,17 @@
           @for (r of roles; track r.id) { <option [value]="r.name">{{ r.name }}</option> }
         </select>
       </label>
+      @if (showOpdForRole(form.role_name) && opdOptions.length) {
+        <label>Assigned OPD
+          <select [(ngModel)]="form.opd_id" [disabled]="saving">
+            <option [ngValue]="''">None</option>
+            @for (o of opdOptions; track o.id) {
+              <option [ngValue]="o.id">{{ o.center_label }} — {{ o.name }} ({{ o.display_code }})</option>
+            }
+          </select>
+        </label>
+        <p class="muted small">Counter and queue staff should be assigned to the OPD they work at.</p>
+      }
       <div class="actions">
         <button class="btn" (click)="creating = false">Cancel</button>
         <button
@@ -92,9 +104,10 @@
 }
 
 @if (editing) {
-  <div class="modal-overlay" (click)="editing = null">
+  <div class="modal-overlay" (click)="editing = null; editOpdId = ''">
     <div class="modal" (click)="$event.stopPropagation()">
       <h3>Edit user</h3>
+      <p class="muted">{{ editing.username }}</p>
       <app-speech-input label="Email" [model]="editing.email ?? ''" (modelChange)="editing.email = $event" type="email" />
       <app-speech-input label="Phone" [model]="editing.phone ?? ''" (modelChange)="editing.phone = $event" type="tel" />
       <label>Role
@@ -102,6 +115,16 @@
           @for (r of roles; track r.id) { <option [value]="r.name">{{ r.name }}</option> }
         </select>
       </label>
+      @if (showOpdForRole(editing.role) && opdOptions.length) {
+        <label>Assigned OPD
+          <select [(ngModel)]="editOpdId">
+            <option [ngValue]="''">None</option>
+            @for (o of opdOptions; track o.id) {
+              <option [ngValue]="o.id">{{ o.center_label }} — {{ o.name }} ({{ o.display_code }})</option>
+            }
+          </select>
+        </label>
+      }
       <label>Status
         <select [(ngModel)]="editing.status">
           <option value="Active">Active</option>
@@ -110,7 +133,7 @@
         </select>
       </label>
       <div class="actions">
-        <button class="btn" (click)="editing = null">Cancel</button>
+        <button class="btn" (click)="editing = null; editOpdId = ''">Cancel</button>
         <button class="btn primary" (click)="saveEdit()" [disabled]="saving">Save</button>
       </div>
     </div>

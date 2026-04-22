@@ -2,7 +2,7 @@
   <header class="head">
     <div>
       <h1>Reporting</h1>
-      <p class="subtitle">Daily operational report with center, department and visit breakdown.</p>
+      <p class="subtitle">Daily operational report with center, OPD, and visit breakdown.</p>
     </div>
     <div class="actions">
       <button type="button" class="btn-icon btn-icon--surface" title="Refresh report" aria-label="Refresh report" (click)="load()">
@@ -14,9 +14,21 @@
   </header>
 
   <div class="filters">
-    <label for="reportDate">Date
-      <input id="reportDate" type="date" [(ngModel)]="date" (change)="load()" />
-    </label>
+    @if (isAdmin()) {
+      <label for="reportOpd">OPD
+        <select id="reportOpd" [(ngModel)]="filterOpdId" (change)="load()">
+          <option [ngValue]="''">All OPDs</option>
+          @for (o of opdFilterList; track o.id) {
+            <option [ngValue]="o.id">{{ o.center_label }} — {{ o.name }} ({{ o.display_code }})</option>
+          }
+        </select>
+      </label>
+      <label for="reportDate">Date
+        <input id="reportDate" type="date" [(ngModel)]="date" (change)="load()" />
+      </label>
+    } @else {
+      <p class="muted staff-scope-hint">Showing <strong>today</strong> for <strong>your assigned OPD</strong>.</p>
+    }
   </div>
 
   @if (loading) {
@@ -34,8 +46,8 @@
         <h2>{{ data.by_center.length }}</h2>
       </article>
       <article class="kpi">
-        <p>Departments covered</p>
-        <h2>{{ data.by_department.length }}</h2>
+        <p>OPDs covered</p>
+        <h2>{{ data.by_opd?.length ?? 0 }}</h2>
       </article>
     </div>
 
@@ -79,7 +91,28 @@
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>Token</th><th>Patient</th><th>CNIC</th><th>Center</th><th>Department</th><th>Status</th></tr>
+          <tr><th>OPD code</th><th>OPD name</th><th>Total</th></tr>
+        </thead>
+        <tbody>
+          @if (!(data.by_opd ?? []).length) {
+            <tr><td colspan="3">No OPD summary for this date.</td></tr>
+          } @else {
+            @for (r of data.by_opd!; track r.opd_id ?? 'x') {
+              <tr>
+                <td>{{ r.display_code || '—' }}</td>
+                <td>{{ r.opd_name || 'Unassigned' }}</td>
+                <td>{{ r.total }}</td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Token</th><th>Patient</th><th>CNIC</th><th>Center</th><th>OPD</th><th>Status</th></tr>
         </thead>
         <tbody>
           @if (!data.patient_visits.length) {
@@ -91,7 +124,7 @@
                 <td>{{ v.patient_name }}</td>
                 <td>{{ v.patient_cnic }}</td>
                 <td>{{ v.center_name }}</td>
-                <td>{{ v.department_name || 'Unassigned' }}</td>
+                <td>{{ v.opd_display_code || v.opd_name || '—' }}</td>
                 <td><span [class]="v.status | workflowStatusBadge">{{ v.status }}</span></td>
               </tr>
             }

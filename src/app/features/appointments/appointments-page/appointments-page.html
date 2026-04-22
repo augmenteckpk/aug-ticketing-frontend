@@ -22,19 +22,22 @@
   </div>
 
   <div class="filters">
-    <label>
-      <span>Center</span>
-      <select [(ngModel)]="centerId" (change)="onFilterChange()">
-        <option [ngValue]="''">All centers</option>
-        @for (c of centers; track c.id) {
-          <option [ngValue]="c.id">{{ c.hospital_name }} - {{ c.name }} ({{ c.city }})</option>
-        }
-      </select>
-    </label>
-    <label>
-      <span>Date</span>
-      <input type="date" [(ngModel)]="date" (change)="onFilterChange()" />
-    </label>
+    @if (isAdmin()) {
+      <label>
+        <span>OPD</span>
+        <select [(ngModel)]="filterOpdId" (change)="onAdminOpdChanged()">
+          @for (o of opdPickList; track o.id) {
+            <option [ngValue]="o.id">{{ o.center_label }} — {{ o.name }} ({{ o.display_code }})</option>
+          }
+        </select>
+      </label>
+      <label>
+        <span>Date</span>
+        <input type="date" [(ngModel)]="date" (change)="onFilterChange()" />
+      </label>
+    } @else {
+      <p class="muted staff-scope-hint">Showing <strong>today</strong> for <strong>your assigned OPD</strong>.</p>
+    }
     <label>
       <span>Status</span>
       <select [(ngModel)]="status" (change)="onFilterChange()">
@@ -61,7 +64,7 @@
           <th scope="col">Patient</th>
           <th scope="col">CNIC</th>
           <th scope="col">Center</th>
-          <th scope="col">Department</th>
+          <th scope="col">OPD</th>
           <th scope="col">Date</th>
           <th scope="col">Status</th>
           <th scope="col">Action</th>
@@ -75,11 +78,11 @@
         } @else {
           @for (r of pagedRows; track r.id) {
             <tr>
-              <td>{{ r.token_number }}</td>
+              <td>{{ r.ticket_display || ('#' + r.token_number) }}</td>
               <td>{{ r.patient_name || ('Patient #' + r.id) }}</td>
               <td>{{ r.patient_cnic || '—' }}</td>
               <td>{{ r.center_name || '—' }}</td>
-              <td>{{ r.department_name || '—' }}</td>
+              <td>{{ r.opd_display_code || r.opd_name || '—' }}</td>
               <td>{{ r.appointment_date }}</td>
               <td><span [class]="r.status | workflowStatusBadge">{{ r.status }}</span></td>
               <td class="right td-actions">
@@ -170,18 +173,53 @@
         </button>
       </div>
       <div class="walkin-grid">
-        <label>
-          <span>Center</span>
-          <select [(ngModel)]="walkIn.center_id">
-            @for (c of centers; track c.id) {
-              <option [ngValue]="c.id">{{ c.name }}</option>
+        @if (isAdmin()) {
+          <label>
+            <span>Center</span>
+            <select [(ngModel)]="walkIn.center_id" (ngModelChange)="onWalkInCenterOrDateChanged()">
+              @for (c of centers; track c.id) {
+                <option [ngValue]="c.id">{{ c.name }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            <span>Date</span>
+            <input type="date" [(ngModel)]="walkIn.appointment_date" (ngModelChange)="onWalkInCenterOrDateChanged()" />
+          </label>
+        } @else {
+          <p class="muted walkin-span-2">Visit date and site are fixed to <strong>today</strong> and <strong>your OPD center</strong>.</p>
+        }
+        <label class="walkin-span-2">
+          <span>OPD</span>
+          <select
+            [(ngModel)]="walkIn.opd_id"
+            (ngModelChange)="onWalkInOpdChanged()"
+            [disabled]="walkInBookingLoading || !walkInBooking?.opds?.length"
+          >
+            <option [ngValue]="''">Select OPD…</option>
+            @for (b of walkInBooking?.opds ?? []; track b.opd.id) {
+              <option [ngValue]="b.opd.id">{{ b.opd.name }} ({{ b.opd.display_code }})</option>
             }
           </select>
         </label>
-        <label>
-          <span>Date</span>
-          <input type="date" [(ngModel)]="walkIn.appointment_date" />
+        <label class="walkin-span-2">
+          <span>Clinic (prefix)</span>
+          <select [(ngModel)]="walkIn.clinic_id" [disabled]="walkIn.opd_id === '' || walkInBookingLoading">
+            <option [ngValue]="''">Select clinic…</option>
+            @for (cl of walkInClinicsForSelectedOpd(); track cl.clinic_id) {
+              <option [ngValue]="cl.clinic_id">
+                {{ cl.clinic_name || 'Clinic' }} — {{ cl.ticket_prefix }}
+              </option>
+            }
+          </select>
         </label>
+        @if (walkInBookingLoading) {
+          <p class="walkin-roster-hint walkin-span-2" role="status">Loading roster for this day…</p>
+        } @else if (walkInBooking && !walkInBooking.opds.length) {
+          <p class="walkin-roster-hint walkin-span-2">
+            No clinics on roster for this weekday. Set OPD weekday clinics in admin or pick another date.
+          </p>
+        }
         <label>
           <span>CNIC</span>
           <app-speech-input [(model)]="walkIn.cnic" placeholder="42101-1234567-8" />

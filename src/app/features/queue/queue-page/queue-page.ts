@@ -6,9 +6,11 @@ import { ApiService } from '../../../core/services/api';
 import { AuthService } from '../../../core/services/auth';
 import { ConfirmService } from '../../../core/services/confirm';
 import { ToastService } from '../../../core/services/toast';
+import { centerIdFromOpd, listDateForRequest } from '../../../core/utils/listing-scope';
 import { todayLocalYmd } from '../../../core/utils/local-date';
 
 type Center = { id: number; name: string; hospital_name?: string; city?: string };
+type OpdPickRow = { id: number; name: string; display_code: string; center_id: number; center_label: string; sort_order: number };
 type QueueReady = {
   id: number;
   token_number: number;
@@ -19,7 +21,21 @@ type QueueReady = {
   priority_flagged_at?: string | null;
   priority_flagged_by_username?: string | null;
 };
-type Batch = { id: number; status: string; item_count: number; batch_index?: number; appointment_date?: string; created_at?: string };
+type DoctorRoom = {
+  dispatched_total: number;
+  remaining_with_doctor: number;
+  remaining_token_numbers: number[];
+};
+type Batch = {
+  id: number;
+  status: string;
+  item_count: number;
+  batch_index?: number;
+  appointment_date?: string;
+  created_at?: string;
+  clinic_id?: number | null;
+  doctor_room?: DoctorRoom;
+};
 type QueueNotArrived = { id: number; token_number: number; patient_name: string; status: string };
 type QueueFlagged = {
   id: number;
@@ -39,10 +55,13 @@ type BatchDetail = {
     token_number: number;
     patient_name: string;
     patient_cnic?: string | null;
-    department_name?: string | null;
+    opd_display_code?: string | null;
+    opd_name?: string | null;
+    clinic_name?: string | null;
     location?: string | null;
     status?: string | null;
   }>;
+  doctor_room?: DoctorRoom;
 };
 const EMERGENCY_LEVELS = new Set(['critical_immediate', 'critical_today']);
 
@@ -55,6 +74,9 @@ const EMERGENCY_LEVELS = new Set(['critical_immediate', 'critical_today']);
 export class QueuePage implements OnInit, OnDestroy {
   centers: Center[] = [];
   centerId: number | '' = '';
+  /** Admin: pick OPD → we derive `centerId` for queue APIs. */
+  opdPickList: OpdPickRow[] = [];
+  adminFilterOpdId: number | '' = '';
   date = todayLocalYmd();
   readyRows: QueueReady[] = [];
   notArrivedRows: QueueNotArrived[] = [];
@@ -72,6 +94,9 @@ export class QueuePage implements OnInit, OnDestroy {
   saving = false;
   error = '';
   poolSize = 20;
+  /** Per-clinic batch lane (required for non-admin queue APIs). */
+  clinicLaneId: number | '' = '';
+  clinicOptions: { id: number; label: string }[] = [];
   live = true;
   bootstrapped = false;
   hasLoadedOnce = false;
@@ -93,10 +118,57 @@ export class QueuePage implements OnInit, OnDestroy {
     ]);
   }
 
+  isQueueAdmin(): boolean {
+    return this.auth.user()?.role === 'admin';
+  }
+
+  private queueQueryString(): string {
+    const d = listDateForRequest(this.auth.user(), this.date);
+    const params = new URLSearchParams({ date: d, center_id: String(this.centerId) });
+    if (this.clinicLaneId !== '') params.set('clinic_id', String(this.clinicLaneId));
+    return params.toString();
+  }
+
+  private async loadClinicLaneOptions(): Promise<void> {
+    if (this.centerId === '' || !this.date) return;
+    const d = listDateForRequest(this.auth.user(), this.date);
+    try {
+      const res = await this.api.get<{
+        opds: Array<{
+          opd: { id: number; name: string };
+          clinics: Array<{ clinic_id: number; clinic_name: string | null }>;
+        }>;
+      }>(`/centers/${this.centerId}/opd-booking-options?date=${encodeURIComponent(d)}`);
+      const staffOpdId = this.auth.user()?.opd_id;
+      const opts: { id: number; label: string }[] = [];
+      for (const block of res.opds ?? []) {
+        if (!this.isQueueAdmin() && staffOpdId != null && block.opd.id !== staffOpdId) continue;
+        for (const cl of block.clinics ?? []) {
+          opts.push({
+            id: cl.clinic_id,
+            label: `${block.opd.name} — ${cl.clinic_name ?? 'Clinic ' + cl.clinic_id}`,
+          });
+        }
+      }
+      this.clinicOptions = opts;
+      if (!this.isQueueAdmin() && opts.length && this.clinicLaneId === '') {
+        this.clinicLaneId = opts[0].id;
+      }
+    } catch {
+      this.clinicOptions = [];
+    }
+  }
+
   private async ensureCenterSelected(): Promise<void> {
     if (this.centerId !== '') return;
-    if (!this.centers.length) await this.loadCenters();
-    if (this.centerId === '' && this.centers[0]) this.centerId = this.centers[0].id;
+    if (this.isQueueAdmin()) {
+      if (!this.opdPickList.length) await this.loadCenters();
+      if (this.adminFilterOpdId === '' && this.opdPickList[0]) this.adminFilterOpdId = this.opdPickList[0].id;
+      this.centerId = centerIdFromOpd(this.opdPickList, this.adminFilterOpdId);
+      return;
+    }
+    const c = this.auth.user()?.opd_center_id;
+    if (c != null) this.centerId = c;
   }
 
   async ngOnInit(): Promise<void> {
@@ -106,22 +178,38 @@ export class QueuePage implements OnInit, OnDestroy {
   }
 
   private async loadCenters(): Promise<void> {
-    try {
-      this.centers = await this.api.get<Center[]>('/centers', 20000);
-      if (!this.centers.length) this.centers = await this.api.get<Center[]>('/public/centers', 20000);
-      if (this.centers[0]) this.centerId = this.centers[0].id;
-    } catch (e) {
+    const ms = 20000;
+    if (this.isQueueAdmin()) {
       try {
-        this.centers = await this.api.get<Center[]>('/public/centers', 20000);
-        if (this.centers[0]) this.centerId = this.centers[0].id;
-      } catch {
-        this.centers = [];
-        this.error = e instanceof Error ? e.message : 'Failed to load centers';
+        this.opdPickList = await this.api.get<OpdPickRow[]>('/public/opds', ms);
+      } catch (e) {
+        this.opdPickList = [];
+        this.error = e instanceof Error ? e.message : 'Failed to load OPDs';
       }
+      if (this.adminFilterOpdId === '' && this.opdPickList[0]) this.adminFilterOpdId = this.opdPickList[0].id;
+      this.centerId = centerIdFromOpd(this.opdPickList, this.adminFilterOpdId);
+      return;
     }
+    const c = this.auth.user()?.opd_center_id;
+    if (c != null) this.centerId = c;
+    this.centers = [];
+  }
+
+  async onAdminOpdChanged(): Promise<void> {
+    this.centerId = centerIdFromOpd(this.opdPickList, this.adminFilterOpdId);
+    this.clinicLaneId = '';
+    await this.load(true);
   }
 
   async onFiltersChanged(): Promise<void> {
+    if (!this.isQueueAdmin()) {
+      this.date = listDateForRequest(this.auth.user(), this.date);
+    }
+    this.clinicLaneId = '';
+    await this.load(true);
+  }
+
+  async onClinicLaneChanged(): Promise<void> {
     await this.load(true);
   }
 
@@ -130,10 +218,26 @@ export class QueuePage implements OnInit, OnDestroy {
   }
 
   async load(showSpinner = true): Promise<void> {
+    this.date = listDateForRequest(this.auth.user(), this.date);
     await this.ensureCenterSelected();
     if (this.centerId === '') {
-      this.error = this.centers.length ? 'Select a center to load the queue.' : 'No centers available.';
+      this.error = this.isQueueAdmin()
+        ? 'Select an OPD to load the queue.'
+        : 'Your account has no site (OPD center) assigned. Ask an administrator to assign you to an OPD.';
       this.toast.error(this.error);
+      this.cdr.detectChanges();
+      return;
+    }
+    await this.loadClinicLaneOptions();
+    if (!this.isQueueAdmin() && this.clinicLaneId === '') {
+      this.error =
+        'No clinic lane is available for your OPD on this date (check the weekday roster), or your account has no OPD assigned.';
+      this.toast.error(this.error);
+      this.readyRows = [];
+      this.notArrivedRows = [];
+      this.batches = [];
+      this.flaggedRows = [];
+      this.notAttendingRows = [];
       this.cdr.detectChanges();
       return;
     }
@@ -150,8 +254,7 @@ export class QueuePage implements OnInit, OnDestroy {
       this.cdr.detectChanges();
     }, guardMs);
     try {
-      const params = new URLSearchParams({ date: this.date, center_id: String(this.centerId) });
-      const q = params.toString();
+      const q = this.queueQueryString();
       const reqMs = 20000;
       const [readyRes, batchesRes, notArrivedRes, flaggedRes, notAttendingRes] = await Promise.allSettled([
         this.withTimeout(this.api.get<QueueReady[]>(`/queue/ready?${q}`, reqMs), reqMs),
@@ -214,8 +317,46 @@ export class QueuePage implements OnInit, OnDestroy {
     return this.batches.reduce((sum, b) => sum + (b.item_count || 0), 0);
   }
 
+  /** Cleared “doctor room” slots (consultation outcome and/or lab or radiology recorded). */
+  doctorSlotsCleared(b: Batch): number {
+    const dr = b.doctor_room;
+    if (!dr) return 0;
+    return Math.max(0, dr.dispatched_total - dr.remaining_with_doctor);
+  }
+
+  /**
+   * Visual strip: first cells are cleared (green), remainder still with doctor (amber).
+   * Capped for very large batches; see `doctorSlotsHiddenCount`.
+   */
+  doctorSlotPattern(b: Batch): Array<'cleared' | 'open'> {
+    const dr = b.doctor_room;
+    if (!dr) return [];
+    const cleared = this.doctorSlotsCleared(b);
+    const cap = 48;
+    const total = Math.min(dr.dispatched_total, cap);
+    const out: Array<'cleared' | 'open'> = [];
+    for (let i = 0; i < total; i++) {
+      out.push(i < cleared ? 'cleared' : 'open');
+    }
+    return out;
+  }
+
+  doctorSlotsHiddenCount(b: Batch): number {
+    const dr = b.doctor_room;
+    if (!dr) return 0;
+    return Math.max(0, dr.dispatched_total - 48);
+  }
+
+  formatRemainingTokens(nums: number[]): string {
+    return nums.map((t) => `#${t}`).join(' · ');
+  }
+
   async createBatch(): Promise<void> {
     if (this.centerId === '') return;
+    if (!this.isQueueAdmin() && this.clinicLaneId === '') {
+      this.toast.error('A clinic lane is required to create batches for your OPD. Check the roster for this date.');
+      return;
+    }
     const ok = await this.confirm.ask({
       title: 'Create batch',
       message: 'Create a new queue batch for this center and date?',
@@ -224,11 +365,13 @@ export class QueuePage implements OnInit, OnDestroy {
     if (!ok) return;
     this.saving = true;
     try {
-      await this.api.post('/queue/batches', {
+      const body: Record<string, unknown> = {
         center_id: this.centerId,
-        appointment_date: this.date,
+        appointment_date: listDateForRequest(this.auth.user(), this.date),
         size: Math.max(1, Math.min(200, Number(this.poolSize) || 20)),
-      });
+      };
+      if (this.clinicLaneId !== '') body['clinic_id'] = this.clinicLaneId;
+      await this.api.post('/queue/batches', body);
       await this.load();
       this.toast.success('Batch created.');
     } catch (e) {

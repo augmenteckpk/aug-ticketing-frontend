@@ -23,12 +23,18 @@
   </header>
 
   <div class="form-grid">
-    <label>Center
-      <select [(ngModel)]="centerId">
-        @for (c of centers; track c.id) { <option [ngValue]="c.id">{{ c.hospital_name }} - {{ c.name }} ({{ c.city }})</option> }
-      </select>
-    </label>
-    <label>Date <input type="date" [(ngModel)]="date" /></label>
+    @if (isAdmin()) {
+      <label>OPD
+        <select [(ngModel)]="filterOpdId" (ngModelChange)="onAdminOpdChanged()">
+          @for (o of opdPickList; track o.id) {
+            <option [ngValue]="o.id">{{ o.center_label }} — {{ o.name }} ({{ o.display_code }})</option>
+          }
+        </select>
+      </label>
+      <label>Date <input type="date" [(ngModel)]="date" /></label>
+    } @else {
+      <p class="muted staff-scope-hint">Lookup uses <strong>today</strong> and <strong>your assigned OPD center</strong>.</p>
+    }
     <app-speech-input label="CNIC" [(model)]="cnic" placeholder="42101-1234567-8" />
   </div>
 

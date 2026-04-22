@@ -101,8 +101,8 @@ export class AppShell {
       items: [
         { to: '/app/hospitals', label: 'Hospitals', icon: 'local_hospital', perm: 'hospitals.read' },
         { to: '/app/centers', label: 'Centers', icon: 'location_on', perm: 'centers.read' },
-        { to: '/app/departments', label: 'Departments', icon: 'account_tree', perm: 'departments.read' },
-        { to: '/app/clinics', label: 'Clinics / OPDs', icon: 'medical_services', perm: 'departments.read' },
+        { to: '/app/opds', label: 'OPDs', icon: 'meeting_room', perm: 'opds.read' },
+        { to: '/app/clinics', label: 'Clinics', icon: 'medical_services', perm: 'opds.read' },
         { to: '/app/patients', label: 'Patients', icon: 'badge', perm: 'patients.read' },
         { to: '/app/users', label: 'Users', icon: 'groups', perm: 'users.manage' },
         { to: '/app/roles', label: 'Roles & permissions', icon: 'verified_user', perm: 'roles.read' },

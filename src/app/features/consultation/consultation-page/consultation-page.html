@@ -12,17 +12,20 @@
   </header>
 
   <div class="filters">
-    <label>Center
-      <select [(ngModel)]="centerId" (change)="onFiltersChanged()">
-        <option [ngValue]="''">All centers</option>
-        @for (c of centers; track c.id) {
-          <option [ngValue]="c.id">{{ c.hospital_name }} - {{ c.name }} ({{ c.city }})</option>
-        }
-      </select>
-    </label>
-    <label>Date
-      <input type="date" [(ngModel)]="date" (change)="onFiltersChanged()" />
-    </label>
+    @if (isAdmin()) {
+      <label>OPD
+        <select [(ngModel)]="filterOpdId" (change)="onAdminOpdChanged()">
+          @for (o of opdPickList; track o.id) {
+            <option [ngValue]="o.id">{{ o.center_label }} — {{ o.name }} ({{ o.display_code }})</option>
+          }
+        </select>
+      </label>
+      <label>Date
+        <input type="date" [(ngModel)]="date" (change)="onFiltersChanged()" />
+      </label>
+    } @else {
+      <p class="muted staff-scope-hint">Showing <strong>today</strong> for <strong>your assigned OPD</strong>.</p>
+    }
   </div>
 
   @if (error) {
@@ -152,60 +155,43 @@
             <label>Follow-up advised date
               <input type="date" [(ngModel)]="consultForm.follow_up_advised_date" class="input-date" />
             </label>
-            <div class="routing-panel" role="region" aria-label="Weekly OPD routing for this center">
+            <div class="routing-panel" role="region" aria-label="OPD roster for visit date">
               <div class="routing-panel__head">
-                <h3 class="routing-panel__title">Weekly OPD routing</h3>
-                <p class="routing-panel__hint">Where patients are sent by weekday at this center (matches booking).</p>
+                <h3 class="routing-panel__title">OPD / clinic roster ({{ date }})</h3>
+                <p class="routing-panel__hint">Ticket prefixes for this weekday — same options patients see when booking.</p>
               </div>
-              <div class="routing-grid">
-                @for (wd of [0, 1, 2, 3, 4, 5, 6]; track wd) {
-                  <div
-                    class="routing-row"
-                    [class.routing-row--empty]="!routesForWeekday(wd).length"
-                  >
-                    <div class="routing-row__day">
-                      <span class="routing-day-pill">{{ weekdayLabels[wd] }}</span>
-                    </div>
-                    <div class="routing-row__body">
-                      @if (!routesForWeekday(wd).length) {
-                        <span class="routing-empty">No session</span>
-                      } @else {
-                        @for (rt of routesForWeekday(wd); track routeRowTrackKey(rt)) {
-                          @let clinic = routeClinicLabel(rt);
+              @if (!bookingPreview?.opds?.length) {
+                <p class="muted small">No roster rows for this weekday, or roster not loaded. You can still pick a follow-up clinic below.</p>
+              } @else {
+                <div class="routing-grid">
+                  @for (b of bookingPreview!.opds; track b.opd.id) {
+                    <div class="routing-row">
+                      <div class="routing-row__day">
+                        <span class="routing-day-pill">{{ b.opd.display_code }}</span>
+                      </div>
+                      <div class="routing-row__body">
+                        <span class="routing-slot__dept">{{ b.opd.name }}</span>
+                        @for (cl of b.clinics; track cl.clinic_id + '-' + cl.ticket_prefix) {
                           <div class="routing-slot">
-                            <span class="routing-slot__dept">{{ routeDepartmentLabel(rt) }}</span>
-                            @if (clinic) {
-                              <span class="routing-slot__clinic">{{ clinic }}</span>
-                            }
+                            <span class="routing-slot__clinic">{{ cl.ticket_prefix }} · {{ cl.clinic_name || ('#' + cl.clinic_id) }}</span>
                           </div>
                         }
-                      }
+                      </div>
                     </div>
-                  </div>
-                }
-              </div>
+                  }
+                </div>
+              }
             </div>
-            <label>Follow-up department
-              <select
-                [ngModel]="consultForm.follow_up_advised_department_id"
-                (ngModelChange)="onFollowUpDepartmentChange($event)"
-              >
-                <option [ngValue]="''">Optional — select department</option>
-                @for (d of departmentsForCenter; track d.id) {
-                  <option [ngValue]="d.id">{{ d.name }}</option>
-                }
-              </select>
-            </label>
-            <label>Follow-up OPD / clinic
-              <select [(ngModel)]="consultForm.follow_up_advised_clinic_id" [disabled]="!clinicsForFollowUp.length">
+            <label>Follow-up clinic (optional)
+              <select [(ngModel)]="consultForm.follow_up_advised_clinic_id" [disabled]="!centerClinics.length">
                 <option [ngValue]="''">Optional — select clinic</option>
-                @for (c of clinicsForFollowUp; track c.id) {
-                  <option [ngValue]="c.id">{{ c.name }}</option>
+                @for (c of centerClinics; track c.id) {
+                  <option [ngValue]="c.id">{{ clinicOptionLabel(c) }}</option>
                 }
               </select>
             </label>
-            @if (consultForm.follow_up_advised_department_id !== '' && !clinicsForFollowUp.length) {
-              <p class="muted small">No clinics linked for this department at this center, or still loading.</p>
+            @if (!centerClinics.length) {
+              <p class="muted small">No clinics for this center, or still loading.</p>
             }
           }
           <app-speech-input
@@ -373,22 +359,11 @@
         <label>Optional follow-up after lab (review with doctor)
           <input type="date" [(ngModel)]="labForm.follow_up_advised_date" />
         </label>
-        <label>Follow-up department (ticket routing)
-          <select
-            [ngModel]="labForm.follow_up_advised_department_id"
-            (ngModelChange)="onLabFollowUpDepartmentChange($event)"
-          >
-            <option [ngValue]="''">— Weekday routing / same as visit —</option>
-            @for (d of departmentsForCenter; track d.id) {
-              <option [ngValue]="d.id">{{ d.name }}</option>
-            }
-          </select>
-        </label>
-        <label>Follow-up OPD / clinic
-          <select [(ngModel)]="labForm.follow_up_advised_clinic_id" [disabled]="!clinicsForLabFollowUp.length">
+        <label>Follow-up clinic (optional)
+          <select [(ngModel)]="labForm.follow_up_advised_clinic_id" [disabled]="!centerClinics.length">
             <option [ngValue]="''">—</option>
-            @for (c of clinicsForLabFollowUp; track c.id) {
-              <option [ngValue]="c.id">{{ c.name }}</option>
+            @for (c of centerClinics; track c.id) {
+              <option [ngValue]="c.id">{{ clinicOptionLabel(c) }}</option>
             }
           </select>
         </label>
@@ -413,22 +388,11 @@
         <label>Optional follow-up after imaging
           <input type="date" [(ngModel)]="radiologyForm.follow_up_advised_date" />
         </label>
-        <label>Follow-up department (ticket routing)
-          <select
-            [ngModel]="radiologyForm.follow_up_advised_department_id"
-            (ngModelChange)="onRadFollowUpDepartmentChange($event)"
-          >
-            <option [ngValue]="''">— Weekday routing / same as visit —</option>
-            @for (d of departmentsForCenter; track d.id) {
-              <option [ngValue]="d.id">{{ d.name }}</option>
-            }
-          </select>
-        </label>
-        <label>Follow-up OPD / clinic
-          <select [(ngModel)]="radiologyForm.follow_up_advised_clinic_id" [disabled]="!clinicsForRadFollowUp.length">
+        <label>Follow-up clinic (optional)
+          <select [(ngModel)]="radiologyForm.follow_up_advised_clinic_id" [disabled]="!centerClinics.length">
             <option [ngValue]="''">—</option>
-            @for (c of clinicsForRadFollowUp; track c.id) {
-              <option [ngValue]="c.id">{{ c.name }}</option>
+            @for (c of centerClinics; track c.id) {
+              <option [ngValue]="c.id">{{ clinicOptionLabel(c) }}</option>
             }
           </select>
         </label>

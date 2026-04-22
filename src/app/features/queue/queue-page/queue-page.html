@@ -24,16 +24,32 @@
   </header>
 
   <div class="filters">
-    <label>Center
-      <select [(ngModel)]="centerId" (change)="onFiltersChanged()">
-        @for (c of centers; track c.id) {
-          <option [ngValue]="c.id">{{ c.hospital_name }} - {{ c.name }} ({{ c.city }})</option>
-        }
-      </select>
-    </label>
-    <label>Date
-      <input type="date" [(ngModel)]="date" (change)="onFiltersChanged()" />
-    </label>
+    @if (isQueueAdmin()) {
+      <label>OPD
+        <select [(ngModel)]="adminFilterOpdId" (change)="onAdminOpdChanged()">
+          @for (o of opdPickList; track o.id) {
+            <option [ngValue]="o.id">{{ o.center_label }} — {{ o.name }} ({{ o.display_code }})</option>
+          }
+        </select>
+      </label>
+      <label>Date
+        <input type="date" [(ngModel)]="date" (change)="onFiltersChanged()" />
+      </label>
+    } @else {
+      <p class="muted staff-scope-hint">Showing <strong>today</strong> for <strong>your assigned OPD</strong>.</p>
+    }
+    @if (clinicOptions.length) {
+      <label>Clinic lane
+        <select [(ngModel)]="clinicLaneId" (change)="onClinicLaneChanged()">
+          @if (isQueueAdmin()) {
+            <option [ngValue]="''">All clinics (admin)</option>
+          }
+          @for (o of clinicOptions; track o.id) {
+            <option [ngValue]="o.id">{{ o.label }}</option>
+          }
+        </select>
+      </label>
+    }
     <label>Pool size
       <input type="number" min="1" max="200" [(ngModel)]="poolSize" />
     </label>
@@ -138,20 +154,79 @@
       }
     </section>
 
-    <section class="pool-card">
-      <h3>Dispatched Batches</h3>
+    <section class="pool-card doctor-lane-section">
+      <h3>Dispatched batches — doctor room</h3>
       @if (!dispatchedBatches.length) {
-        <p class="muted">No dispatched batches yet.</p>
+        <p class="muted">No dispatched batches yet. After you dispatch a draft batch, patient slots appear here.</p>
       } @else {
-        <div class="batch-grid">
+        <p class="muted doctor-lane-lead">
+          Each <span class="slot slot--done slot--inline" aria-hidden="true"></span> slot cleared means consultation outcome and/or lab or imaging was recorded.
+          <span class="slot slot--open slot--inline" aria-hidden="true"></span> slots are still with the doctor (or awaiting orders).
+          When most slots are cleared and the <strong>Ready pool</strong> has patients, use <strong>Create batch</strong> for the next group.
+        </p>
+        <div class="batch-grid doctor-batch-grid">
           @for (b of dispatchedBatches; track b.id) {
-            <article class="batch dispatched">
-              <p>Batch #{{ b.batch_index || b.id }}</p>
-              <h4>{{ b.item_count }} items</h4>
-              <button type="button" class="btn-icon btn-icon--surface" title="Batch details" aria-label="Batch details" (click)="openBatchDetails(b.id)">
-                <span class="material-icons">list_alt</span>
-              </button>
-              <span [class]="'dispatched' | workflowStatusBadge">Dispatched</span>
+            <article class="batch dispatched doctor-batch-card">
+              <div class="doctor-batch-head">
+                <div>
+                  <p class="doctor-batch-label">Batch #{{ b.batch_index || b.id }}</p>
+                  <h4>{{ b.item_count }} sent</h4>
+                </div>
+                <div class="doctor-batch-actions">
+                  <button
+                    type="button"
+                    class="btn-icon btn-icon--surface"
+                    title="Batch details"
+                    aria-label="Batch details"
+                    (click)="openBatchDetails(b.id)"
+                  >
+                    <span class="material-icons">list_alt</span>
+                  </button>
+                  <span [class]="'dispatched' | workflowStatusBadge">Dispatched</span>
+                </div>
+              </div>
+              @if (b.doctor_room) {
+                <div class="doctor-room-metrics">
+                  <span class="metric metric--cleared">
+                    <span class="metric__n">{{ doctorSlotsCleared(b) }}</span>
+                    <span class="metric__l">cleared</span>
+                  </span>
+                  <span class="metric metric--open">
+                    <span class="metric__n">{{ b.doctor_room.remaining_with_doctor }}</span>
+                    <span class="metric__l">with doctor</span>
+                  </span>
+                  <span class="metric metric--total">
+                    <span class="metric__n">{{ b.doctor_room.dispatched_total }}</span>
+                    <span class="metric__l">in batch</span>
+                  </span>
+                </div>
+                <div
+                  class="slot-strip"
+                  role="img"
+                  [attr.aria-label]="
+                    'Doctor room: ' +
+                    doctorSlotsCleared(b) +
+                    ' cleared, ' +
+                    b.doctor_room.remaining_with_doctor +
+                    ' still with doctor, of ' +
+                    b.doctor_room.dispatched_total
+                  "
+                >
+                  @for (cell of doctorSlotPattern(b); track $index) {
+                    <span class="slot" [class.slot--done]="cell === 'cleared'" [class.slot--open]="cell === 'open'"></span>
+                  }
+                </div>
+                @if (doctorSlotsHiddenCount(b) > 0) {
+                  <p class="slot-overflow muted">+{{ doctorSlotsHiddenCount(b) }} more seats not shown in strip</p>
+                }
+                @if (b.doctor_room.remaining_token_numbers.length) {
+                  <p class="remaining-tokens">
+                    Still in room: <strong>{{ formatRemainingTokens(b.doctor_room.remaining_token_numbers) }}</strong>
+                  </p>
+                }
+              } @else {
+                <p class="muted doctor-room-fallback">Open details to refresh doctor-room counts.</p>
+              }
             </article>
           }
         </div>
@@ -165,9 +240,23 @@
     <div class="modal" (click)="$event.stopPropagation()">
       <h3>Batch #{{ selectedBatch.batch.batch_index || selectedBatch.batch.id }} Details</h3>
       <p class="muted">{{ selectedBatch.appointments.length }} patients</p>
+      @if (selectedBatch.doctor_room && selectedBatch.batch.status === 'dispatched') {
+        <p class="muted doctor-room">
+          Still with doctor: <strong>{{ selectedBatch.doctor_room.remaining_with_doctor }}</strong>
+          · Cleared from doctor view: {{ selectedBatch.doctor_room.dispatched_total - selectedBatch.doctor_room.remaining_with_doctor }}
+          · In batch: {{ selectedBatch.doctor_room.dispatched_total }}
+          <span class="hint">(cleared = consultation outcome and/or lab or radiology recorded)</span>
+        </p>
+        @if (selectedBatch.doctor_room.remaining_token_numbers.length) {
+          <p class="muted remaining-tokens-modal">
+            Tokens still in doctor room:
+            <strong>{{ formatRemainingTokens(selectedBatch.doctor_room.remaining_token_numbers) }}</strong>
+          </p>
+        }
+      }
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Token</th><th>Patient</th><th>CNIC</th><th>Department/Location</th><th>Status</th><th>Action</th></tr></thead>
+          <thead><tr><th>Token</th><th>Patient</th><th>CNIC</th><th>OPD / clinic / location</th><th>Status</th><th>Action</th></tr></thead>
           <tbody>
             @if (!selectedBatch.appointments.length) {
               <tr><td colspan="6">No patients in this batch.</td></tr>
@@ -177,7 +266,7 @@
                   <td>{{ a.token_number }}</td>
                   <td>{{ a.patient_name }}</td>
                   <td>{{ a.patient_cnic || '—' }}</td>
-                  <td>{{ a.department_name || '—' }}{{ a.location ? (' · ' + a.location) : '' }}</td>
+                  <td>{{ a.opd_display_code || a.opd_name || '—' }}{{ a.clinic_name ? (' · ' + a.clinic_name) : '' }}{{ a.location ? (' · ' + a.location) : '' }}</td>
                   <td><span [class]="(a.status || '') | workflowStatusBadge">{{ a.status || '—' }}</span></td>
                   <td>
                     @if (selectedBatch.batch.status === 'draft' && can('queue.manage')) {

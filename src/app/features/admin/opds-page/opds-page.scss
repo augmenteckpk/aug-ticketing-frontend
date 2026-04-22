@@ -1,0 +1,36 @@
+@use '../hospitals-page/hospitals-page.scss';
+
+:host {
+  display: grid;
+  gap: 1rem;
+}
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.head h1 {
+  margin: 0;
+}
+
+.head p {
+  margin: 0.35rem 0 0;
+  color: var(--color-muted);
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+}
+
+.roster-panel {
+  margin-top: 0.5rem;
+}

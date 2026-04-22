@@ -1,0 +1,179 @@
+<section class="page-card">
+  <header class="head">
+    <div>
+      <h1>OPDs</h1>
+      <p>Outpatient departments per center — ticket prefixes and weekday clinic roster are set here (hospital → center → OPD → clinics).</p>
+    </div>
+    <div class="actions">
+      <button class="btn primary" type="button" [disabled]="loading || centerId === '' || saving" (click)="openCreate()">
+        Create OPD
+      </button>
+      <button class="btn-icon btn-icon--surface" type="button" title="Refresh" aria-label="Refresh" (click)="refreshLists()" [disabled]="loading || centerId === ''">
+        <span class="material-icons" aria-hidden="true">refresh</span>
+      </button>
+    </div>
+  </header>
+
+  @if (error) {
+    <div class="error">{{ error }}</div>
+  }
+
+  <div class="filters">
+    <label>Center
+      <select [(ngModel)]="centerId" (ngModelChange)="onCenterChange()" [disabled]="loading || !centers.length">
+        @for (c of centers; track c.id) {
+          <option [ngValue]="c.id">{{ c.hospital_name ? c.hospital_name + ' · ' : '' }}{{ c.name }}</option>
+        }
+      </select>
+    </label>
+  </div>
+
+  @if (loading && !centers.length) {
+    <p class="muted">Loading…</p>
+  }
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Name</th>
+          <th>Sort</th>
+          <th>Status</th>
+          <th class="right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (centerId === '') {
+          <tr><td colspan="5" class="muted">Select a center.</td></tr>
+        } @else if (!opds.length) {
+          <tr><td colspan="5" class="muted">No OPDs for this center yet.</td></tr>
+        } @else {
+          @for (o of opds; track o.id) {
+            <tr>
+              <td><strong>{{ o.display_code }}</strong></td>
+              <td>{{ o.name }}</td>
+              <td>{{ o.sort_order ?? 0 }}</td>
+              <td><span [class]="o.status | entityStatusBadge">{{ o.status }}</span></td>
+              <td class="right td-actions">
+                <button type="button" class="btn-icon btn-icon--primary" title="Edit" aria-label="Edit" (click)="openEdit(o, $event)">
+                  <span class="material-icons">edit</span>
+                </button>
+                <button type="button" class="btn-icon btn-icon--danger" title="Remove" aria-label="Remove" (click)="removeOpd(o)">
+                  <span class="material-icons">delete</span>
+                </button>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="page-card roster-panel">
+  <header class="head">
+    <div>
+      <h2>Weekday ticket roster</h2>
+      <p>Each row is one clinic slot for a weekday with a unique ticket prefix (e.g. SKS) for that day.</p>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn primary" (click)="saveRoster()" [disabled]="saving || rosterOpdId === '' || rosterLoading">
+        Save roster
+      </button>
+    </div>
+  </header>
+  <label>OPD
+    <select [(ngModel)]="rosterOpdId" (ngModelChange)="onRosterOpdChange()" [disabled]="!opds.length">
+      <option [ngValue]="''">Select OPD</option>
+      @for (o of opds; track o.id) {
+        <option [ngValue]="o.id">{{ o.display_code }} — {{ o.name }}</option>
+      }
+    </select>
+  </label>
+  @if (rosterLoading) {
+    <p class="muted">Loading roster…</p>
+  }
+  <div class="table-wrap" [class.dimmed]="rosterLoading">
+    <table>
+      <thead>
+        <tr>
+          <th>Weekday</th>
+          <th>Clinic</th>
+          <th>Ticket prefix</th>
+          <th>Sort</th>
+          <th class="right"></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rosterRows; track row._key) {
+          <tr>
+            <td>
+              <select [(ngModel)]="row.weekday">
+                @for (idx of [0, 1, 2, 3, 4, 5, 6]; track idx) {
+                  <option [ngValue]="idx">{{ weekdayLabels[idx] }}</option>
+                }
+              </select>
+            </td>
+            <td>
+              <select [(ngModel)]="row.clinic_id">
+                <option [ngValue]="''">—</option>
+                @for (cl of clinicsAtCenter; track cl.id) {
+                  <option [ngValue]="cl.id">{{ clinicLabel(cl.id) }}</option>
+                }
+              </select>
+            </td>
+            <td><input type="text" [(ngModel)]="row.ticket_prefix" maxlength="20" placeholder="SKS" /></td>
+            <td><input type="number" [(ngModel)]="row.sort_order" min="0" /></td>
+            <td class="right">
+              <button type="button" class="btn danger ghost" (click)="removeRosterRow(row._key)">Remove</button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    <button type="button" class="btn" (click)="addRosterRow()" [disabled]="rosterOpdId === ''">Add row</button>
+  </div>
+</section>
+
+@if (creating) {
+  <div class="modal-overlay" (click)="closeCreate()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h2>Create OPD</h2>
+      <label class="field"><span>Name</span><app-speech-input [(model)]="form.name" placeholder="General OPD" /></label>
+      <label class="field"><span>Display code</span><app-speech-input [(model)]="form.display_code" placeholder="GOPD" /></label>
+      <label class="field"><span>Sort order</span><input type="number" [(ngModel)]="form.sort_order" min="0" /></label>
+      <label class="field"><span>Status</span>
+        <select [(ngModel)]="form.status">
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+      </label>
+      <div class="actions">
+        <button class="btn" type="button" (click)="closeCreate()">Cancel</button>
+        <button class="btn primary" type="button" (click)="createOpd()" [disabled]="saving">Create</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (editing) {
+  <div class="modal-overlay" (click)="closeEdit()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h2>Edit OPD</h2>
+      <label class="field"><span>Name</span><app-speech-input [(model)]="editing.name" /></label>
+      <label class="field"><span>Display code</span><app-speech-input [(model)]="editing.display_code" /></label>
+      <label class="field"><span>Sort order</span><input type="number" [(ngModel)]="editing.sort_order" min="0" /></label>
+      <label class="field"><span>Status</span>
+        <select [(ngModel)]="editing.status">
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+      </label>
+      <div class="actions">
+        <button class="btn" type="button" (click)="closeEdit()">Cancel</button>
+        <button class="btn primary" type="button" (click)="saveEdit()" [disabled]="saving">Save</button>
+      </div>
+    </div>
+  </div>
+}
