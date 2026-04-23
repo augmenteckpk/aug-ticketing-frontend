@@ -1,6 +1,8 @@
 @use '@angular/material' as mat;
 @use 'tailwindcss';
 
+@import 'quill/dist/quill.snow.css';
+
 :root {
   --color-canvas: #f0f2f8;
   --color-surface: #ffffff;

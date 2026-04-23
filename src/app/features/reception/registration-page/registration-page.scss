@@ -3,6 +3,67 @@
   gap: 1rem;
 }
 
+.reg-id-badge {
+  display: inline-block;
+  padding: 0.12rem 0.45rem;
+  border-radius: 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #7c2d12;
+  background: #ffedd5;
+  border: 1px solid #fdba74;
+  max-width: 12rem;
+  line-height: 1.2;
+}
+
+.reg-id-banner {
+  margin: 0.5rem 0 0;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.5rem;
+  font-size: 0.88rem;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #431407;
+}
+
+.reg-id-banner .reg-rel {
+  font-weight: 600;
+  color: #9a3412;
+}
+
+.upgrade-own-cnic-panel {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 0.65rem;
+  border: 1px solid #bae6fd;
+  background: #f0f9ff;
+}
+
+.upgrade-own-cnic-title {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+}
+
+.upgrade-own-cnic-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.86rem;
+  color: #0c4a6e;
+  line-height: 1.45;
+}
+
+.upgrade-own-cnic-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: flex-end;
+}
+
+.upgrade-own-cnic-row app-speech-input {
+  flex: 1 1 14rem;
+}
+
 .reg-scan-btn {
   display: inline-flex;
   align-items: center;

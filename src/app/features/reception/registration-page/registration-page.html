@@ -40,13 +40,13 @@
 
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Token</th><th>W #</th><th>Barcode</th><th>Patient</th><th>Center</th><th>Status</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Token</th><th>W #</th><th>Barcode</th><th>Patient</th><th>ID note</th><th>Center</th><th>Status</th><th>Actions</th></tr></thead>
       <tbody>
         @if (loading) {
-          <tr><td colspan="7">Loading...</td></tr>
+          <tr><td colspan="8">Loading...</td></tr>
         } @else if (!booked.length) {
           <tr>
-            <td colspan="7" [class.error]="error" class="empty-hint">
+            <td colspan="8" [class.error]="error" class="empty-hint">
               {{ error || 'No lookup yet - use Lookup booked (CNIC) or Scan visit barcode with the camera.' }}
             </td>
           </tr>
@@ -57,6 +57,13 @@
               <td class="mono-pill">{{ a.w_number?.trim() || '—' }}</td>
               <td class="mono-pill">{{ (a.visit_barcode || '').slice(0, 10) }}{{ a.visit_barcode && a.visit_barcode.length > 10 ? '...' : '' }}</td>
               <td>{{ a.patient_name }}</td>
+              <td>
+                @if (patientIdentifierBadge(a.patient_identifier_kind)) {
+                  <span class="reg-id-badge">{{ patientIdentifierBadge(a.patient_identifier_kind) }}</span>
+                } @else {
+                  —
+                }
+              </td>
               <td>{{ a.center_name || '-' }}</td>
               <td>{{ a.status }}</td>
               <td class="action-cell">
@@ -100,15 +107,33 @@
       <div>
         <h2>Register Token #{{ selected.token_number }}</h2>
         <p>Complete required patient details to move into waiting workflow.</p>
+        @if (patientIdentifierBadge(patient.identifier_kind)) {
+          <p class="reg-id-banner">
+            <strong>CNIC on chart:</strong>
+            {{ patientIdentifierBadge(patient.identifier_kind) }}
+            @if (patient.identifier_kind === 'relative_escort' && patient.escort_relationship.trim()) {
+              <span class="reg-rel">({{ patient.escort_relationship.trim() }})</span>
+            }
+          </p>
+        }
       </div>
     </header>
 
     <div class="form-grid">
+      <label class="full">Whose CNIC number is on file?
+        <select [(ngModel)]="patient.identifier_kind">
+          <option value="own">Patient’s own CNIC</option>
+          <option value="minor_father_cnic">Minor — father’s CNIC</option>
+          <option value="minor_mother_cnic">Minor — mother’s CNIC</option>
+          <option value="relative_escort">Relative / escort’s CNIC (number only)</option>
+        </select>
+      </label>
+      @if (patient.identifier_kind === 'relative_escort') {
+        <app-speech-input class="full" label="Relationship to patient" [(model)]="patient.escort_relationship" placeholder="e.g. brother, spouse" />
+      }
       <app-speech-input label="First name" [(model)]="patient.first_name" />
       <app-speech-input label="Last name" [(model)]="patient.last_name" />
       <app-speech-input label="Father name" [(model)]="patient.father_name" />
-      <app-speech-input label="Father CNIC" [(model)]="patient.father_cnic" />
-      <app-speech-input label="Mother CNIC" [(model)]="patient.mother_cnic" />
       <app-speech-input label="Phone" [(model)]="patient.phone" type="tel" />
       <label>Gender
         <select [(ngModel)]="patient.gender">
@@ -123,6 +148,27 @@
       <app-speech-input label="City" [(model)]="patient.city" />
       <app-speech-input class="full" label="Address" [(model)]="patient.address" />
     </div>
+
+    @if (showUpgradeOwnCnic()) {
+      <div class="upgrade-own-cnic-panel">
+        <h3 class="upgrade-own-cnic-title">Patient now has their own CNIC</h3>
+        <p class="upgrade-own-cnic-hint">
+          All previous visits stay on this same chart (<strong>patient #{{ selected.patient_id }}</strong>). Only the
+          CNIC on file and the “own / escort” flags are updated — nothing is moved between duplicate charts.
+        </p>
+        <div class="upgrade-own-cnic-row">
+          <app-speech-input label="Patient’s own CNIC (13 digits)" [(model)]="upgradeOwnCnicDigits" placeholder="42101-1234567-8" />
+          <button
+            type="button"
+            class="btn secondary"
+            (click)="savePatientOwnCnicOnChart()"
+            [disabled]="upgradeOwnCnicSaving"
+          >
+            {{ upgradeOwnCnicSaving ? 'Saving…' : 'Save on chart' }}
+          </button>
+        </div>
+      </div>
+    }
 
     <div class="actions">
       <button class="btn primary" (click)="register()" [disabled]="saving">Register patient</button>

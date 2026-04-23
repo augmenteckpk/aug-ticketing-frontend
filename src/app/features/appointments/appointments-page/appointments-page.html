@@ -80,7 +80,14 @@
             <tr>
               <td>{{ r.ticket_display || ('#' + r.token_number) }}</td>
               <td>{{ r.patient_name || ('Patient #' + r.id) }}</td>
-              <td>{{ r.patient_cnic || '—' }}</td>
+              <td>
+                <span class="patient-cnic-cell">{{ r.patient_cnic || '—' }}</span>
+                @if (patientIdentifierBadge(r.patient_identifier_kind)) {
+                  <span class="id-kind-badge" [attr.title]="patientIdentifierBadge(r.patient_identifier_kind)">{{
+                    patientIdentifierBadge(r.patient_identifier_kind)
+                  }}</span>
+                }
+              </td>
               <td>{{ r.center_name || '—' }}</td>
               <td>{{ r.opd_display_code || r.opd_name || '—' }}</td>
               <td>{{ r.appointment_date }}</td>
@@ -124,54 +131,10 @@
     <div class="modal modal--lg walkin-modal" (click)="$event.stopPropagation()">
       <h3>Issue walk-in token</h3>
       <p class="walkin-hint">
-        Take a photo or upload a CNIC image. The server tries
-        <strong>AI scan first</strong>
-        (when configured), then
-        <strong>browser OCR</strong>
-        if needed. The preview shows above during processing.
+        Enter CNIC and patient details manually. If a matching chart already exists, name and date of birth load
+        automatically once CNIC is complete (for minor / escort, also enter first name and DOB first).
       </p>
 
-      @if (walkInCnicPreviewUrl) {
-        <div class="walkin-preview-block">
-          <div class="walkin-preview-frame">
-            <img [src]="walkInCnicPreviewUrl" alt="Selected CNIC image preview" />
-            @if (walkInCnicProcessing) {
-              <div class="walkin-preview-overlay" role="status" aria-live="polite">
-                <span class="walkin-spinner" aria-hidden="true"></span>
-                <span>{{ walkInScanMessage || 'Processing…' }}</span>
-              </div>
-            }
-          </div>
-          <button
-            type="button"
-            class="btn-secondary walkin-remove-photo"
-            (click)="clearWalkInCnicPreview()"
-            [disabled]="walkInCnicProcessing"
-          >
-            Remove photo
-          </button>
-        </div>
-      }
-
-      <div class="walkin-scan-row">
-        <input
-          #cnicCamera
-          type="file"
-          accept="image/*"
-          capture="environment"
-          class="sr-only"
-          (change)="onWalkInCnicPhoto($event)"
-        />
-        <input #cnicGallery type="file" accept="image/*" class="sr-only" (change)="onWalkInCnicPhoto($event)" />
-        <button type="button" class="btn-secondary" (click)="cnicCamera.click()" [disabled]="walkInCnicProcessing">
-          <span class="material-icons" aria-hidden="true">photo_camera</span>
-          Camera
-        </button>
-        <button type="button" class="btn-secondary" (click)="cnicGallery.click()" [disabled]="walkInCnicProcessing">
-          <span class="material-icons" aria-hidden="true">photo_library</span>
-          Upload / gallery
-        </button>
-      </div>
       <div class="walkin-grid">
         @if (isAdmin()) {
           <label>
@@ -222,11 +185,34 @@
         }
         <label>
           <span>CNIC</span>
-          <app-speech-input [(model)]="walkIn.cnic" placeholder="42101-1234567-8" />
+          <app-speech-input
+            [(model)]="walkIn.cnic"
+            placeholder="42101-1234567-8"
+            (modelChange)="scheduleWalkInPatientPrefill()"
+          />
+        </label>
+        <label class="walkin-span-2">
+          <span>Whose CNIC number is this?</span>
+          <select [(ngModel)]="walkIn.identifier_kind" (ngModelChange)="onWalkInIdentifierKindChanged()">
+            <option value="own">Patient’s own CNIC</option>
+            <option value="minor_father_cnic">Minor — father’s CNIC on file</option>
+            <option value="minor_mother_cnic">Minor — mother’s CNIC on file</option>
+            <option value="relative_escort">Adult — relative / escort’s CNIC (number only)</option>
+          </select>
+        </label>
+        @if (walkIn.identifier_kind === 'relative_escort') {
+          <label class="walkin-span-2">
+            <span>Relationship to patient</span>
+            <app-speech-input [(model)]="walkIn.escort_relationship" placeholder="e.g. brother, spouse" />
+          </label>
+        }
+        <label [class.walkin-span-2]="walkIn.identifier_kind !== 'own'">
+          <span>Patient date of birth{{ walkIn.identifier_kind === 'own' ? ' (optional)' : ' (required)' }}</span>
+          <input type="date" [(ngModel)]="walkIn.date_of_birth" (ngModelChange)="scheduleWalkInPatientPrefill()" />
         </label>
         <label>
           <span>First name</span>
-          <app-speech-input [(model)]="walkIn.first_name" />
+          <app-speech-input [(model)]="walkIn.first_name" (modelChange)="scheduleWalkInPatientPrefill()" />
         </label>
         <label>
           <span>Last name</span>
@@ -239,7 +225,7 @@
           type="button"
           class="btn primary"
           (click)="createWalkIn()"
-          [disabled]="walkInCnicProcessing || walkInSaving"
+          [disabled]="walkInSaving"
         >
           {{ walkInSaving ? 'Creating…' : 'Create token' }}
         </button>

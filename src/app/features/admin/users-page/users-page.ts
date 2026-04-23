@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api';
 import { ConfirmService } from '../../../core/services/confirm';
@@ -70,6 +70,7 @@ export class UsersPage implements OnInit {
     private readonly api: ApiService,
     private readonly confirm: ConfirmService,
     private readonly toast: ToastService,
+    private readonly cdr: ChangeDetectorRef,
   ) {}
 
   opdLabel(u: UserRow): string {
@@ -101,9 +102,10 @@ export class UsersPage implements OnInit {
     this.loading = true;
     this.error = '';
     try {
+      const reqMs = 20000;
       const [usersRes, rolesRes] = await Promise.allSettled([
-        this.api.get<UserRow[]>('/users'),
-        this.api.get<RoleRow[]>('/rbac/roles'),
+        this.api.get<UserRow[]>('/users', reqMs),
+        this.api.get<RoleRow[]>('/rbac/roles', reqMs),
       ]);
       if (usersRes.status === 'fulfilled') {
         this.rows = usersRes.value.filter((u) => u.role?.toLowerCase() !== 'patient');
@@ -121,6 +123,7 @@ export class UsersPage implements OnInit {
       this.rows = [];
     } finally {
       this.loading = false;
+      this.cdr.detectChanges();
     }
   }
 
@@ -166,6 +169,7 @@ export class UsersPage implements OnInit {
       this.toast.error(this.error);
     } finally {
       this.saving = false;
+      this.cdr.detectChanges();
     }
   }
 
@@ -194,6 +198,7 @@ export class UsersPage implements OnInit {
       this.toast.error(this.error);
     } finally {
       this.saving = false;
+      this.cdr.detectChanges();
     }
   }
 
@@ -212,6 +217,8 @@ export class UsersPage implements OnInit {
     } catch (e) {
       this.error = e instanceof Error ? e.message : 'Could not delete user';
       this.toast.error(this.error);
+    } finally {
+      this.cdr.detectChanges();
     }
   }
 }

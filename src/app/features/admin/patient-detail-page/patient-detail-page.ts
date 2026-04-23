@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ApiService } from '../../../core/services/api';
 import { EntityStatusBadgePipe, WorkflowStatusBadgePipe } from '../../../shared/pipes/status-badge.pipe';
@@ -7,13 +7,13 @@ import { EntityStatusBadgePipe, WorkflowStatusBadgePipe } from '../../../shared/
 export type PatientDetail = {
   id: number;
   cnic: string;
+  identifier_kind?: string | null;
+  escort_relationship?: string | null;
   first_name: string;
   last_name?: string | null;
   first_name_ur?: string | null;
   last_name_ur?: string | null;
   father_name?: string | null;
-  father_cnic?: string | null;
-  mother_cnic?: string | null;
   gender?: string | null;
   date_of_birth?: string | null;
   phone?: string | null;
@@ -66,6 +66,7 @@ export class PatientDetailPage implements OnInit {
   constructor(
     private readonly route: ActivatedRoute,
     private readonly api: ApiService,
+    private readonly cdr: ChangeDetectorRef,
   ) {}
 
   async ngOnInit(): Promise<void> {
@@ -73,6 +74,7 @@ export class PatientDetailPage implements OnInit {
     if (!Number.isFinite(patientId) || patientId <= 0) {
       this.error = 'Invalid patient id';
       this.loading = false;
+      this.cdr.detectChanges();
       return;
     }
 
@@ -95,6 +97,7 @@ export class PatientDetailPage implements OnInit {
       this.appointments = [];
     } finally {
       this.loading = false;
+      this.cdr.detectChanges();
     }
   }
 
@@ -123,5 +126,22 @@ export class PatientDetailPage implements OnInit {
     if (!value) return '—';
     const d = new Date(value);
     return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleString();
+  }
+
+  identifierKindCaption(kind: string | null | undefined): string {
+    switch (kind) {
+      case 'minor_father_cnic':
+        return 'Minor: the CNIC above is the father’s (the patient record is the child).';
+      case 'minor_mother_cnic':
+        return 'Minor: the CNIC above is the mother’s (the patient record is the child).';
+      case 'relative_escort': {
+        const rel = (this.patient?.escort_relationship ?? '').trim();
+        return rel
+          ? `Relative/escort CNIC (${rel}); demographics are the patient’s.`
+          : 'Relative/escort CNIC; demographics are the patient’s.';
+      }
+      default:
+        return String(kind ?? '');
+    }
   }
 }

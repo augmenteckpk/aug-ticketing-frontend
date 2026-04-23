@@ -1,9 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { QuillModule } from 'ngx-quill';
 import { ApiService } from '../../../core/services/api';
 import { AuthService } from '../../../core/services/auth';
-import { SlipPrintService, type SlipField } from '../../../core/services/slip-print.service';
+import { LAB_REQUEST_FORM, RADIOLOGY_REQUEST_FORM } from '../../../core/constants/registration-slip-brand';
+import { SlipPrintService } from '../../../core/services/slip-print.service';
 import { centerIdFromOpd, consoleIsAdmin, listCenterIdForRequest, listDateForRequest } from '../../../core/utils/listing-scope';
 import { todayLocalYmd } from '../../../core/utils/local-date';
 import { WorkflowStatusBadgePipe } from '../../../shared/pipes/status-badge.pipe';
@@ -18,8 +20,20 @@ type Appointment = {
   token_number: number;
   patient_name: string;
   patient_cnic?: string | null;
+  patient_gender?: string | null;
+  patient_father_name?: string | null;
+  patient_date_of_birth?: string | null;
+  visit_barcode?: string | null;
+  w_number?: string | null;
+  registered_at?: string | null;
+  checked_in_at?: string | null;
+  appointment_date?: string | null;
+  height_cm?: number | string | null;
+  weight_kg?: number | string | null;
+  doctor_notes?: string | null;
   center_id: number;
   center_name?: string | null;
+  hospital_name?: string | null;
   opd_name?: string | null;
   opd_display_code?: string | null;
   clinic_name?: string | null;
@@ -73,7 +87,7 @@ type ReportModalData = { appointment: Appointment; orders: LabOrder[]; radOrders
 
 @Component({
   selector: 'app-consultation-page',
-  imports: [CommonModule, FormsModule, SpeechInput, WorkflowStatusBadgePipe, Pagination],
+  imports: [CommonModule, FormsModule, QuillModule, SpeechInput, WorkflowStatusBadgePipe, Pagination],
   templateUrl: './consultation-page.html',
   styleUrl: './consultation-page.scss',
 })
@@ -132,6 +146,18 @@ export class ConsultationPage implements OnInit {
   creatingLabOrder = false;
   creatingRadiologyOrder = false;
   followUpSearch = '';
+
+  /** Shown above the lab order fields — matches printed SIUT lab request header. */
+  readonly labRequestFormBrand = LAB_REQUEST_FORM;
+  /** Shown above the radiology order fields — matches printed SIUT radiology request header. */
+  readonly radRequestFormBrand = RADIOLOGY_REQUEST_FORM;
+
+  /** Plain preview of rich-text notes (lab tests / radiology exams) in order tables. */
+  richNotesPreview(raw: string | null | undefined): string {
+    const t = this.slipPrint.htmlToPlainText(raw);
+    if (!t) return '—';
+    return t.length > 100 ? `${t.slice(0, 100)}…` : t;
+  }
 
   constructor(
     private readonly api: ApiService,
@@ -344,7 +370,7 @@ export class ConsultationPage implements OnInit {
     const adv = row.follow_up_advised_date ? String(row.follow_up_advised_date).slice(0, 10) : '';
     this.consultForm = {
       consultation_outcome: (row.consultation_outcome || 'medication_only') as string,
-      doctor_notes: '',
+      doctor_notes: row.doctor_notes ?? '',
       follow_up_advised_date: adv,
       follow_up_advised_clinic_id: row.follow_up_advised_clinic_id ?? '',
     };
@@ -427,7 +453,25 @@ export class ConsultationPage implements OnInit {
             ? Number(this.consultForm.follow_up_advised_clinic_id)
             : null,
       });
-      this.printConsultationSlip(this.selected);
+      try {
+        await this.slipPrint.printPatientRegistrationSlip({
+          opdClinicLine: this.formatOpdClinicLineForSlip(this.selected),
+          tokenDisplay: (this.selected.ticket_display ?? '').trim() || String(this.selected.token_number),
+          wNumber: this.selected.w_number ?? null,
+          visitDateTimeLabel: this.visitDateTimeForSlip(this.selected),
+          patientName: this.selected.patient_name || '',
+          fatherName: this.selected.patient_father_name,
+          gender: this.selected.patient_gender,
+          cnic: this.selected.patient_cnic,
+          heightCm: this.selected.height_cm,
+          weightKg: this.selected.weight_kg,
+          ageLabel: this.ageLabelFromDob(this.selected.patient_date_of_birth),
+          visitBarcodeHex: this.selected.visit_barcode ?? null,
+          notesHtml: this.consultForm.doctor_notes || '',
+        });
+      } catch {
+        this.toast.error('Consultation saved but registration slip print failed.');
+      }
       await this.refreshAll();
       this.toast.success('Consultation saved.');
     } catch (e) {
@@ -500,9 +544,11 @@ export class ConsultationPage implements OnInit {
     this.saving = true;
     this.error = '';
     try {
+      const testsHtml = this.labForm.notes;
+      const testsPlainForApi = this.slipPrint.htmlToPlainText(testsHtml);
       const order = await this.api.post<LabOrder>(`/appointments/${appt.id}/lab-orders`, {
         test_code: this.labForm.test_code || null,
-        notes: this.labForm.notes || null,
+        notes: testsPlainForApi.length > 0 ? testsHtml : null,
         follow_up_advised_date: this.labForm.follow_up_advised_date || null,
         follow_up_notes: this.labForm.follow_up_notes.trim() || null,
         return_for_doctor_review: this.labForm.return_for_doctor_review,
@@ -537,9 +583,11 @@ export class ConsultationPage implements OnInit {
     this.saving = true;
     this.error = '';
     try {
+      const examsHtml = this.radiologyForm.notes;
+      const examsPlainForApi = this.slipPrint.htmlToPlainText(examsHtml);
       const order = await this.api.post<RadOrder>(`/appointments/${appt.id}/radiology-orders`, {
         study_code: this.radiologyForm.study_code || null,
-        notes: this.radiologyForm.notes || null,
+        notes: examsPlainForApi.length > 0 ? examsHtml : null,
         follow_up_advised_date: this.radiologyForm.follow_up_advised_date || null,
         follow_up_notes: this.radiologyForm.follow_up_notes.trim() || null,
         return_for_doctor_review: this.radiologyForm.return_for_doctor_review,
@@ -568,7 +616,7 @@ export class ConsultationPage implements OnInit {
     }
   }
 
-  /** Printable slip with QR encoding the same payload for lab/radiology verification. */
+  /** SIUT-style lab / radiology request forms + QR for verification. */
   private async printInvestigationSlip(kind: 'lab' | 'rad', order: LabOrder | RadOrder, appt: Appointment): Promise<void> {
     try {
       const QRCode = (await import('qrcode')).default;
@@ -576,8 +624,6 @@ export class ConsultationPage implements OnInit {
         kind === 'lab'
           ? String((order as LabOrder).test_code ?? '').trim() || '—'
           : String((order as RadOrder).study_code ?? '').trim() || '—';
-      const notes =
-        kind === 'lab' ? String((order as LabOrder).notes ?? '').trim() : String((order as RadOrder).notes ?? '').trim();
       const payload = {
         v: 1 as const,
         kind,
@@ -593,60 +639,91 @@ export class ConsultationPage implements OnInit {
         margin: 1,
         errorCorrectionLevel: 'M',
       });
-      const opdLine = [appt.opd_display_code, appt.opd_name].filter(Boolean).join(' · ') || '—';
-      const fields: SlipField[] = [
-        { label: 'Ticket', value: appt.ticket_display?.trim() || String(appt.token_number) },
-        { label: 'Patient', value: appt.patient_name || '—' },
-        { label: 'CNIC', value: appt.patient_cnic || '—' },
-        { label: 'OPD', value: opdLine },
-        { label: 'Clinic', value: appt.clinic_name || '—' },
-        { label: 'Campus / center', value: appt.center_name || '—' },
-        { label: kind === 'lab' ? 'Test code' : 'Study code', value: code },
-        { label: 'Notes', value: notes || '—' },
-        { label: 'Order ID', value: String(order.id) },
-      ];
-      const title = kind === 'lab' ? 'Laboratory slip' : 'Radiology slip';
-      this.slipPrint.print(title, `Verification · OPD visit`, fields, {
-        qrDataUrl,
-        qrCaption: 'Scan to verify — do not alter items on this slip',
+      const dateLine = new Date().toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
       });
+      const locationLine =
+        [appt.center_name, appt.hospital_name].filter((s) => String(s ?? '').trim()).join(' · ') || '—';
+      const visitNo = (appt.ticket_display ?? '').trim() || String(appt.token_number);
+      const opdClinic = this.formatOpdClinicLineForSlip(appt) || '—';
+      const age = this.ageLabelFromDob(appt.patient_date_of_birth);
+      const doctor = this.auth.user()?.username?.trim() || '—';
+
+      if (kind === 'lab') {
+        const labNotesPlain = this.slipPrint.htmlToPlainText((order as LabOrder).notes);
+        const testsPlain = [String((order as LabOrder).test_code ?? '').trim(), labNotesPlain].filter(Boolean).join('\n');
+        this.slipPrint.printLabRequestForm({
+          formNumber: String(order.id),
+          patientName: appt.patient_name || '—',
+          ageLabel: age,
+          visitNo,
+          locationLine,
+          dateLine,
+          opdClinicLine: opdClinic,
+          testsPlain: testsPlain || ' ',
+          requestingDoctor: doctor,
+          qrDataUrl,
+        });
+      } else {
+        const sex = (appt.patient_gender ?? '').trim() || '—';
+        const radNotesPlain = this.slipPrint.htmlToPlainText((order as RadOrder).notes);
+        const exams = [String((order as RadOrder).study_code ?? '').trim(), radNotesPlain].filter(Boolean).join('\n');
+        this.slipPrint.printRadiologyRequestForm({
+          formNumber: String(order.id),
+          patientName: appt.patient_name || '—',
+          ageLabel: age,
+          sexLabel: sex,
+          bedNo: 'OPD',
+          examinationsPlain: exams || ' ',
+          requestingDoctor: doctor,
+          dateRequested: dateLine,
+          qrDataUrl,
+        });
+      }
     } catch {
       this.toast.error('Order saved but slip/QR print failed. You can re-print from the order list if needed.');
     }
   }
 
-  private printConsultationSlip(row: Appointment): void {
-    const clinicName =
-      this.consultForm.follow_up_advised_clinic_id !== ''
-        ? this.centerClinics.find((c) => c.id === Number(this.consultForm.follow_up_advised_clinic_id))?.name
-        : undefined;
-    const pendingLab = this.labOrders.filter((o) => String(o.status || '').toLowerCase() !== 'completed').length;
-    const pendingRad = this.radOrders.filter((o) => String(o.status || '').toLowerCase() !== 'completed').length;
-    const opdLine = [row.opd_display_code, row.opd_name].filter(Boolean).join(' · ') || '—';
-    this.slipPrint.print('Consultation Slip', 'Doctor consultation — OPD visit', [
-      { label: 'Ticket', value: row.ticket_display?.trim() || String(row.token_number) },
-      { label: 'Patient', value: row.patient_name || '-' },
-      { label: 'CNIC', value: row.patient_cnic || '-' },
-      { label: 'OPD', value: opdLine },
-      { label: 'Clinic', value: row.clinic_name || '—' },
-      { label: 'Campus / center', value: row.center_name || '-' },
-      { label: 'Visit date', value: this.date },
-      { label: 'Outcome', value: this.consultForm.consultation_outcome || '-' },
-      { label: 'Pending lab orders', value: pendingLab ? String(pendingLab) : '—' },
-      { label: 'Pending radiology orders', value: pendingRad ? String(pendingRad) : '—' },
-      { label: 'Doctor notes', value: this.consultForm.doctor_notes.trim() || '-' },
-      {
-        label: 'Follow-up date',
-        value:
-          this.consultForm.consultation_outcome === 'follow_up'
-            ? this.consultForm.follow_up_advised_date || '-'
-            : '-',
-      },
-      {
-        label: 'Follow-up clinic',
-        value: this.consultForm.consultation_outcome === 'follow_up' ? clinicName || '-' : '-',
-      },
-    ]);
+  private visitDateTimeForSlip(row: Appointment): string {
+    const parse = (v: unknown): Date | null => {
+      if (v == null || v === '') return null;
+      const d = new Date(String(v));
+      return Number.isNaN(d.getTime()) ? null : d;
+    };
+    const day = String(row.appointment_date ?? '').slice(0, 10);
+    return (
+      parse(row.registered_at)?.toLocaleString() ??
+      parse(row.checked_in_at)?.toLocaleString() ??
+      (day || '—')
+    );
+  }
+
+  /**
+   * Registration slip header: OPD ticket prefix / clinic name (e.g. `OPD14 / Prostate Clinic`).
+   * Uses `opd_display_code` when set, otherwise `opd_name`.
+   */
+  private formatOpdClinicLineForSlip(row: Appointment): string {
+    const code = (row.opd_display_code ?? '').trim() || (row.opd_name ?? '').trim();
+    const clinic = (row.clinic_name ?? '').trim();
+    if (!code && !clinic) return '';
+    if (!clinic) return code;
+    if (!code) return clinic;
+    return `${code} / ${clinic}`;
+  }
+
+  private ageLabelFromDob(dob?: string | null): string {
+    const s = dob ? String(dob).slice(0, 10) : '';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return '—';
+    const born = new Date(`${s}T12:00:00`);
+    if (Number.isNaN(born.getTime())) return '—';
+    const today = new Date();
+    let yrs = today.getFullYear() - born.getFullYear();
+    const md = today.getMonth() - born.getMonth();
+    if (md < 0 || (md === 0 && today.getDate() < born.getDate())) yrs -= 1;
+    return yrs >= 0 ? `${yrs} yr` : '—';
   }
 
   get filteredFollowUpRows(): Appointment[] {

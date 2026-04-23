@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService, getToken } from '../../../core/services/api';
 import { AuthService } from '../../../core/services/auth';
@@ -59,6 +59,7 @@ export class ReportsPage implements OnInit {
     private readonly api: ApiService,
     private readonly auth: AuthService,
     private readonly toast: ToastService,
+    private readonly cdr: ChangeDetectorRef,
   ) {}
 
   isAdmin(): boolean {
@@ -72,6 +73,7 @@ export class ReportsPage implements OnInit {
       } catch {
         this.opdFilterList = [];
       }
+      this.cdr.detectChanges();
     }
     await this.load();
   }
@@ -84,13 +86,17 @@ export class ReportsPage implements OnInit {
     this.loading = true;
     this.error = '';
     try {
-      this.data = await this.api.get<DailyReport>(`/reports/daily?date=${encodeURIComponent(this.date)}`);
+      const effDate = listDateForRequest(this.auth.user(), this.date);
+      const q = new URLSearchParams({ date: effDate });
+      if (this.isAdmin() && this.filterOpdId !== '') q.set('opd_id', String(this.filterOpdId));
+      this.data = await this.api.get<DailyReport>(`/reports/daily?${q.toString()}`, 20000);
     } catch (e) {
       this.error = e instanceof Error ? e.message : 'Failed to load reports';
       this.data = null;
       this.toast.error(this.error);
     } finally {
       this.loading = false;
+      this.cdr.detectChanges();
     }
   }
 

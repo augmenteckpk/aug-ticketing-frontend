@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../../core/services/api';
@@ -45,6 +45,7 @@ export class PatientsListPage implements OnInit {
     private readonly api: ApiService,
     private readonly confirm: ConfirmService,
     private readonly toast: ToastService,
+    private readonly cdr: ChangeDetectorRef,
   ) {}
 
   async ngOnInit(): Promise<void> {
@@ -55,12 +56,13 @@ export class PatientsListPage implements OnInit {
     this.loading = true;
     this.error = '';
     try {
-      this.rows = await this.api.get<Patient[]>('/patients');
+      this.rows = await this.api.get<Patient[]>('/patients', 20000);
     } catch (e) {
       this.error = e instanceof Error ? e.message : 'Failed to load patients';
       this.rows = [];
     } finally {
       this.loading = false;
+      this.cdr.detectChanges();
     }
   }
 
@@ -116,6 +118,7 @@ export class PatientsListPage implements OnInit {
       this.toast.error(this.error);
     } finally {
       this.saving = false;
+      this.cdr.detectChanges();
     }
   }
 
@@ -141,6 +144,7 @@ export class PatientsListPage implements OnInit {
       this.toast.error(this.error);
     } finally {
       this.saving = false;
+      this.cdr.detectChanges();
     }
   }
 
@@ -159,6 +163,8 @@ export class PatientsListPage implements OnInit {
     } catch (e) {
       this.error = e instanceof Error ? e.message : 'Could not delete patient';
       this.toast.error(this.error);
+    } finally {
+      this.cdr.detectChanges();
     }
   }
 }

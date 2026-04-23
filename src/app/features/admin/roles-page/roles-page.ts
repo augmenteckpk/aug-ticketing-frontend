@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api';
 import { ConfirmService } from '../../../core/services/confirm';
@@ -23,7 +23,8 @@ export class RolesPage implements OnInit {
 
   rows: RoleRow[] = [];
   permissions: PermissionRow[] = [];
-  loading = false;
+  /** True until first load completes — avoids empty table + matches sidebar/async CD pattern. */
+  loading = true;
   saving = false;
   error = '';
 
@@ -37,6 +38,7 @@ export class RolesPage implements OnInit {
     private readonly api: ApiService,
     private readonly confirm: ConfirmService,
     private readonly toast: ToastService,
+    private readonly cdr: ChangeDetectorRef,
   ) {}
 
   async ngOnInit(): Promise<void> {
@@ -82,9 +84,10 @@ export class RolesPage implements OnInit {
     this.loading = true;
     this.error = '';
     try {
+      const reqMs = 20000;
       const [rolesRes, permsRes] = await Promise.allSettled([
-        this.api.get<RoleRow[]>('/rbac/roles'),
-        this.api.get<PermissionRow[]>('/rbac/permissions'),
+        this.api.get<RoleRow[]>('/rbac/roles', reqMs),
+        this.api.get<PermissionRow[]>('/rbac/permissions', reqMs),
       ]);
       if (rolesRes.status === 'fulfilled') {
         this.rows = rolesRes.value;
@@ -97,6 +100,7 @@ export class RolesPage implements OnInit {
       this.rows = [];
     } finally {
       this.loading = false;
+      this.cdr.detectChanges();
     }
   }
 
@@ -121,6 +125,7 @@ export class RolesPage implements OnInit {
       this.toast.error(this.error);
     } finally {
       this.saving = false;
+      this.cdr.detectChanges();
     }
   }
 
@@ -148,6 +153,7 @@ export class RolesPage implements OnInit {
       this.toast.error(this.error);
     } finally {
       this.saving = false;
+      this.cdr.detectChanges();
     }
   }
 
@@ -166,6 +172,8 @@ export class RolesPage implements OnInit {
     } catch (e) {
       this.error = e instanceof Error ? e.message : 'Could not delete role';
       this.toast.error(this.error);
+    } finally {
+      this.cdr.detectChanges();
     }
   }
 

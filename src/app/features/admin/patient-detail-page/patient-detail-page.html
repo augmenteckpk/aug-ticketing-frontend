@@ -13,7 +13,13 @@
     <div class="section-title">Profile</div>
     <div class="grid">
       <div><span class="k">Patient ID</span><span class="v">{{ patient.id }}</span></div>
-      <div><span class="k">CNIC</span><span class="v mono">{{ display(patient.cnic) }}</span></div>
+      <div><span class="k">CNIC (on file)</span><span class="v mono">{{ display(patient.cnic) }}</span></div>
+      @if (patient.identifier_kind && patient.identifier_kind !== 'own') {
+        <div class="wide">
+          <span class="k">CNIC meaning</span>
+          <span class="v">{{ identifierKindCaption(patient.identifier_kind) }}</span>
+        </div>
+      }
       <div>
         <span class="k">Status</span>
         <span class="v">
@@ -25,8 +31,6 @@
       <div><span class="k">First name (Urdu)</span><span class="v urdu">{{ display(patient.first_name_ur) }}</span></div>
       <div><span class="k">Last name (Urdu)</span><span class="v urdu">{{ display(patient.last_name_ur) }}</span></div>
       <div><span class="k">Father name</span><span class="v">{{ display(patient.father_name) }}</span></div>
-      <div><span class="k">Father CNIC</span><span class="v mono">{{ display(patient.father_cnic) }}</span></div>
-      <div><span class="k">Mother CNIC</span><span class="v mono">{{ display(patient.mother_cnic) }}</span></div>
       <div><span class="k">Gender</span><span class="v">{{ display(patient.gender) }}</span></div>
       <div><span class="k">Date of birth</span><span class="v">{{ dateOnly(patient.date_of_birth ?? undefined) }}</span></div>
       <div><span class="k">Phone</span><span class="v mono">{{ display(patient.phone) }}</span></div>

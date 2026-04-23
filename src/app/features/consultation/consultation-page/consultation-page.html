@@ -194,12 +194,15 @@
               <p class="muted small">No clinics for this center, or still loading.</p>
             }
           }
-          <app-speech-input
-            class="full"
-            label="Doctor notes"
-            placeholder="Clinical notes"
-            [(model)]="consultForm.doctor_notes"
-          />
+          <div class="rte-wrap full">
+            <span class="rte-label">Doctor notes</span>
+            <quill-editor
+              theme="snow"
+              format="html"
+              [(ngModel)]="consultForm.doctor_notes"
+              placeholder="Clinical notes"
+            />
+          </div>
         </div>
         <div class="actions">
           <button class="btn primary" (click)="saveConsultation()" [disabled]="saving">Save consultation</button>
@@ -223,7 +226,7 @@
 
         <div class="table-wrap">
           <table>
-            <thead><tr><th>ID</th><th>Test</th><th>Notes</th><th>Return review</th><th>Follow-up date</th><th>Status</th></tr></thead>
+            <thead><tr><th>ID</th><th>Test</th><th>Tests</th><th>Return review</th><th>Follow-up date</th><th>Status</th></tr></thead>
             <tbody>
               @if (!labOrders.length) {
                 <tr><td colspan="6">No lab orders yet.</td></tr>
@@ -232,7 +235,7 @@
                   <tr>
                     <td>{{ o.id }}</td>
                     <td>{{ o.test_code || '—' }}</td>
-                    <td>{{ o.notes || '—' }}</td>
+                    <td>{{ richNotesPreview(o.notes) }}</td>
                     <td>{{ o.return_for_doctor_review ? 'Yes' : '—' }}</td>
                     <td>{{ o.follow_up_advised_date || '—' }}</td>
                     <td><span [class]="(o.status || 'ordered') | workflowStatusBadge">{{ o.status || 'ordered' }}</span></td>
@@ -257,7 +260,7 @@
 
         <div class="table-wrap">
           <table>
-            <thead><tr><th>ID</th><th>Study</th><th>Notes</th><th>Return review</th><th>Follow-up date</th><th>Status</th></tr></thead>
+            <thead><tr><th>ID</th><th>Study</th><th>Tests</th><th>Return review</th><th>Follow-up date</th><th>Status</th></tr></thead>
             <tbody>
               @if (!radOrders.length) {
                 <tr><td colspan="6">No radiology orders yet.</td></tr>
@@ -266,7 +269,7 @@
                   <tr>
                     <td>{{ o.id }}</td>
                     <td>{{ o.study_code || '—' }}</td>
-                    <td>{{ o.notes || '—' }}</td>
+                    <td>{{ richNotesPreview(o.notes) }}</td>
                     <td>{{ o.return_for_doctor_review ? 'Yes' : '—' }}</td>
                     <td>{{ o.follow_up_advised_date || '—' }}</td>
                     <td><span [class]="(o.status || 'ordered') | workflowStatusBadge">{{ o.status || 'ordered' }}</span></td>
@@ -343,19 +346,30 @@
 
 @if (creatingLabOrder) {
   <div class="modal-overlay modal-overlay--stack" (click)="closeLabOrderModal()">
-    <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal modal--lg lab-order-modal" (click)="$event.stopPropagation()">
       <h3>Create lab order</h3>
+      <div class="lab-form-preview" role="region" aria-label="Printed SIUT lab request form">
+        <p class="lab-form-preview__hint">After you create the order, it prints on the standard SIUT lab request sheet.</p>
+        <div class="lab-form-preview__banner">
+          <span class="lab-form-preview__line">{{ labRequestFormBrand.instituteLine1 }}</span>
+          <span class="lab-form-preview__line">{{ labRequestFormBrand.instituteLine2 }} — {{ labRequestFormBrand.title }}</span>
+        </div>
+      </div>
       <div class="form-grid">
         <app-speech-input
           label="Test code"
           placeholder="CBC"
           [(model)]="labForm.test_code"
         />
-        <app-speech-input
-          label="Notes"
-          placeholder="Urgent if needed"
-          [(model)]="labForm.notes"
-        />
+        <div class="rte-wrap full">
+          <span class="rte-label">Tests</span>
+          <quill-editor
+            theme="snow"
+            format="html"
+            [(ngModel)]="labForm.notes"
+            placeholder="Tests requested, panels, urgency, clinical detail…"
+          />
+        </div>
         <label>Optional follow-up after lab (review with doctor)
           <input type="date" [(ngModel)]="labForm.follow_up_advised_date" />
         </label>
@@ -380,11 +394,26 @@
 
 @if (creatingRadiologyOrder) {
   <div class="modal-overlay modal-overlay--stack" (click)="closeRadiologyOrderModal()">
-    <div class="modal modal--lg" (click)="$event.stopPropagation()">
+    <div class="modal modal--lg lab-order-modal rad-order-modal" (click)="$event.stopPropagation()">
       <h3>Create radiology order</h3>
+      <div class="lab-form-preview" role="region" aria-label="Printed SIUT radiology request form">
+        <p class="lab-form-preview__hint">After you create the order, it prints on the standard SIUT radiology request sheet.</p>
+        <div class="lab-form-preview__banner">
+          <span class="lab-form-preview__line">{{ radRequestFormBrand.instituteLine }}</span>
+          <span class="lab-form-preview__line">{{ radRequestFormBrand.title }}</span>
+        </div>
+      </div>
       <div class="form-grid">
         <app-speech-input label="Study code" placeholder="CXR / CT abdomen" [(model)]="radiologyForm.study_code" />
-        <app-speech-input label="Notes" [(model)]="radiologyForm.notes" />
+        <div class="rte-wrap full">
+          <span class="rte-label">Tests</span>
+          <quill-editor
+            theme="snow"
+            format="html"
+            [(ngModel)]="radiologyForm.notes"
+            placeholder="Examinations requested, contrast, clinical detail…"
+          />
+        </div>
         <label>Optional follow-up after imaging
           <input type="date" [(ngModel)]="radiologyForm.follow_up_advised_date" />
         </label>

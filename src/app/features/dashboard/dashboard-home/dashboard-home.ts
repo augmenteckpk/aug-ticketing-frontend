@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../../core/services/api';
@@ -65,7 +65,8 @@ export class DashboardHome implements OnInit {
   filterOpdId: number | '' = '';
   opdFilterList: OpdFilterRow[] = [];
   summary: Summary | null = null;
-  loading = false;
+  /** Start true so first paint shows loading while admin OPD list fetch runs before summary. */
+  loading = true;
   error = '';
 
   readonly rangeOptions: Array<{ id: DashboardRangePreset; label: string }> = [
@@ -93,6 +94,7 @@ export class DashboardHome implements OnInit {
     private readonly api: ApiService,
     private readonly auth: AuthService,
     private readonly toast: ToastService,
+    private readonly cdr: ChangeDetectorRef,
   ) {}
 
   isAdmin(): boolean {
@@ -219,10 +221,11 @@ export class DashboardHome implements OnInit {
   async ngOnInit(): Promise<void> {
     if (this.isAdmin()) {
       try {
-        this.opdFilterList = await this.api.get<OpdFilterRow[]>('/public/opds');
+        this.opdFilterList = await this.api.get<OpdFilterRow[]>('/public/opds', 20000);
       } catch {
         this.opdFilterList = [];
       }
+      this.cdr.detectChanges();
     }
     await this.loadSummary();
   }
@@ -236,13 +239,14 @@ export class DashboardHome implements OnInit {
       q.set('date', effDate);
       q.set('range', this.isAdmin() ? this.rangePreset : 'day');
       if (this.isAdmin() && this.filterOpdId !== '') q.set('opd_id', String(this.filterOpdId));
-      this.summary = await this.api.get<Summary>(`/dashboard/summary?${q.toString()}`);
+      this.summary = await this.api.get<Summary>(`/dashboard/summary?${q.toString()}`, 20000);
     } catch (e) {
       this.summary = null;
       this.error = e instanceof Error ? e.message : 'Failed to load dashboard summary';
       this.toast.error(this.error);
     } finally {
       this.loading = false;
+      this.cdr.detectChanges();
     }
   }
 }

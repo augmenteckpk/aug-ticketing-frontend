@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Subject, Subscription, debounceTime } from 'rxjs';
 import { ApiService } from '../../../core/services/api';
 import { AuthService } from '../../../core/services/auth';
 import { ToastService } from '../../../core/services/toast';
@@ -12,6 +13,19 @@ import { Pagination } from '../../../ui-kit/pagination/pagination';
 
 type Center = { id: number; name: string; city: string; hospital_name?: string };
 type OpdPickRow = { id: number; name: string; display_code: string; center_id: number; center_label: string; sort_order: number };
+type PatientIdentifierKind = 'own' | 'minor_father_cnic' | 'minor_mother_cnic' | 'relative_escort';
+
+type WalkInPreviewPatient = {
+  first_name: string;
+  last_name?: string | null;
+  phone?: string | null;
+  gender?: string | null;
+  date_of_birth?: string | null;
+  address?: string | null;
+  identifier_kind?: string | null;
+  escort_relationship?: string | null;
+};
+
 type Appointment = {
   id: number;
   appointment_date: string;
@@ -20,6 +34,10 @@ type Appointment = {
   status: string;
   patient_name?: string | null;
   patient_cnic?: string | null;
+  walk_in_notices?: string[];
+  /** When not `own`, the CNIC on file is a parent’s or escort’s number; demographics are still the patient’s. */
+  patient_identifier_kind?: PatientIdentifierKind | string | null;
+  patient_escort_relationship?: string | null;
   center_name?: string | null;
   opd_name?: string | null;
   opd_display_code?: string | null;
@@ -32,26 +50,13 @@ type OpdBookingBlock = {
 
 type OpdBookingOptionsResponse = { date: string; weekday: number; opds: OpdBookingBlock[] };
 
-/** Matches `POST /public/cnic-extract` (same as mobile `extractCnicViaBackend`). */
-type CnicExtractApiResponse = {
-  cnic: string | null;
-  first_name: string | null;
-  last_name: string | null;
-  father_name: string | null;
-  gender: string | null;
-  date_of_birth: string | null;
-  name_confidence: 'high' | 'medium' | 'low';
-};
-
-const VISION_EXTRACT_TIMEOUT_MS = 120_000;
-
 @Component({
   selector: 'app-appointments-page',
   imports: [CommonModule, FormsModule, SpeechInput, WorkflowStatusBadgePipe, Pagination],
   templateUrl: './appointments-page.html',
   styleUrl: './appointments-page.scss',
 })
-export class AppointmentsPage implements OnInit {
+export class AppointmentsPage implements OnInit, OnDestroy {
   centers: Center[] = [];
   /** Admin: OPD filter replaces center picker on the list. */
   opdPickList: OpdPickRow[] = [];
@@ -66,17 +71,9 @@ export class AppointmentsPage implements OnInit {
 
   creatingWalkIn = false;
   busy = false;
-  /** AI + OCR pipeline on CNIC photo — separate from list loading. */
-  walkInCnicProcessing = false;
-  /** Shown on preview overlay: AI phase vs OCR fallback. */
-  walkInScanMessage = '';
   /** Saving walk-in token — separate so the table does not flash “Loading…”. */
   walkInSaving = false;
   error = '';
-
-  /** Object URL for CNIC scan preview (revoked on clear / close). */
-  walkInCnicPreviewUrl: string | null = null;
-  private walkInPreviewRevokeUrl?: string;
 
   walkIn = {
     center_id: '' as number | '',
@@ -84,6 +81,9 @@ export class AppointmentsPage implements OnInit {
     opd_id: '' as number | '',
     clinic_id: '' as number | '',
     cnic: '',
+    identifier_kind: 'own' as PatientIdentifierKind,
+    escort_relationship: '',
+    date_of_birth: '',
     first_name: '',
     last_name: '',
   };
@@ -92,12 +92,29 @@ export class AppointmentsPage implements OnInit {
   walkInBooking: OpdBookingOptionsResponse | null = null;
   walkInBookingLoading = false;
 
+  private readonly walkInPrefill$ = new Subject<void>();
+  private walkInPrefillSub?: Subscription;
+
   constructor(
     private readonly api: ApiService,
     private readonly auth: AuthService,
     private readonly toast: ToastService,
     private readonly cdr: ChangeDetectorRef,
   ) {}
+
+  /** Short label for staff when CNIC on chart is not the patient’s own NIC. */
+  patientIdentifierBadge(kind: string | null | undefined): string | null {
+    switch (kind) {
+      case 'minor_father_cnic':
+        return 'Minor · father’s CNIC';
+      case 'minor_mother_cnic':
+        return 'Minor · mother’s CNIC';
+      case 'relative_escort':
+        return 'Relative / escort CNIC';
+      default:
+        return null;
+    }
+  }
 
   isAdmin(): boolean {
     return consoleIsAdmin(this.auth.user());
@@ -131,12 +148,34 @@ export class AppointmentsPage implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
+    this.walkInPrefillSub = this.walkInPrefill$.pipe(debounceTime(450)).subscribe(() => {
+      void this.prefillWalkInFromServer();
+    });
     await Promise.allSettled([this.loadCenters(), this.loadAppointments()]);
   }
 
+  ngOnDestroy(): void {
+    this.walkInPrefillSub?.unsubscribe();
+  }
+
+  /** Debounced: when CNIC (+ kind / DOB rules) match an existing chart, fill name and DOB automatically. */
+  scheduleWalkInPatientPrefill(): void {
+    this.walkInPrefill$.next();
+  }
+
+  onWalkInIdentifierKindChanged(): void {
+    if (this.walkIn.identifier_kind !== 'own') {
+      this.walkIn.first_name = '';
+      this.walkIn.last_name = '';
+      this.walkIn.date_of_birth = '';
+    }
+    this.scheduleWalkInPatientPrefill();
+  }
+
   async openWalkInModal(): Promise<void> {
-    this.clearWalkInCnicPreview();
-    this.walkInScanMessage = '';
+    this.walkIn.identifier_kind = 'own';
+    this.walkIn.escort_relationship = '';
+    this.walkIn.date_of_birth = '';
     this.walkIn.opd_id = '';
     this.walkIn.clinic_id = '';
     this.walkInBooking = null;
@@ -145,6 +184,7 @@ export class AppointmentsPage implements OnInit {
     if (wc !== '') this.walkIn.center_id = wc;
     this.creatingWalkIn = true;
     await this.loadWalkInBookingOptions();
+    this.scheduleWalkInPatientPrefill();
     this.cdr.detectChanges();
   }
 
@@ -262,168 +302,65 @@ export class AppointmentsPage implements OnInit {
     }
   }
 
-  clearWalkInCnicPreview(): void {
-    if (this.walkInPreviewRevokeUrl) {
-      URL.revokeObjectURL(this.walkInPreviewRevokeUrl);
-      this.walkInPreviewRevokeUrl = undefined;
-    }
-    this.walkInCnicPreviewUrl = null;
-  }
-
   closeWalkInModal(): void {
     this.creatingWalkIn = false;
-    this.walkInScanMessage = '';
     this.walkInBooking = null;
-    this.clearWalkInCnicPreview();
   }
 
-  private mimeForVisionApi(file: File): 'image/jpeg' | 'image/png' | null {
-    const t = file.type.toLowerCase();
-    if (t === 'image/jpeg' || t === 'image/jpg') return 'image/jpeg';
-    if (t === 'image/png') return 'image/png';
-    // Camera/gallery on some browsers leaves MIME empty — still send bytes (usually JPEG).
-    if (t === '' || t === 'application/octet-stream') {
-      const n = file.name.toLowerCase();
-      if (n.endsWith('.png')) return 'image/png';
-      return 'image/jpeg';
-    }
-    return null;
-  }
-
-  private async fileToBase64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const s = String(reader.result ?? '');
-        const comma = s.indexOf(',');
-        resolve(comma >= 0 ? s.slice(comma + 1) : s);
-      };
-      reader.onerror = () => reject(reader.error ?? new Error('read failed'));
-      reader.readAsDataURL(file);
-    });
-  }
-
-  private formatCnicDashes13(digits: string): string {
-    const d = digits.replace(/\D/g, '');
-    if (d.length !== 13) return digits;
-    return `${d.slice(0, 5)}-${d.slice(5, 12)}-${d.slice(12)}`;
-  }
-
-  /** Apply server vision result to walk-in fields (CNIC + names when present). */
-  private applyVisionToWalkIn(data: CnicExtractApiResponse): void {
-    const raw = data.cnic?.replace(/\D/g, '') ?? '';
-    if (raw.length === 13) {
-      this.walkIn.cnic = this.formatCnicDashes13(raw);
-    }
-    const fn = data.first_name?.trim();
-    const ln = data.last_name?.trim();
-    if (fn)     this.walkIn.first_name = fn;
-    if (ln) this.walkIn.last_name = ln;
-  }
-
-  /**
-   * HttpClient may still deliver `{ data, message, status }` if unwrap mismatches;
-   * also handles nested `data` once.
-   */
-  private coalesceCnicExtract(body: unknown): CnicExtractApiResponse | null {
-    if (!body || typeof body !== 'object') return null;
-    const o = body as Record<string, unknown>;
-    const inner = o['data'];
-    if (inner && typeof inner === 'object' && ('cnic' in inner || 'first_name' in inner)) {
-      return this.coalesceCnicExtract(inner);
-    }
-    if ('cnic' in o || 'first_name' in o || 'last_name' in o) {
-      return {
-        cnic: (o['cnic'] as string | null) ?? null,
-        first_name: (o['first_name'] as string | null) ?? null,
-        last_name: (o['last_name'] as string | null) ?? null,
-        father_name: (o['father_name'] as string | null) ?? null,
-        gender: (o['gender'] as string | null) ?? null,
-        date_of_birth: (o['date_of_birth'] as string | null) ?? null,
-        name_confidence: (o['name_confidence'] as CnicExtractApiResponse['name_confidence']) ?? 'medium',
-      };
-    }
-    return null;
-  }
-
-  /**
-   * Primary: `POST /public/cnic-extract` (OpenAI on backend when `OPENAI_API_KEY` is set).
-   * Fallback: Tesseract in the browser (same role as on-device OCR on mobile).
-   */
-  async onWalkInCnicPhoto(ev: Event): Promise<void> {
-    const input = ev.target as HTMLInputElement;
-    const file = input.files?.[0];
-    input.value = '';
-    if (!file || !file.type.startsWith('image/')) return;
-
-    this.clearWalkInCnicPreview();
-    const url = URL.createObjectURL(file);
-    this.walkInPreviewRevokeUrl = url;
-    this.walkInCnicPreviewUrl = url;
-
-    this.walkInCnicProcessing = true;
-    this.walkInScanMessage = '';
-
-    const mime = this.mimeForVisionApi(file);
-    let cnicFromVision = false;
-
-    if (mime) {
-      this.walkInScanMessage = 'Scanning with AI…';
-      try {
-        const image_base64 = await this.fileToBase64(file);
-        const raw = await this.api.post<unknown>(
-          '/public/cnic-extract',
-          { image_base64, mime_type: mime },
-          VISION_EXTRACT_TIMEOUT_MS,
-        );
-        const data = this.coalesceCnicExtract(raw);
-        if (data) {
-          this.applyVisionToWalkIn(data);
-          const d = data.cnic?.replace(/\D/g, '') ?? '';
-          if (d.length === 13) cnicFromVision = true;
-          this.cdr.detectChanges();
-          this.toast.success('CNIC details filled from scan — review and tap Create token.');
-        }
-      } catch {
-        /* Same as mobile: missing API key (503), model errors (502), etc. → OCR fallback, no toast here. */
-      }
-    }
-
-    if (!cnicFromVision) {
-      this.walkInScanMessage = 'Reading CNIC (OCR)…';
-      await this.runTesseractCnic(file);
-    }
-
-    this.walkInCnicProcessing = false;
-    this.walkInScanMessage = '';
-    this.cdr.detectChanges();
-  }
-
-  private async runTesseractCnic(file: File): Promise<void> {
+  private async prefillWalkInFromServer(): Promise<void> {
+    if (!this.creatingWalkIn) return;
+    const digits = this.walkIn.cnic.replace(/\D/g, '');
+    if (digits.length !== 13) return;
+    const kind = this.walkIn.identifier_kind;
+    const fn = this.walkIn.first_name.trim();
+    const dob = String(this.walkIn.date_of_birth ?? '')
+      .trim()
+      .slice(0, 10);
+    if (kind !== 'own' && (!fn || !/^\d{4}-\d{2}-\d{2}$/.test(dob))) return;
     try {
-      const { createWorker } = await import('tesseract.js');
-      const worker = await createWorker('eng');
-      const {
-        data: { text },
-      } = await worker.recognize(file);
-      await worker.terminate();
-      const digits = text.replace(/\D/g, '');
-      const m = digits.match(/(\d{13})/);
-      if (m) {
-        const raw = m[1];
-        this.walkIn.cnic = `${raw.slice(0, 5)}-${raw.slice(5, 12)}-${raw.slice(12)}`;
-        this.cdr.detectChanges();
-      } else {
-        this.toast.error('Could not read CNIC from image. Enter manually.');
+      const q = new URLSearchParams();
+      q.set('cnic', digits);
+      q.set('identifier_kind', kind);
+      if (kind !== 'own') {
+        q.set('first_name', fn);
+        q.set('date_of_birth', dob);
       }
+      const res = await this.api.get<{ patient: WalkInPreviewPatient | null }>(
+        `/patients/walk-in-preview?${q.toString()}`,
+        15000,
+      );
+      const p = res.patient;
+      if (!p) return;
+      this.walkIn.first_name = p.first_name ?? '';
+      this.walkIn.last_name = (p.last_name ?? '').trim();
+      if (p.date_of_birth) {
+        this.walkIn.date_of_birth = String(p.date_of_birth).slice(0, 10);
+      }
+      if (p.identifier_kind === 'relative_escort' && p.escort_relationship) {
+        this.walkIn.escort_relationship = p.escort_relationship;
+      }
+      this.cdr.detectChanges();
     } catch {
-      this.toast.error('OCR failed. Enter details manually.');
+      /* no match or network — ignore */
     }
   }
 
   async createWalkIn(): Promise<void> {
     if (this.walkIn.center_id === '' || !this.walkIn.first_name.trim() || !this.walkIn.cnic.trim()) {
       this.error = 'Center, CNIC and first name are required for walk-in token.';
+      this.toast.error(this.error);
+      return;
+    }
+    if (this.walkIn.identifier_kind === 'relative_escort' && !this.walkIn.escort_relationship.trim()) {
+      this.error = 'Enter how the CNIC holder is related to the patient (e.g. brother, spouse).';
+      this.toast.error(this.error);
+      return;
+    }
+    const dobNeed =
+      this.walkIn.identifier_kind !== 'own' &&
+      !/^\d{4}-\d{2}-\d{2}$/.test(String(this.walkIn.date_of_birth ?? '').trim().slice(0, 10));
+    if (dobNeed) {
+      this.error = 'Date of birth is required when the CNIC number belongs to a parent or relative (patient is still the child / visitor).';
       this.toast.error(this.error);
       return;
     }
@@ -435,19 +372,37 @@ export class AppointmentsPage implements OnInit {
     this.walkInSaving = true;
     this.error = '';
     try {
-      await this.api.post('/appointments/walk-in', {
+      const dob =
+        this.walkIn.identifier_kind === 'own'
+          ? this.walkIn.date_of_birth.trim().slice(0, 10) || null
+          : this.walkIn.date_of_birth.trim().slice(0, 10);
+      const created = await this.api.post<Appointment>('/appointments/walk-in', {
         center_id: Number(this.walkIn.center_id),
         appointment_date: this.walkIn.appointment_date,
         opd_id: Number(this.walkIn.opd_id),
         clinic_id: Number(this.walkIn.clinic_id),
         patient: {
           cnic: this.walkIn.cnic.trim(),
+          identifier_kind: this.walkIn.identifier_kind,
+          escort_relationship:
+            this.walkIn.identifier_kind === 'relative_escort'
+              ? this.walkIn.escort_relationship.trim().slice(0, 50) || null
+              : null,
           first_name: this.walkIn.first_name.trim(),
           last_name: this.walkIn.last_name.trim() || null,
+          date_of_birth: dob,
         },
       });
+      if (created.walk_in_notices?.length) {
+        for (const line of created.walk_in_notices) {
+          this.toast.info(line);
+        }
+      }
       this.closeWalkInModal();
       this.walkIn.cnic = '';
+      this.walkIn.identifier_kind = 'own';
+      this.walkIn.escort_relationship = '';
+      this.walkIn.date_of_birth = '';
       this.walkIn.first_name = '';
       this.walkIn.last_name = '';
       this.walkIn.opd_id = '';

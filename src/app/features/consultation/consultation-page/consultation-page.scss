@@ -172,6 +172,70 @@
   padding-left: 0.5rem;
 }
 
+.lab-order-modal .lab-form-preview,
+.rad-order-modal .lab-form-preview {
+  grid-column: 1 / -1;
+  margin-bottom: 0.35rem;
+}
+
+.lab-form-preview__hint {
+  margin: 0 0 0.45rem;
+  font-size: 0.82rem;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.lab-form-preview__banner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.lab-form-preview__line {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.lab-order-modal .rte-wrap,
+.rad-order-modal .rte-wrap {
+  grid-column: 1 / -1;
+}
+
+.lab-order-modal .rte-wrap quill-editor,
+.rad-order-modal .rte-wrap quill-editor {
+  display: block !important;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.lab-order-modal .rte-wrap ::ng-deep .ql-container,
+.rad-order-modal .rte-wrap ::ng-deep .ql-container {
+  min-height: 120px;
+  max-height: min(32vh, 260px);
+  overflow-y: auto;
+  font-size: 0.95rem;
+  border-radius: 0 0 8px 8px;
+  background: #fff;
+}
+
+.lab-order-modal .rte-wrap ::ng-deep .ql-toolbar,
+.rad-order-modal .rte-wrap ::ng-deep .ql-toolbar {
+  border-radius: 8px 8px 0 0;
+  background: #f8fafc;
+  max-width: 100%;
+  overflow-x: auto;
+  flex-wrap: wrap;
+}
+
 .consultation-modal {
   border-radius: 14px;
   box-shadow: 0 20px 60px rgba(2, 6, 23, 0.25);
@@ -179,6 +243,90 @@
 
 .consultation-modal .page-card {
   margin: 0;
+}
+
+/* First sheet: flex so Save / Complete stay below the form and above Quill overlays. */
+.consultation-modal > .page-card:first-of-type {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.consultation-modal > .page-card:first-of-type .form-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  /* Let grid shrink inside the modal instead of growing with long editor content */
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.consultation-modal > .page-card:first-of-type .actions {
+  flex-shrink: 0;
+  position: relative;
+  z-index: 20;
+  margin-top: 0.75rem;
+  padding-top: 0.85rem;
+  background: #fff;
+  border-top: 1px solid #e2e8f0;
+}
+
+.rte-wrap {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+  max-width: 100%;
+  /* Quill header/list pickers open downward; reserve space so they do not sit over the buttons */
+  padding-bottom: 5.5rem;
+}
+
+.rte-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+/* ngx-quill defaults host to inline-block — in a grid that can mis-size and stack oddly */
+.consultation-modal .rte-wrap quill-editor {
+  display: block !important;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.consultation-modal .rte-wrap ::ng-deep .ql-container {
+  min-height: 140px;
+  max-height: min(36vh, 300px);
+  max-width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  font-size: 0.95rem;
+  border-radius: 0 0 8px 8px;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.consultation-modal .rte-wrap ::ng-deep .ql-editor {
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.consultation-modal .rte-wrap ::ng-deep .ql-toolbar {
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
+  flex-wrap: wrap;
+  border-radius: 8px 8px 0 0;
+  background: #f8fafc;
+  position: relative;
+  z-index: 1;
 }
 
 .subh {

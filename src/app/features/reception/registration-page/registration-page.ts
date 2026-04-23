@@ -13,11 +13,16 @@ import { todayLocalYmd } from '../../../core/utils/local-date';
 
 type Center = { id: number; name: string; hospital_name?: string; city?: string };
 type OpdPickRow = { id: number; name: string; display_code: string; center_id: number; center_label: string; sort_order: number };
+type PatientIdentifierKind = 'own' | 'minor_father_cnic' | 'minor_mother_cnic' | 'relative_escort';
+
 type Appt = {
   id: number;
+  patient_id?: number;
   token_number: number;
   patient_name: string;
   patient_cnic?: string;
+  patient_identifier_kind?: PatientIdentifierKind | string | null;
+  patient_escort_relationship?: string | null;
   center_name?: string;
   center_id?: number;
   appointment_date?: string;
@@ -41,14 +46,14 @@ type LookupResponse = {
     first_name: string;
     last_name?: string | null;
     father_name?: string | null;
-    father_cnic?: string | null;
-    mother_cnic?: string | null;
     phone?: string | null;
     address?: string | null;
     city?: string | null;
     gender?: string | null;
     date_of_birth?: string | null;
     medical_record_number?: string | null;
+    identifier_kind?: PatientIdentifierKind | string | null;
+    escort_relationship?: string | null;
   } | null;
 };
 @Component({
@@ -73,18 +78,21 @@ export class RegistrationPage implements OnInit, OnDestroy {
     first_name: '',
     last_name: '',
     father_name: '',
-    father_cnic: '',
-    mother_cnic: '',
     phone: '',
     address: '',
     city: '',
     gender: '',
     date_of_birth: '',
     medical_record_number: '',
+    identifier_kind: 'own' as PatientIdentifierKind,
+    escort_relationship: '',
   };
 
   loading = false;
   saving = false;
+  /** When chart used escort/parent CNIC, staff can record the patient’s own 13-digit NIC (same chart, all visits kept). */
+  upgradeOwnCnicDigits = '';
+  upgradeOwnCnicSaving = false;
   error = '';
   scannerOpen = false;
   /** ZXing continuous-scan controls — must `.stop()` to release camera. */
@@ -115,15 +123,28 @@ export class RegistrationPage implements OnInit, OnDestroy {
       first_name: '',
       last_name: '',
       father_name: '',
-      father_cnic: '',
-      mother_cnic: '',
       phone: '',
       address: '',
       city: '',
       gender: '',
       date_of_birth: '',
       medical_record_number: '',
+      identifier_kind: 'own',
+      escort_relationship: '',
     };
+  }
+
+  patientIdentifierBadge(kind: string | null | undefined): string | null {
+    switch (kind) {
+      case 'minor_father_cnic':
+        return 'Minor · father’s CNIC';
+      case 'minor_mother_cnic':
+        return 'Minor · mother’s CNIC';
+      case 'relative_escort':
+        return 'Relative / escort CNIC';
+      default:
+        return null;
+    }
   }
 
   async ngOnInit(): Promise<void> {
@@ -301,14 +322,14 @@ export class RegistrationPage implements OnInit, OnDestroy {
         this.patient.first_name = result.patient.first_name ?? '';
         this.patient.last_name = result.patient.last_name ?? '';
         this.patient.father_name = result.patient.father_name ?? '';
-        this.patient.father_cnic = result.patient.father_cnic ?? '';
-        this.patient.mother_cnic = result.patient.mother_cnic ?? '';
         this.patient.phone = result.patient.phone ?? '';
         this.patient.address = result.patient.address ?? '';
         this.patient.city = result.patient.city ?? '';
         this.patient.gender = result.patient.gender ?? '';
         this.patient.date_of_birth = (result.patient.date_of_birth ?? '').slice(0, 10);
         this.patient.medical_record_number = result.patient.medical_record_number ?? '';
+        this.patient.identifier_kind = (result.patient.identifier_kind as PatientIdentifierKind) || 'own';
+        this.patient.escort_relationship = result.patient.escort_relationship ?? '';
       }
       this.selected = null;
       this.centerId = result.appointment.center_id != null ? result.appointment.center_id : this.centerId;
@@ -358,14 +379,14 @@ export class RegistrationPage implements OnInit, OnDestroy {
         this.patient.first_name = result.patient.first_name ?? '';
         this.patient.last_name = result.patient.last_name ?? '';
         this.patient.father_name = result.patient.father_name ?? '';
-        this.patient.father_cnic = result.patient.father_cnic ?? '';
-        this.patient.mother_cnic = result.patient.mother_cnic ?? '';
         this.patient.phone = result.patient.phone ?? '';
         this.patient.address = result.patient.address ?? '';
         this.patient.city = result.patient.city ?? '';
         this.patient.gender = result.patient.gender ?? '';
         this.patient.date_of_birth = (result.patient.date_of_birth ?? '').slice(0, 10);
         this.patient.medical_record_number = result.patient.medical_record_number ?? '';
+        this.patient.identifier_kind = (result.patient.identifier_kind as PatientIdentifierKind) || 'own';
+        this.patient.escort_relationship = result.patient.escort_relationship ?? '';
       }
       this.selected = null;
       if (!this.suppressNoRecordToastOnce) this.toast.success('Booked record found.');
@@ -390,12 +411,73 @@ export class RegistrationPage implements OnInit, OnDestroy {
 
   pick(appt: Appt): void {
     this.selected = appt;
+    this.upgradeOwnCnicDigits = '';
     this.patient.first_name = appt.patient_name?.split(' ')[0] || '';
+    if (appt.patient_identifier_kind) {
+      this.patient.identifier_kind = appt.patient_identifier_kind as PatientIdentifierKind;
+    }
+    if (appt.patient_escort_relationship != null) {
+      this.patient.escort_relationship = appt.patient_escort_relationship;
+    }
     this.cdr.detectChanges();
+  }
+
+  showUpgradeOwnCnic(): boolean {
+    const k = this.selected?.patient_identifier_kind ?? this.patient.identifier_kind;
+    return Boolean(this.selected?.patient_id && k && k !== 'own');
+  }
+
+  async savePatientOwnCnicOnChart(): Promise<void> {
+    const pid = this.selected?.patient_id;
+    if (pid == null) {
+      this.toast.error('Patient id missing — use lookup again.');
+      return;
+    }
+    const raw = this.upgradeOwnCnicDigits.replace(/\D/g, '');
+    if (raw.length !== 13) {
+      this.toast.error('Enter the patient’s own CNIC as 13 digits.');
+      return;
+    }
+    const dashed = `${raw.slice(0, 5)}-${raw.slice(5, 12)}-${raw.slice(12)}`;
+    this.upgradeOwnCnicSaving = true;
+    this.error = '';
+    try {
+      await this.api.post(
+        `/patients/${pid}/upgrade-own-cnic`,
+        { new_cnic: dashed },
+        20000,
+      );
+      this.toast.success('Chart updated to patient’s own CNIC. Future tickets use the new number; past visits stay on this chart.');
+      this.upgradeOwnCnicDigits = '';
+      if (this.selected) {
+        this.selected = { ...this.selected, patient_identifier_kind: 'own', patient_cnic: dashed };
+      }
+      this.patient.identifier_kind = 'own';
+      this.patient.escort_relationship = '';
+    } catch (e) {
+      this.error = e instanceof Error ? e.message : 'Could not update CNIC';
+      this.toast.error(this.error);
+    } finally {
+      this.upgradeOwnCnicSaving = false;
+      this.cdr.detectChanges();
+    }
   }
 
   async register(): Promise<void> {
     if (!this.selected) return;
+    if (this.patient.identifier_kind === 'relative_escort' && !this.patient.escort_relationship.trim()) {
+      this.error = 'Enter how the CNIC holder is related to the patient.';
+      this.toast.error(this.error);
+      return;
+    }
+    if (
+      this.patient.identifier_kind !== 'own' &&
+      !/^\d{4}-\d{2}-\d{2}$/.test(this.patient.date_of_birth.trim().slice(0, 10))
+    ) {
+      this.error = 'Date of birth is required when CNIC on file is a parent’s or relative’s number.';
+      this.toast.error(this.error);
+      return;
+    }
     const selected = this.selected;
     this.saving = true;
     this.error = '';
@@ -409,14 +491,17 @@ export class RegistrationPage implements OnInit, OnDestroy {
             first_name: this.patient.first_name,
             last_name: this.patient.last_name || null,
             father_name: this.patient.father_name || null,
-            father_cnic: this.patient.father_cnic || null,
-            mother_cnic: this.patient.mother_cnic || null,
             phone: this.patient.phone || null,
             address: this.patient.address || null,
             city: this.patient.city || null,
             gender: this.patient.gender || null,
             date_of_birth: this.patient.date_of_birth || null,
             medical_record_number: this.patient.medical_record_number || null,
+            identifier_kind: this.patient.identifier_kind,
+            escort_relationship:
+              this.patient.identifier_kind === 'relative_escort'
+                ? this.patient.escort_relationship.trim().slice(0, 50) || null
+                : null,
           },
         },
         20000,
@@ -424,11 +509,13 @@ export class RegistrationPage implements OnInit, OnDestroy {
       this.toast.success('Patient check-in confirmed.');
       const opdLine = [selected.opd_display_code, selected.opd_name].filter(Boolean).join(' · ') || '—';
       const ticketLine = updated.ticket_display?.trim() || String(selected.token_number);
+      const idNote = this.patientIdentifierBadge(this.patient.identifier_kind);
       this.slipPrint.print('OPD Ticket Slip', 'Registration — OPD visit ticket', [
         { label: 'Ticket', value: ticketLine },
         { label: 'W number', value: updated.w_number?.trim() || '-' },
         { label: 'Patient', value: selected.patient_name || this.patient.first_name || '-' },
         { label: 'CNIC', value: selected.patient_cnic || this.cnic || '-' },
+        ...(idNote ? [{ label: 'CNIC note', value: idNote }] : []),
         { label: 'OPD', value: opdLine },
         { label: 'Clinic', value: selected.clinic_name || updated.clinic_name || '—' },
         { label: 'Campus / center', value: selected.center_name || this.centerLabel() },
