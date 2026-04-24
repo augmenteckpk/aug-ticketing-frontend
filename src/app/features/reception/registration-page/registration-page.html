@@ -109,7 +109,7 @@
         <p class="reg-wizard-step-label">
           Step {{ registrationWizardStep }} of 2 —
           @if (registrationWizardStep === 1) {
-            <strong>Fingerprint</strong>
+            <strong>Thumb scan</strong>
           } @else {
             <strong>Patient details &amp; register</strong>
           }
@@ -131,40 +131,34 @@
 
     @if (registrationWizardStep === 1) {
       <section class="reg-bio-panel" aria-labelledby="reg-bio-heading">
-        <h3 id="reg-bio-heading" class="reg-bio-title">Step 1 — Fingerprint</h3>
-        @if (androidBiometricReady()) {
-          <p class="reg-bio-lead">
-            ZK USB reader is active — native ZKFinger in this WebView exposes <code>HospitalAndroidBiometric</code> to this page.
-          </p>
-        } @else {
-          <p class="reg-bio-lead reg-bio-warn">
-            <strong>Browser alone cannot use the USB reader.</strong> If you opened this site in Chrome on Android, build and install
-            <code>finger-driver/ticketing-desk-reader</code> (build with <code>npm run assembleRelease</code> in <code>finger-driver/</code>). The ZK demo app is native; the same SDK runs in that WebView app, not in Chrome.
-          </p>
-        }
+        <h3 id="reg-bio-heading" class="reg-bio-title">Step 1 — Thumb scan</h3>
+        <p class="reg-bio-lead">
+          Enroll <strong>left</strong> and/or <strong>right</strong> thumb as needed. <strong>Verify always uses the right thumb only.</strong>
+          Poor placement is rejected until the reader reports good quality.
+        </p>
         @if (patientHasBiometricOnFile()) {
-          <p class="reg-bio-status reg-bio-ok">Biometric on file — ask the patient to place the enrolled finger, then verify.</p>
+          <p class="reg-bio-status reg-bio-ok">Thumb scan on file — ask the patient to place the <strong>right thumb</strong> (same as enrolled), then verify.</p>
           <div class="reg-bio-actions">
-            <button type="button" class="btn secondary" (click)="deskBiometricVerify()" [disabled]="fingerprintBusy || saving">
-              {{ fingerprintBusy ? 'Reading / verifying…' : 'Verify fingerprint' }}
+            <button type="button" class="btn secondary" (click)="deskBiometricVerify()" [disabled]="thumbScanBusy || saving">
+              {{ thumbScanBusy ? 'Reading / verifying…' : 'Verify right thumb' }}
             </button>
           </div>
         } @else {
-          <p class="reg-bio-status">First visit for this chart — enroll at least one finger (thumb recommended).</p>
-          <label class="reg-bio-finger">Finger to enroll
+          <p class="reg-bio-status">First visit for this chart — enroll at least one thumb (right thumb required for later verify).</p>
+          <label class="reg-bio-finger">Thumb to enroll
             <select [(ngModel)]="deskBiometricFinger">
               <option value="right_thumb">Right thumb</option>
               <option value="left_thumb">Left thumb</option>
             </select>
           </label>
           <div class="reg-bio-actions">
-            <button type="button" class="btn secondary" (click)="deskBiometricEnroll()" [disabled]="fingerprintBusy || saving">
-              {{ fingerprintBusy ? 'Reading…' : androidBiometricReady() ? 'Capture from reader & enroll' : 'Capture & enroll' }}
+            <button type="button" class="btn secondary" (click)="deskBiometricEnroll()" [disabled]="thumbScanBusy || saving">
+              {{ thumbScanBusy ? 'Reading…' : 'Capture thumb & enroll' }}
             </button>
           </div>
         }
         @if (deskBiometricToken) {
-          <p class="reg-bio-token-ok">Fingerprint step done — continue to patient details. Token expires in a few minutes.</p>
+          <p class="reg-bio-token-ok">Thumb scan step done — continue to patient details. Token expires in a few minutes.</p>
         } @else {
           <p class="reg-bio-token-warn">Continue stays disabled until enroll or verify succeeds.</p>
         }
@@ -175,7 +169,7 @@
           type="button"
           class="btn primary"
           (click)="goToPatientDetailsStep()"
-          [disabled]="!deskBiometricToken || fingerprintBusy || saving"
+          [disabled]="!deskBiometricToken || thumbScanBusy || saving"
         >
           Continue to patient details
         </button>
@@ -183,7 +177,7 @@
     } @else {
       <p class="reg-wizard-back">
         <button type="button" class="btn secondary" (click)="backToBiometricStep()" [disabled]="saving">
-          ← Back to fingerprint
+          ← Back to thumb scan
         </button>
       </p>
 

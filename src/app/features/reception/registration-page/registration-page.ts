@@ -111,10 +111,11 @@ export class RegistrationPage implements OnInit, OnDestroy {
   private suppressNoRecordToastOnce = false;
   private scanUserCancelled = false;
 
-  /** UUID from POST …/desk-biometric/enroll|verify — required before POST /appointments/register. */
+  /** UUID from POST …/desk-biometric/enroll|verify — required before POST /appointments/register (thumb scan gate). */
   deskBiometricToken: string | null = null;
   deskBiometricFinger: 'right_thumb' | 'left_thumb' = 'right_thumb';
-  fingerprintBusy = false;
+  /** USB thumb reader busy (enroll or verify). */
+  thumbScanBusy = false;
   /** 1 = biometric only; 2 = patient form + register (after token issued). */
   registrationWizardStep: 1 | 2 = 1;
 
@@ -448,14 +449,9 @@ export class RegistrationPage implements OnInit, OnDestroy {
     return this.selected?.patient_biometric_enrolled === true;
   }
 
-  /** Android WebView injected native bridge (ZKFinger on tablet). */
-  androidBiometricReady(): boolean {
-    return this.fingerprintReader.isConfigured();
-  }
-
   goToPatientDetailsStep(): void {
     if (!this.deskBiometricToken?.trim()) {
-      this.toast.error('Enroll or verify fingerprint first, then continue.');
+      this.toast.error('Enroll or verify thumb scan first, then continue.');
       return;
     }
     this.registrationWizardStep = 2;
@@ -467,34 +463,47 @@ export class RegistrationPage implements OnInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
-  private fingerprintReaderErrorMessage(e: unknown): string {
+  private thumbScanReaderErrorMessage(e: unknown): string {
     if (e instanceof HttpErrorResponse) {
       const body = e.error as { error?: string; message?: string } | null;
-      return body?.error || body?.message || e.message || 'Fingerprint reader request failed';
+      return body?.error || body?.message || e.message || 'Thumb reader request failed';
     }
     if (e instanceof Error) return e.message;
-    return 'Fingerprint reader request failed';
+    return 'Thumb reader request failed';
   }
 
   async deskBiometricEnroll(): Promise<void> {
     if (!this.selected?.id) return;
-    this.fingerprintBusy = true;
+    this.thumbScanBusy = true;
     this.error = '';
     try {
       if (!this.fingerprintReader.isConfigured()) {
         this.toast.error(this.fingerprintReader.bridgeMissingMessage());
         return;
       }
-      let template_base64: string;
-      let device_id: string;
-      try {
-        const cap = await this.fingerprintReader.captureTemplate();
-        template_base64 = cap.template_base64;
-        device_id = 'ANDROID-TABLET';
-      } catch (e) {
-        this.toast.error(this.fingerprintReaderErrorMessage(e));
+      let template_base64 = '';
+      const maxAttempts = 8;
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        try {
+          const cap = await this.fingerprintReader.captureTemplate();
+          template_base64 = cap.template_base64;
+          break;
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : '';
+          const retryable = msg.includes('too low') || msg.includes('did not complete') || msg.includes('nothing');
+          if (retryable && attempt < maxAttempts - 1) {
+            this.toast.error(msg);
+            continue;
+          }
+          this.toast.error(this.thumbScanReaderErrorMessage(e));
+          return;
+        }
+      }
+      if (!template_base64) {
+        this.toast.error('Could not capture a usable thumb scan.');
         return;
       }
+      const device_id = 'ANDROID-TABLET';
       const res = await this.api.post<DeskBiometricIssueResponse>(
         `/appointments/${this.selected.id}/desk-biometric/enroll`,
         {
@@ -507,20 +516,20 @@ export class RegistrationPage implements OnInit, OnDestroy {
       this.deskBiometricToken = res.desk_biometric_token;
       this.selected = { ...this.selected, patient_biometric_enrolled: res.biometric_enrolled };
       this.toast.success(
-        `Fingerprint enrolled. Token ~${res.expires_in_minutes} min — press Continue to patient details when ready.`,
+        `Thumb scan enrolled. Token ~${res.expires_in_minutes} min — press Continue to patient details when ready.`,
       );
     } catch (e) {
       this.error = e instanceof Error ? e.message : 'Enrollment failed';
       this.toast.error(this.error);
     } finally {
-      this.fingerprintBusy = false;
+      this.thumbScanBusy = false;
       this.cdr.detectChanges();
     }
   }
 
   async deskBiometricVerify(): Promise<void> {
     if (!this.selected?.id) return;
-    this.fingerprintBusy = true;
+    this.thumbScanBusy = true;
     this.error = '';
     try {
       if (!this.fingerprintReader.isConfigured()) {
@@ -534,22 +543,33 @@ export class RegistrationPage implements OnInit, OnDestroy {
           templates: Array<{ finger_index: string; template_base64: string }>;
         }>(`/appointments/${this.selected.id}/desk-biometric/reference-templates`, 20000);
       } catch (e) {
-        this.toast.error(e instanceof ApiError ? e.message : 'Could not load stored fingerprint templates');
+        this.toast.error(e instanceof ApiError ? e.message : 'Could not load stored thumb templates');
         return;
       }
       if (!refs.templates?.length) {
-        this.toast.error('No fingerprint templates on file for this patient — enroll first.');
+        this.toast.error('No thumb templates on file for this patient — enroll first.');
         return;
       }
-      let match: { matched: boolean };
+      const rightTemplates = refs.templates.filter((t) => t.finger_index === 'right_thumb');
+      if (!rightTemplates.length) {
+        this.toast.error('Right thumb is not enrolled. Enroll the right thumb, then verify (verify uses right thumb only).');
+        return;
+      }
+      let match: { matched: boolean; reason?: string };
       try {
         match = await this.fingerprintReader.matchTemplates(refs.templates);
       } catch (e) {
-        this.toast.error(this.fingerprintReaderErrorMessage(e));
+        this.toast.error(this.thumbScanReaderErrorMessage(e));
         return;
       }
       if (!match.matched) {
-        this.toast.error('Fingerprint did not match. Try again or use another enrolled finger.');
+        if (match.reason === 'no_right_thumb') {
+          this.toast.error('Right thumb is not enrolled. Enroll the right thumb, then verify.');
+        } else if (match.reason === 'low_quality') {
+          this.toast.error('Thumb placement or quality was too low. Try verify again with the right thumb flat on the reader.');
+        } else {
+          this.toast.error('Right thumb did not match. Try again with the same enrolled right thumb.');
+        }
         return;
       }
       const res = await this.api.post<DeskBiometricIssueResponse>(
@@ -559,13 +579,13 @@ export class RegistrationPage implements OnInit, OnDestroy {
       );
       this.deskBiometricToken = res.desk_biometric_token;
       this.toast.success(
-        `Fingerprint verified. Token ~${res.expires_in_minutes} min — press Continue to patient details when ready.`,
+        `Right thumb verified. Token ~${res.expires_in_minutes} min — press Continue to patient details when ready.`,
       );
     } catch (e) {
       this.error = e instanceof Error ? e.message : 'Verification failed';
       this.toast.error(this.error);
     } finally {
-      this.fingerprintBusy = false;
+      this.thumbScanBusy = false;
       this.cdr.detectChanges();
     }
   }
@@ -618,7 +638,7 @@ export class RegistrationPage implements OnInit, OnDestroy {
       return;
     }
     if (!this.deskBiometricToken?.trim()) {
-      this.toast.error('Fingerprint step is required: enroll (first visit) or verify, then register.');
+      this.toast.error('Thumb scan step is required: enroll (first visit) or verify, then register.');
       return;
     }
     if (this.patient.identifier_kind === 'relative_escort' && !this.patient.escort_relationship.trim()) {
