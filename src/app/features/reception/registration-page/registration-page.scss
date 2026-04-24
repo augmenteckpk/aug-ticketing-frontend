@@ -3,6 +3,16 @@
   gap: 1rem;
 }
 
+.reg-wizard-step-label {
+  margin: 0.35rem 0 0;
+  font-size: 0.92rem;
+  color: #334155;
+}
+
+.reg-wizard-back {
+  margin: 0 0 0.75rem;
+}
+
 .reg-id-badge {
   display: inline-block;
   padding: 0.12rem 0.45rem;
@@ -138,4 +148,81 @@
 
 .action-cell .btn + .btn {
   margin-left: 0.45rem;
+}
+
+.reg-bio-panel {
+  margin: 0 0 1.25rem;
+  padding: 1rem 1.1rem;
+  border-radius: 0.65rem;
+  border: 1px solid #c4b5fd;
+  background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%);
+}
+
+.reg-bio-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  color: #4c1d95;
+}
+
+.reg-bio-lead {
+  margin: 0 0 0.75rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: #5b21b6;
+
+  code {
+    font-size: 0.82em;
+    padding: 0.1rem 0.25rem;
+    border-radius: 0.25rem;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid #ddd6fe;
+  }
+}
+
+.reg-bio-status {
+  margin: 0 0 0.65rem;
+  font-size: 0.9rem;
+  color: #4c1d95;
+}
+
+.reg-bio-status.reg-bio-ok {
+  font-weight: 600;
+  color: #166534;
+}
+
+.reg-bio-finger {
+  display: block;
+  margin-bottom: 0.65rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #4c1d95;
+
+  select {
+    display: block;
+    margin-top: 0.35rem;
+    max-width: 16rem;
+    padding: 0.35rem 0.5rem;
+    border-radius: 0.4rem;
+    border: 1px solid #c4b5fd;
+  }
+}
+
+.reg-bio-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+}
+
+.reg-bio-token-ok {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #166534;
+}
+
+.reg-bio-token-warn {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #9a3412;
 }

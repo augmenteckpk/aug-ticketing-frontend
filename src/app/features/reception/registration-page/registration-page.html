@@ -106,7 +106,17 @@
     <header class="page-header">
       <div>
         <h2>Register Token #{{ selected.token_number }}</h2>
-        <p>Complete required patient details to move into waiting workflow.</p>
+        <p class="reg-wizard-step-label">
+          Step {{ registrationWizardStep }} of 2 —
+          @if (registrationWizardStep === 1) {
+            <strong>Fingerprint</strong>
+          } @else {
+            <strong>Patient details &amp; register</strong>
+          }
+        </p>
+        @if (registrationWizardStep === 2) {
+          <p>Complete required fields, then register to move the visit into the waiting workflow.</p>
+        }
         @if (patientIdentifierBadge(patient.identifier_kind)) {
           <p class="reg-id-banner">
             <strong>CNIC on chart:</strong>
@@ -119,59 +129,114 @@
       </div>
     </header>
 
-    <div class="form-grid">
-      <label class="full">Whose CNIC number is on file?
-        <select [(ngModel)]="patient.identifier_kind">
-          <option value="own">Patient’s own CNIC</option>
-          <option value="minor_father_cnic">Minor — father’s CNIC</option>
-          <option value="minor_mother_cnic">Minor — mother’s CNIC</option>
-          <option value="relative_escort">Relative / escort’s CNIC (number only)</option>
-        </select>
-      </label>
-      @if (patient.identifier_kind === 'relative_escort') {
-        <app-speech-input class="full" label="Relationship to patient" [(model)]="patient.escort_relationship" placeholder="e.g. brother, spouse" />
-      }
-      <app-speech-input label="First name" [(model)]="patient.first_name" />
-      <app-speech-input label="Last name" [(model)]="patient.last_name" />
-      <app-speech-input label="Father name" [(model)]="patient.father_name" />
-      <app-speech-input label="Phone" [(model)]="patient.phone" type="tel" />
-      <label>Gender
-        <select [(ngModel)]="patient.gender">
-          <option value="">—</option>
-          <option value="Male">Male</option>
-          <option value="Female">Female</option>
-          <option value="Other">Other</option>
-        </select>
-      </label>
-      <label>DOB <input type="date" [(ngModel)]="patient.date_of_birth" /></label>
-      <app-speech-input label="Medical record no" [(model)]="patient.medical_record_number" />
-      <app-speech-input label="City" [(model)]="patient.city" />
-      <app-speech-input class="full" label="Address" [(model)]="patient.address" />
-    </div>
+    @if (registrationWizardStep === 1) {
+      <section class="reg-bio-panel" aria-labelledby="reg-bio-heading">
+        <h3 id="reg-bio-heading" class="reg-bio-title">Step 1 — Fingerprint</h3>
+        @if (androidBiometricReady()) {
+          <p class="reg-bio-lead">
+            USB reader is used through the <strong>Android app</strong> (native ZKFinger). This screen runs in the tablet WebView
+            — <code>window.HospitalAndroidBiometric</code> must be injected by your host.
+          </p>
+        }
+        @if (patientHasBiometricOnFile()) {
+          <p class="reg-bio-status reg-bio-ok">Biometric on file — ask the patient to place the enrolled finger, then verify.</p>
+          <div class="reg-bio-actions">
+            <button type="button" class="btn secondary" (click)="deskBiometricVerify()" [disabled]="fingerprintBusy || saving">
+              {{ fingerprintBusy ? 'Reading / verifying…' : 'Verify fingerprint' }}
+            </button>
+          </div>
+        } @else {
+          <p class="reg-bio-status">First visit for this chart — enroll at least one finger (thumb recommended).</p>
+          <label class="reg-bio-finger">Finger to enroll
+            <select [(ngModel)]="deskBiometricFinger">
+              <option value="right_thumb">Right thumb</option>
+              <option value="left_thumb">Left thumb</option>
+            </select>
+          </label>
+          <div class="reg-bio-actions">
+            <button type="button" class="btn secondary" (click)="deskBiometricEnroll()" [disabled]="fingerprintBusy || saving">
+              {{ fingerprintBusy ? 'Reading…' : androidBiometricReady() ? 'Capture from reader & enroll' : 'Capture & enroll' }}
+            </button>
+          </div>
+        }
+        @if (deskBiometricToken) {
+          <p class="reg-bio-token-ok">Fingerprint step done — continue to patient details. Token expires in a few minutes.</p>
+        } @else {
+          <p class="reg-bio-token-warn">Continue stays disabled until enroll or verify succeeds.</p>
+        }
+      </section>
 
-    @if (showUpgradeOwnCnic()) {
-      <div class="upgrade-own-cnic-panel">
-        <h3 class="upgrade-own-cnic-title">Patient now has their own CNIC</h3>
-        <p class="upgrade-own-cnic-hint">
-          All previous visits stay on this same chart (<strong>patient #{{ selected.patient_id }}</strong>). Only the
-          CNIC on file and the “own / escort” flags are updated — nothing is moved between duplicate charts.
-        </p>
-        <div class="upgrade-own-cnic-row">
-          <app-speech-input label="Patient’s own CNIC (13 digits)" [(model)]="upgradeOwnCnicDigits" placeholder="42101-1234567-8" />
-          <button
-            type="button"
-            class="btn secondary"
-            (click)="savePatientOwnCnicOnChart()"
-            [disabled]="upgradeOwnCnicSaving"
-          >
-            {{ upgradeOwnCnicSaving ? 'Saving…' : 'Save on chart' }}
-          </button>
+      <div class="actions">
+        <button
+          type="button"
+          class="btn primary"
+          (click)="goToPatientDetailsStep()"
+          [disabled]="!deskBiometricToken || fingerprintBusy || saving"
+        >
+          Continue to patient details
+        </button>
+      </div>
+    } @else {
+      <p class="reg-wizard-back">
+        <button type="button" class="btn secondary" (click)="backToBiometricStep()" [disabled]="saving">
+          ← Back to fingerprint
+        </button>
+      </p>
+
+      <div class="form-grid">
+        <label class="full">Whose CNIC number is on file?
+          <select [(ngModel)]="patient.identifier_kind">
+            <option value="own">Patient’s own CNIC</option>
+            <option value="minor_father_cnic">Minor — father’s CNIC</option>
+            <option value="minor_mother_cnic">Minor — mother’s CNIC</option>
+            <option value="relative_escort">Relative / escort’s CNIC (number only)</option>
+          </select>
+        </label>
+        @if (patient.identifier_kind === 'relative_escort') {
+          <app-speech-input class="full" label="Relationship to patient" [(model)]="patient.escort_relationship" placeholder="e.g. brother, spouse" />
+        }
+        <app-speech-input label="First name" [(model)]="patient.first_name" />
+        <app-speech-input label="Last name" [(model)]="patient.last_name" />
+        <app-speech-input label="Father name" [(model)]="patient.father_name" />
+        <app-speech-input label="Phone" [(model)]="patient.phone" type="tel" />
+        <label>Gender
+          <select [(ngModel)]="patient.gender">
+            <option value="">—</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+        </label>
+        <label>DOB <input type="date" [(ngModel)]="patient.date_of_birth" /></label>
+        <app-speech-input label="Medical record no" [(model)]="patient.medical_record_number" />
+        <app-speech-input label="City" [(model)]="patient.city" />
+        <app-speech-input class="full" label="Address" [(model)]="patient.address" />
+      </div>
+
+      @if (showUpgradeOwnCnic()) {
+        <div class="upgrade-own-cnic-panel">
+          <h3 class="upgrade-own-cnic-title">Patient now has their own CNIC</h3>
+          <p class="upgrade-own-cnic-hint">
+            All previous visits stay on this same chart (<strong>patient #{{ selected.patient_id }}</strong>). Only the
+            CNIC on file and the “own / escort” flags are updated — nothing is moved between duplicate charts.
+          </p>
+          <div class="upgrade-own-cnic-row">
+            <app-speech-input label="Patient’s own CNIC (13 digits)" [(model)]="upgradeOwnCnicDigits" placeholder="42101-1234567-8" />
+            <button
+              type="button"
+              class="btn secondary"
+              (click)="savePatientOwnCnicOnChart()"
+              [disabled]="upgradeOwnCnicSaving"
+            >
+              {{ upgradeOwnCnicSaving ? 'Saving…' : 'Save on chart' }}
+            </button>
+          </div>
         </div>
+      }
+
+      <div class="actions">
+        <button class="btn primary" (click)="register()" [disabled]="saving || !deskBiometricToken">Register patient</button>
       </div>
     }
-
-    <div class="actions">
-      <button class="btn primary" (click)="register()" [disabled]="saving">Register patient</button>
-    </div>
   </section>
 }

@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectorRef, Component, ElementRef, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BrowserMultiFormatReader, type IScannerControls } from '@zxing/browser';
@@ -10,6 +11,7 @@ import { SpeechInput } from '../../../ui-kit/speech-input/speech-input';
 import { SlipPrintService } from '../../../core/services/slip-print.service';
 import { ToastService } from '../../../core/services/toast';
 import { todayLocalYmd } from '../../../core/utils/local-date';
+import { FingerprintReaderService } from '../../../core/services/fingerprint-reader.service';
 
 type Center = { id: number; name: string; hospital_name?: string; city?: string };
 type OpdPickRow = { id: number; name: string; display_code: string; center_id: number; center_label: string; sort_order: number };
@@ -21,6 +23,8 @@ type Appt = {
   token_number: number;
   patient_name: string;
   patient_cnic?: string;
+  /** From server after `patients.biometric_enrolled` + desk workflow. */
+  patient_biometric_enrolled?: boolean | null;
   patient_identifier_kind?: PatientIdentifierKind | string | null;
   patient_escort_relationship?: string | null;
   center_name?: string;
@@ -54,7 +58,14 @@ type LookupResponse = {
     medical_record_number?: string | null;
     identifier_kind?: PatientIdentifierKind | string | null;
     escort_relationship?: string | null;
+    biometric_enrolled?: boolean | null;
   } | null;
+};
+
+type DeskBiometricIssueResponse = {
+  desk_biometric_token: string;
+  expires_in_minutes: number;
+  biometric_enrolled: boolean;
 };
 @Component({
   selector: 'app-registration-page',
@@ -100,6 +111,13 @@ export class RegistrationPage implements OnInit, OnDestroy {
   private suppressNoRecordToastOnce = false;
   private scanUserCancelled = false;
 
+  /** UUID from POST …/desk-biometric/enroll|verify — required before POST /appointments/register. */
+  deskBiometricToken: string | null = null;
+  deskBiometricFinger: 'right_thumb' | 'left_thumb' = 'right_thumb';
+  fingerprintBusy = false;
+  /** 1 = biometric only; 2 = patient form + register (after token issued). */
+  registrationWizardStep: 1 | 2 = 1;
+
   constructor(
     private readonly api: ApiService,
     private readonly auth: AuthService,
@@ -107,6 +125,7 @@ export class RegistrationPage implements OnInit, OnDestroy {
     private readonly toast: ToastService,
     private readonly cdr: ChangeDetectorRef,
     private readonly ngZone: NgZone,
+    private readonly fingerprintReader: FingerprintReaderService,
   ) {}
 
   isAdmin(): boolean {
@@ -119,6 +138,7 @@ export class RegistrationPage implements OnInit, OnDestroy {
   }
 
   private resetPatientForm(): void {
+    this.deskBiometricToken = null;
     this.patient = {
       first_name: '',
       last_name: '',
@@ -411,6 +431,8 @@ export class RegistrationPage implements OnInit, OnDestroy {
 
   pick(appt: Appt): void {
     this.selected = appt;
+    this.registrationWizardStep = 1;
+    this.deskBiometricToken = null;
     this.upgradeOwnCnicDigits = '';
     this.patient.first_name = appt.patient_name?.split(' ')[0] || '';
     if (appt.patient_identifier_kind) {
@@ -420,6 +442,136 @@ export class RegistrationPage implements OnInit, OnDestroy {
       this.patient.escort_relationship = appt.patient_escort_relationship;
     }
     this.cdr.detectChanges();
+  }
+
+  patientHasBiometricOnFile(): boolean {
+    return this.selected?.patient_biometric_enrolled === true;
+  }
+
+  /** Android WebView injected native bridge (ZKFinger on tablet). */
+  androidBiometricReady(): boolean {
+    return this.fingerprintReader.isConfigured();
+  }
+
+  goToPatientDetailsStep(): void {
+    if (!this.deskBiometricToken?.trim()) {
+      this.toast.error('Enroll or verify fingerprint first, then continue.');
+      return;
+    }
+    this.registrationWizardStep = 2;
+    this.cdr.detectChanges();
+  }
+
+  backToBiometricStep(): void {
+    this.registrationWizardStep = 1;
+    this.cdr.detectChanges();
+  }
+
+  private fingerprintReaderErrorMessage(e: unknown): string {
+    if (e instanceof HttpErrorResponse) {
+      const body = e.error as { error?: string; message?: string } | null;
+      return body?.error || body?.message || e.message || 'Fingerprint reader request failed';
+    }
+    if (e instanceof Error) return e.message;
+    return 'Fingerprint reader request failed';
+  }
+
+  async deskBiometricEnroll(): Promise<void> {
+    if (!this.selected?.id) return;
+    this.fingerprintBusy = true;
+    this.error = '';
+    try {
+      if (!this.fingerprintReader.isConfigured()) {
+        this.toast.error(
+          'No fingerprint reader on this device. Use the hospital registration tablet (Android WebView with fingerprint hardware).',
+        );
+        return;
+      }
+      let template_base64: string;
+      let device_id: string;
+      try {
+        const cap = await this.fingerprintReader.captureTemplate();
+        template_base64 = cap.template_base64;
+        device_id = 'ANDROID-TABLET';
+      } catch (e) {
+        this.toast.error(this.fingerprintReaderErrorMessage(e));
+        return;
+      }
+      const res = await this.api.post<DeskBiometricIssueResponse>(
+        `/appointments/${this.selected.id}/desk-biometric/enroll`,
+        {
+          finger_index: this.deskBiometricFinger,
+          template_base64,
+          device_id,
+        },
+        30000,
+      );
+      this.deskBiometricToken = res.desk_biometric_token;
+      this.selected = { ...this.selected, patient_biometric_enrolled: res.biometric_enrolled };
+      this.toast.success(
+        `Fingerprint enrolled. Token ~${res.expires_in_minutes} min — press Continue to patient details when ready.`,
+      );
+    } catch (e) {
+      this.error = e instanceof Error ? e.message : 'Enrollment failed';
+      this.toast.error(this.error);
+    } finally {
+      this.fingerprintBusy = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  async deskBiometricVerify(): Promise<void> {
+    if (!this.selected?.id) return;
+    this.fingerprintBusy = true;
+    this.error = '';
+    try {
+      if (!this.fingerprintReader.isConfigured()) {
+        this.toast.error(
+          'No fingerprint reader on this device. Use the hospital registration tablet (Android WebView with fingerprint hardware).',
+        );
+        return;
+      }
+      let refs: { patient_id: number; templates: Array<{ finger_index: string; template_base64: string }> };
+      try {
+        refs = await this.api.get<{
+          patient_id: number;
+          templates: Array<{ finger_index: string; template_base64: string }>;
+        }>(`/appointments/${this.selected.id}/desk-biometric/reference-templates`, 20000);
+      } catch (e) {
+        this.toast.error(e instanceof ApiError ? e.message : 'Could not load stored fingerprint templates');
+        return;
+      }
+      if (!refs.templates?.length) {
+        this.toast.error('No fingerprint templates on file for this patient — enroll first.');
+        return;
+      }
+      let match: { matched: boolean };
+      try {
+        match = await this.fingerprintReader.matchTemplates(refs.templates);
+      } catch (e) {
+        this.toast.error(this.fingerprintReaderErrorMessage(e));
+        return;
+      }
+      if (!match.matched) {
+        this.toast.error('Fingerprint did not match. Try again or use another enrolled finger.');
+        return;
+      }
+      const res = await this.api.post<DeskBiometricIssueResponse>(
+        `/appointments/${this.selected.id}/desk-biometric/verify`,
+        { reader_match: true, device_id: 'ANDROID-TABLET' },
+        30000,
+      );
+      this.deskBiometricToken = res.desk_biometric_token;
+      this.toast.success(
+        `Fingerprint verified. Token ~${res.expires_in_minutes} min — press Continue to patient details when ready.`,
+      );
+    } catch (e) {
+      this.error = e instanceof Error ? e.message : 'Verification failed';
+      this.toast.error(this.error);
+    } finally {
+      this.fingerprintBusy = false;
+      this.cdr.detectChanges();
+    }
   }
 
   showUpgradeOwnCnic(): boolean {
@@ -465,6 +617,14 @@ export class RegistrationPage implements OnInit, OnDestroy {
 
   async register(): Promise<void> {
     if (!this.selected) return;
+    if (this.registrationWizardStep !== 2) {
+      this.toast.error('Use Continue to go to patient details before registering.');
+      return;
+    }
+    if (!this.deskBiometricToken?.trim()) {
+      this.toast.error('Fingerprint step is required: enroll (first visit) or verify, then register.');
+      return;
+    }
     if (this.patient.identifier_kind === 'relative_escort' && !this.patient.escort_relationship.trim()) {
       this.error = 'Enter how the CNIC holder is related to the patient.';
       this.toast.error(this.error);
@@ -486,6 +646,7 @@ export class RegistrationPage implements OnInit, OnDestroy {
         '/appointments/register',
         {
           appointment_id: this.selected.id,
+          desk_biometric_token: this.deskBiometricToken,
           visit_barcode: this.selected.visit_barcode?.trim() || null,
           patient: {
             first_name: this.patient.first_name,
@@ -522,6 +683,8 @@ export class RegistrationPage implements OnInit, OnDestroy {
         { label: 'Visit date', value: this.date },
         { label: 'Status', value: 'registered' },
       ]);
+      this.deskBiometricToken = null;
+      this.registrationWizardStep = 1;
       this.suppressNoRecordToastOnce = true;
       await this.lookup();
       this.booked = [];
