@@ -113,6 +113,9 @@
           } @else {
             <strong>Patient details &amp; register</strong>
           }
+          @if (deskRegistrationBypass) {
+            <span class="reg-bypass-badge">Demo / dev: biometric bypass on</span>
+          }
         </p>
         @if (registrationWizardStep === 2) {
           <p>Complete required fields, then register to move the visit into the waiting workflow.</p>
@@ -132,6 +135,12 @@
     @if (registrationWizardStep === 1) {
       <section class="reg-bio-panel" aria-labelledby="reg-bio-heading">
         <h3 id="reg-bio-heading" class="reg-bio-title">Step 1 — Thumb scan</h3>
+        @if (deskRegistrationBypass) {
+          <p class="reg-bio-status reg-bio-warn">
+            Server has <strong>desk biometric registration bypass</strong> enabled. You may continue without enroll/verify
+            for testing only — turn off <code>DESK_BIOMETRIC_REGISTRATION_BYPASS</code> in production.
+          </p>
+        }
         <p class="reg-bio-lead">
           Enroll <strong>left</strong> and/or <strong>right</strong> thumb as needed. <strong>Verify always uses the right thumb only.</strong>
           Poor placement is rejected until the reader reports good quality.
@@ -159,6 +168,8 @@
         }
         @if (deskBiometricToken) {
           <p class="reg-bio-token-ok">Thumb scan step done — continue to patient details. Token expires in a few minutes.</p>
+        } @else if (deskRegistrationBypass) {
+          <p class="reg-bio-token-ok">Bypass active — use Continue when ready (no token issued).</p>
         } @else {
           <p class="reg-bio-token-warn">Continue stays disabled until enroll or verify succeeds.</p>
         }
@@ -169,7 +180,7 @@
           type="button"
           class="btn primary"
           (click)="goToPatientDetailsStep()"
-          [disabled]="!deskBiometricToken || thumbScanBusy || saving"
+          [disabled]="(!deskRegistrationBypass && !deskBiometricToken) || thumbScanBusy || saving"
         >
           Continue to patient details
         </button>
@@ -233,7 +244,7 @@
       }
 
       <div class="actions">
-        <button class="btn primary" (click)="register()" [disabled]="saving || !deskBiometricToken">Register patient</button>
+        <button class="btn primary" (click)="register()" [disabled]="saving || (!deskRegistrationBypass && !deskBiometricToken)">Register patient</button>
       </div>
     }
   </section>

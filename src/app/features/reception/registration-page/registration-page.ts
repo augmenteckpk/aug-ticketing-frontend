@@ -111,7 +111,9 @@ export class RegistrationPage implements OnInit, OnDestroy {
   private suppressNoRecordToastOnce = false;
   private scanUserCancelled = false;
 
-  /** UUID from POST …/desk-biometric/enroll|verify — required before POST /appointments/register (thumb scan gate). */
+  /** When true, server has `DESK_BIOMETRIC_REGISTRATION_BYPASS` — thumb scan token not required (dev/demo). */
+  deskRegistrationBypass = false;
+  /** UUID from POST …/desk-biometric/enroll|verify — required before POST /appointments/register unless bypass. */
   deskBiometricToken: string | null = null;
   deskBiometricFinger: 'right_thumb' | 'left_thumb' = 'right_thumb';
   /** USB thumb reader busy (enroll or verify). */
@@ -184,6 +186,15 @@ export class RegistrationPage implements OnInit, OnDestroy {
       if (c != null) this.centerId = c;
     }
     this.date = listDateForRequest(this.auth.user(), this.date);
+    void this.api
+      .get<{ desk_biometric_registration_bypass?: boolean }>('/public/registration-desk-options', ms)
+      .then((o) => {
+        this.deskRegistrationBypass = Boolean(o?.desk_biometric_registration_bypass);
+        this.cdr.detectChanges();
+      })
+      .catch(() => {
+        this.deskRegistrationBypass = false;
+      });
     try {
       this.centers = await this.api.get<Center[]>('/centers', ms);
       if (!this.centers.length) this.centers = await this.api.get<Center[]>('/public/centers', ms);
@@ -450,7 +461,7 @@ export class RegistrationPage implements OnInit, OnDestroy {
   }
 
   goToPatientDetailsStep(): void {
-    if (!this.deskBiometricToken?.trim()) {
+    if (!this.deskRegistrationBypass && !this.deskBiometricToken?.trim()) {
       this.toast.error('Enroll or verify thumb scan first, then continue.');
       return;
     }
@@ -637,7 +648,7 @@ export class RegistrationPage implements OnInit, OnDestroy {
       this.toast.error('Use Continue to go to patient details before registering.');
       return;
     }
-    if (!this.deskBiometricToken?.trim()) {
+    if (!this.deskRegistrationBypass && !this.deskBiometricToken?.trim()) {
       this.toast.error('Thumb scan step is required: enroll (first visit) or verify, then register.');
       return;
     }
@@ -662,7 +673,7 @@ export class RegistrationPage implements OnInit, OnDestroy {
         '/appointments/register',
         {
           appointment_id: this.selected.id,
-          desk_biometric_token: this.deskBiometricToken,
+          desk_biometric_token: this.deskRegistrationBypass ? null : this.deskBiometricToken,
           visit_barcode: this.selected.visit_barcode?.trim() || null,
           patient: {
             first_name: this.patient.first_name,
