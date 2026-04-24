@@ -19,8 +19,8 @@ export type FingerprintReferenceTemplate = {
 };
 
 /**
- * Fingerprint on **Android tablet**: the host WebView injects `window.HospitalAndroidBiometric`
- * (ZKFinger / USB reader runs in native code). Browsers cannot read the reader directly.
+ * Fingerprint on **Android tablet**: a native host (WebView shell) injects `window.HospitalAndroidBiometric`
+ * and talks to ZKFinger over USB OTG. Stock mobile browsers cannot access that USB stack.
  */
 @Injectable({ providedIn: 'root' })
 export class FingerprintReaderService {
@@ -29,12 +29,35 @@ export class FingerprintReaderService {
     return typeof window !== 'undefined' && typeof window.HospitalAndroidBiometric?.captureTemplate === 'function';
   }
 
+  /** Android Chrome/Firefox (not embedded WebView) — no ZK USB bridge. */
+  isAndroidStandaloneBrowser(): boolean {
+    if (typeof navigator === 'undefined') return false;
+    const ua = navigator.userAgent || '';
+    if (!/Android/i.test(ua)) return false;
+    // Android System WebView / embedded browsers often include "; wv)" in the UA.
+    if (/\bwv\)/i.test(ua)) return false;
+    return /Chrome\/|Firefox\//i.test(ua);
+  }
+
+  /**
+   * User-facing explanation when `HospitalAndroidBiometric` is missing (e.g. opened Angular in Chrome).
+   */
+  bridgeMissingMessage(): string {
+    if (this.isAndroidStandaloneBrowser()) {
+      return (
+        'Chrome on Android cannot access the ZK USB reader. Build the WebView shell in frontend/tools/zk-webview-shell ' +
+        '(copy ZKFinger jars into app/libs, set ticketing.registration.url) and open this desk URL there.'
+      );
+    }
+    return (
+      'No fingerprint bridge (HospitalAndroidBiometric). On Android use the WebView shell in frontend/tools/zk-webview-shell with your ZKFinger SDK jars.'
+    );
+  }
+
   private native(): NonNullable<Window['HospitalAndroidBiometric']> {
     const b = typeof window !== 'undefined' ? window.HospitalAndroidBiometric : undefined;
     if (!b?.captureTemplate) {
-      throw new Error(
-        'No fingerprint reader on this device. Open the registration desk app in the hospital Android tablet WebView that provides HospitalAndroidBiometric.captureTemplate().',
-      );
+      throw new Error(this.bridgeMissingMessage());
     }
     return b;
   }

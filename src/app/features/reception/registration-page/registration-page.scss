@@ -177,6 +177,12 @@
     background: rgba(255, 255, 255, 0.7);
     border: 1px solid #ddd6fe;
   }
+
+  &.reg-bio-warn {
+    color: #9a3412;
+    border-left: 3px solid #ea580c;
+    padding-left: 0.6rem;
+  }
 }
 
 .reg-bio-status {

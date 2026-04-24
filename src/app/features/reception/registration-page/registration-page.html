@@ -134,8 +134,12 @@
         <h3 id="reg-bio-heading" class="reg-bio-title">Step 1 — Fingerprint</h3>
         @if (androidBiometricReady()) {
           <p class="reg-bio-lead">
-            USB reader is used through the <strong>Android app</strong> (native ZKFinger). This screen runs in the tablet WebView
-            — <code>window.HospitalAndroidBiometric</code> must be injected by your host.
+            ZK USB reader is active — native ZKFinger in this WebView exposes <code>HospitalAndroidBiometric</code> to this page.
+          </p>
+        } @else {
+          <p class="reg-bio-lead reg-bio-warn">
+            <strong>Browser alone cannot use the USB reader.</strong> If you opened this site in Chrome on Android, build and install
+            <code>frontend/tools/zk-webview-shell</code> (loads this Angular URL in WebView + ZKFinger). The ZK demo app works because it is native; the same SDK runs inside that shell, not inside Chrome.
           </p>
         }
         @if (patientHasBiometricOnFile()) {

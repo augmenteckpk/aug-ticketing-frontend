@@ -482,9 +482,7 @@ export class RegistrationPage implements OnInit, OnDestroy {
     this.error = '';
     try {
       if (!this.fingerprintReader.isConfigured()) {
-        this.toast.error(
-          'No fingerprint reader on this device. Use the hospital registration tablet (Android WebView with fingerprint hardware).',
-        );
+        this.toast.error(this.fingerprintReader.bridgeMissingMessage());
         return;
       }
       let template_base64: string;
@@ -526,9 +524,7 @@ export class RegistrationPage implements OnInit, OnDestroy {
     this.error = '';
     try {
       if (!this.fingerprintReader.isConfigured()) {
-        this.toast.error(
-          'No fingerprint reader on this device. Use the hospital registration tablet (Android WebView with fingerprint hardware).',
-        );
+        this.toast.error(this.fingerprintReader.bridgeMissingMessage());
         return;
       }
       let refs: { patient_id: number; templates: Array<{ finger_index: string; template_base64: string }> };

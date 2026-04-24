@@ -1,0 +1,21 @@
+Ticketing Desk WebView shell (ZKFinger USB + Angular)
+======================================================
+
+Why: Google Chrome on Android cannot load the ZKTeco native USB driver. The ZK demo app works because it is native Java. This project is a tiny WebView host that loads your Angular desk URL and exposes window.HospitalAndroidBiometric so the same Angular code works.
+
+Steps
+-----
+1) Copy ZKFinger SDK jars from ZKFingerAndroidSDK (same as official ZKFinger10Demo_SLKID) into:
+      app/libs/
+   Include .jar files and, if the SDK ships them separately, place .so files under app/libs/arm64-v8a/ etc. (see official demo sourceSets jniLibs).
+
+2) Copy local.properties.example to local.properties and set:
+      sdk.dir=...your Android SDK...
+      ticketing.registration.url=http://YOUR_PC_LAN_IP:4200/
+   Use HTTPS in production and remove usesCleartextTraffic from AndroidManifest if you serve TLS.
+
+3) Open this folder (frontend/tools/zk-webview-shell) in Android Studio, Sync Gradle, Run on the tablet with the reader on OTG.
+
+4) When the app opens, accept the USB permission dialog once. Then use Enroll / Verify on the Angular registration page inside the WebView.
+
+Supported reader PIDs (edit DeskFingerprintController.KNOWN_PIDS if yours differs): 0x0120 Live20R, 0x0124 Live10R, 0x0101 ZK9500. VID is always 0x1b55 (decimal 6997).

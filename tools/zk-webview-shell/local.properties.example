@@ -1,0 +1,6 @@
+## Copy to local.properties (Android Studio usually creates this with sdk.dir only).
+sdk.dir=C\:\\Users\\YOU\\AppData\\Local\\Android\\Sdk
+
+## Base URL of your Angular desk app (same Wi‑Fi as the tablet). Example:
+## ticketing.registration.url=http://192.168.1.100:4200/
+ticketing.registration.url=http://10.0.2.2:4200/

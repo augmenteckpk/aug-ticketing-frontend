@@ -1,0 +1,56 @@
+plugins {
+    id 'com.android.application'
+}
+
+def lp = new Properties()
+def lpFile = rootProject.file("local.properties")
+if (lpFile.exists()) {
+    lpFile.withInputStream { lp.load(it) }
+}
+def deskUrl = lp.getProperty("ticketing.registration.url", "http://10.0.2.2:4200/")
+if (!deskUrl.endsWith("/")) {
+    deskUrl = deskUrl + "/"
+}
+
+android {
+    namespace 'com.ticketing.desk'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.ticketing.desk"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+        buildConfigField "String", "DESK_URL", "\"${deskUrl.replace("\\", "\\\\")}\""
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ['libs']
+        }
+    }
+}
+
+dependencies {
+    /** Copy ZKFinger .jar files from ZKFingerAndroidSDK into app/libs/ (same as official ZKFinger10Demo). */
+    implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.webkit:webkit:1.9.0'
+}
