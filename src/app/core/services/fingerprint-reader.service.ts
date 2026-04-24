@@ -45,12 +45,12 @@ export class FingerprintReaderService {
   bridgeMissingMessage(): string {
     if (this.isAndroidStandaloneBrowser()) {
       return (
-        'Chrome on Android cannot access the ZK USB reader. Build the WebView shell in frontend/tools/zk-webview-shell ' +
-        '(copy ZKFinger jars into app/libs, set ticketing.registration.url) and open this desk URL there.'
+        'Chrome on Android cannot access the ZK USB reader. Build the WebView shell in finger-driver/ticketing-desk-reader ' +
+        '(npm run syncZkfinger && npm run assembleRelease in finger-driver/) and open this desk URL in that app.'
       );
     }
     return (
-      'No fingerprint bridge (HospitalAndroidBiometric). On Android use the WebView shell in frontend/tools/zk-webview-shell with your ZKFinger SDK jars.'
+      'No fingerprint bridge (HospitalAndroidBiometric). On Android use the WebView shell in finger-driver/ticketing-desk-reader (see finger-driver/README.txt).'
     );
   }
 

@@ -139,7 +139,7 @@
         } @else {
           <p class="reg-bio-lead reg-bio-warn">
             <strong>Browser alone cannot use the USB reader.</strong> If you opened this site in Chrome on Android, build and install
-            <code>frontend/tools/zk-webview-shell</code> (loads this Angular URL in WebView + ZKFinger). The ZK demo app works because it is native; the same SDK runs inside that shell, not inside Chrome.
+            <code>finger-driver/ticketing-desk-reader</code> (build with <code>npm run assembleRelease</code> in <code>finger-driver/</code>). The ZK demo app is native; the same SDK runs in that WebView app, not in Chrome.
           </p>
         }
         @if (patientHasBiometricOnFile()) {
