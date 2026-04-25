@@ -1,4 +1,4 @@
-import { Injectable, NgZone, inject, signal } from '@angular/core';
+import { ApplicationRef, Injectable, NgZone, inject, signal } from '@angular/core';
 
 type ConfirmState = {
   open: boolean;
@@ -12,6 +12,7 @@ type ConfirmState = {
 @Injectable({ providedIn: 'root' })
 export class ConfirmService {
   private readonly zone = inject(NgZone);
+  private readonly appRef = inject(ApplicationRef);
   readonly state = signal<ConfirmState>({
     open: false,
     title: '',
@@ -35,6 +36,8 @@ export class ConfirmService {
           danger: !!opts.danger,
         });
         this.resolver = resolve;
+        // Paint the overlay in the same turn (avoids perceived lag before the dialog appears).
+        queueMicrotask(() => this.appRef.tick());
       });
     });
   }
@@ -45,6 +48,7 @@ export class ConfirmService {
       const r = this.resolver;
       this.resolver = null;
       if (r) r(value);
+      queueMicrotask(() => this.appRef.tick());
     });
   }
 }

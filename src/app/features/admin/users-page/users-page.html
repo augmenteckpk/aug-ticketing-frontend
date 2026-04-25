@@ -5,7 +5,7 @@
       <p>Manage staff accounts, roles, and OPD assignment (staff see only their OPD’s visits and queues).</p>
     </div>
     <div class="actions">
-      <button class="btn primary" (click)="creating = true" [disabled]="saving || loading">Create user</button>
+      <button class="btn primary" (click)="startCreate()" [disabled]="saving || loading">Create user</button>
       <button class="btn-icon btn-icon--surface" type="button" title="Refresh" aria-label="Refresh" (click)="load()" [disabled]="loading">
         <span class="material-icons" aria-hidden="true">refresh</span>
       </button>
@@ -66,7 +66,7 @@
 </section>
 
 @if (creating) {
-  <div class="modal-overlay" (click)="creating = false">
+  <div class="modal-overlay" (click)="closeCreate()">
     <div class="modal" (click)="$event.stopPropagation()">
       <h3>Create user</h3>
       <app-speech-input label="Username" [(model)]="form.username" [maxLength]="50" [required]="true" [disabled]="saving" />
@@ -90,8 +90,9 @@
         <p class="muted small">Counter and queue staff should be assigned to the OPD they work at.</p>
       }
       <div class="actions">
-        <button class="btn" (click)="creating = false">Cancel</button>
+        <button type="button" class="btn" (click)="closeCreate()">Cancel</button>
         <button
+          type="button"
           class="btn primary"
           (click)="create()"
           [disabled]="saving || !form.username.trim() || !form.password.trim() || form.password.length < 8 || !form.role_name"
@@ -104,7 +105,7 @@
 }
 
 @if (editing) {
-  <div class="modal-overlay" (click)="editing = null; editOpdId = ''">
+  <div class="modal-overlay" (click)="closeEdit()">
     <div class="modal" (click)="$event.stopPropagation()">
       <h3>Edit user</h3>
       <p class="muted">{{ editing.username }}</p>
@@ -133,8 +134,8 @@
         </select>
       </label>
       <div class="actions">
-        <button class="btn" (click)="editing = null; editOpdId = ''">Cancel</button>
-        <button class="btn primary" (click)="saveEdit()" [disabled]="saving">Save</button>
+        <button type="button" class="btn" (click)="closeEdit()">Cancel</button>
+        <button type="button" class="btn primary" (click)="saveEdit()" [disabled]="saving">Save</button>
       </div>
     </div>
   </div>

@@ -44,6 +44,43 @@
   color: var(--color-muted);
 }
 
+.walkin-success {
+  padding: 0.75rem 0 0.25rem;
+}
+
+.walkin-success-ticket {
+  margin: 0 0 0.65rem;
+  font-size: 1.65rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  color: var(--color-text, #0f172a);
+}
+
+.walkin-success-dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 0.85rem;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.walkin-success-dl dt {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.walkin-success-dl dd {
+  margin: 0;
+}
+
+.walkin-success-actions {
+  margin-top: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 @media (max-width: 640px) {
   .walkin-grid {
     grid-template-columns: 1fr;

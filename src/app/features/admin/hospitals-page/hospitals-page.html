@@ -5,7 +5,7 @@
       <p>Register and maintain hospital sites.</p>
     </div>
     <div class="actions">
-      <button type="button" class="btn primary" [disabled]="saving" (click)="creating = true">
+      <button type="button" class="btn primary" [disabled]="saving" (click)="openCreate()">
         <span class="material-icons" aria-hidden="true">add</span>
         Add
       </button>
@@ -38,7 +38,7 @@
                   class="btn-icon btn-icon--primary"
                   title="Edit hospital"
                   aria-label="Edit hospital"
-                  (click)="editing = { ...r }"
+                  (click)="openEditRow(r)"
                 >
                   <span class="material-icons">edit</span>
                 </button>
@@ -67,13 +67,13 @@
   />
 
   @if (creating) {
-    <div class="modal-backdrop" (click)="creating = false">
+    <div class="modal-backdrop" (click)="closeCreate()">
       <div class="modal" (click)="$event.stopPropagation()">
         <h2>Create hospital</h2>
         <app-speech-input [(model)]="name" placeholder="Hospital name" [maxLength]="50" />
         <app-speech-input [(model)]="code" placeholder="Code" [maxLength]="20" />
         <div class="actions">
-          <button class="btn-secondary" type="button" (click)="creating = false">Cancel</button>
+          <button class="btn-secondary" type="button" (click)="closeCreate()">Cancel</button>
           <button class="btn-primary" type="button" [disabled]="saving || !name.trim() || !code.trim()" (click)="create()">Create</button>
         </div>
       </div>
@@ -81,7 +81,7 @@
   }
 
   @if (editing) {
-    <div class="modal-backdrop" (click)="editing = null">
+    <div class="modal-backdrop" (click)="closeEdit()">
       <div class="modal" (click)="$event.stopPropagation()">
         <h2>Edit hospital</h2>
         <app-speech-input [(model)]="editing.name" placeholder="Name" />
@@ -91,7 +91,7 @@
           <option value="Inactive">Inactive</option>
         </select>
         <div class="actions">
-          <button class="btn-secondary" type="button" (click)="editing = null">Cancel</button>
+          <button class="btn-secondary" type="button" (click)="closeEdit()">Cancel</button>
           <button class="btn-primary" type="button" [disabled]="saving" (click)="saveEdit()">Save</button>
         </div>
       </div>

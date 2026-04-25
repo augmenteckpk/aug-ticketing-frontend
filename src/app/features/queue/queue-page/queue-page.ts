@@ -84,13 +84,16 @@ export class QueuePage implements OnInit, OnDestroy {
   notAttendingRows: QueueFlagged[] = [];
   batches: Batch[] = [];
   selectedBatch: BatchDetail | null = null;
+  selectedBatchLoading = false;
   priorityModal: QueueReady | null = null;
   priorityLevel: PhysicianTriageLevel = 'critical_immediate';
   priorityNotes = '';
   swapBatch: BatchDetail | null = null;
+  swapLoading = false;
   swapRemoveId: number | '' = '';
   swapAddId: number | '' = '';
   loading = false;
+  refreshing = false;
   saving = false;
   error = '';
   poolSize = 20;
@@ -198,7 +201,7 @@ export class QueuePage implements OnInit, OnDestroy {
   async onAdminOpdChanged(): Promise<void> {
     this.centerId = centerIdFromOpd(this.opdPickList, this.adminFilterOpdId);
     this.clinicLaneId = '';
-    await this.load(true);
+    await this.load(false);
   }
 
   async onFiltersChanged(): Promise<void> {
@@ -206,11 +209,11 @@ export class QueuePage implements OnInit, OnDestroy {
       this.date = listDateForRequest(this.auth.user(), this.date);
     }
     this.clinicLaneId = '';
-    await this.load(true);
+    await this.load(false);
   }
 
   async onClinicLaneChanged(): Promise<void> {
-    await this.load(true);
+    await this.load(false);
   }
 
   ngOnDestroy(): void {
@@ -242,9 +245,18 @@ export class QueuePage implements OnInit, OnDestroy {
       return;
     }
     const runId = ++this.loadRunId;
-    const useSpinner = showSpinner;
+    const hasAnyRows =
+      this.readyRows.length +
+        this.notArrivedRows.length +
+        this.batches.length +
+        this.flaggedRows.length +
+        this.notAttendingRows.length >
+      0;
+    const useSpinner = showSpinner && !hasAnyRows;
     if (useSpinner) this.loading = true;
+    if (!useSpinner) this.refreshing = true;
     this.error = '';
+    this.cdr.detectChanges();
     const guardMs = 25000;
     const guard = setTimeout(() => {
       if (this.loadRunId !== runId || !this.loading) return;
@@ -291,6 +303,7 @@ export class QueuePage implements OnInit, OnDestroy {
       clearTimeout(guard);
       if (this.loadRunId !== runId) return;
       if (useSpinner) this.loading = false;
+      this.refreshing = false;
       this.bootstrapped = true;
       this.hasLoadedOnce = true;
       this.cdr.detectChanges();
@@ -470,28 +483,44 @@ export class QueuePage implements OnInit, OnDestroy {
   }
 
   async openSwapModal(batch: Batch): Promise<void> {
+    this.swapBatch = { batch, appointments: [] };
+    this.swapRemoveId = '';
+    this.swapAddId = '';
+    this.swapLoading = true;
+    this.cdr.detectChanges();
     try {
-      this.swapBatch = await this.api.get<BatchDetail>(`/queue/batches/${batch.id}`);
+      const next = await this.api.get<BatchDetail>(`/queue/batches/${batch.id}`);
+      if (!this.swapBatch || this.swapBatch.batch.id !== batch.id) return;
+      this.swapBatch = next;
       this.swapRemoveId = this.swapBatch.appointments[0]?.id || '';
       this.swapAddId = this.flaggedRows[0]?.id || '';
     } catch (e) {
       this.toast.error(e instanceof Error ? e.message : 'Could not load batch details');
+      this.swapBatch = null;
     }
+    this.swapLoading = false;
     this.cdr.detectChanges();
   }
 
   async openBatchDetails(batchId: number): Promise<void> {
+    this.selectedBatch = { batch: { id: batchId, status: '—', item_count: 0 }, appointments: [] };
+    this.selectedBatchLoading = true;
+    this.cdr.detectChanges();
     try {
-      this.selectedBatch = await this.api.get<BatchDetail>(`/queue/batches/${batchId}`);
+      const next = await this.api.get<BatchDetail>(`/queue/batches/${batchId}`);
+      if (!this.selectedBatch || this.selectedBatch.batch.id !== batchId) return;
+      this.selectedBatch = next;
     } catch (e) {
       this.toast.error(e instanceof Error ? e.message : 'Could not load batch details');
       this.selectedBatch = null;
     }
+    this.selectedBatchLoading = false;
     this.cdr.detectChanges();
   }
 
   closeSwapModal(): void {
     this.swapBatch = null;
+    this.swapLoading = false;
     this.swapRemoveId = '';
     this.swapAddId = '';
     this.cdr.detectChanges();

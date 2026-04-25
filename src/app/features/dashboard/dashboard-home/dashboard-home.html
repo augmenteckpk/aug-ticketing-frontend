@@ -21,7 +21,7 @@
                   class="preset-chip"
                   [class.preset-chip--active]="rangePreset === opt.id"
                   (click)="setPreset(opt.id)"
-                  [disabled]="loading"
+                  [disabled]="loading && !summary"
                 >
                   {{ opt.label }}
                 </button>
@@ -32,11 +32,11 @@
           <div class="hero-fields">
             <label class="hero-field">
               <span>End date</span>
-              <input type="date" [(ngModel)]="date" (change)="loadSummary()" [disabled]="loading" />
+              <input type="date" [(ngModel)]="date" (ngModelChange)="loadSummary()" />
             </label>
             <label class="hero-field hero-field--grow">
               <span>OPD</span>
-              <select [(ngModel)]="filterOpdId" (change)="loadSummary()" [disabled]="loading || !opdFilterList.length">
+              <select [(ngModel)]="filterOpdId" (ngModelChange)="loadSummary()" [disabled]="!opdFilterList.length">
                 <option [ngValue]="''">All OPDs</option>
                 @for (o of opdFilterList; track o.id) {
                   <option [ngValue]="o.id">{{ o.center_label }} — {{ o.name }} ({{ o.display_code }})</option>
@@ -47,7 +47,7 @@
               type="button"
               class="btn btn-secondary hero-today-btn"
               (click)="resetToToday()"
-              [disabled]="loading"
+              [disabled]="loading && !summary"
               title="Set end date to today and range to 1 day"
             >
               Today
@@ -65,11 +65,15 @@
       title="Refresh dashboard"
       aria-label="Refresh dashboard"
       (click)="loadSummary()"
-      [disabled]="loading"
+      [disabled]="loading || refreshing"
     >
       <span class="material-icons" aria-hidden="true">refresh</span>
     </button>
   </header>
+
+  @if (refreshing && summary) {
+    <p class="dashboard-refresh-hint page-card" role="status">Updating dashboard…</p>
+  }
 
   @if (loading && !summary) {
     <section class="page-card dashboard-loading"><p>Loading dashboard…</p></section>

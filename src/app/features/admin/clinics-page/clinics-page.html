@@ -33,7 +33,7 @@
         }
       </select>
     </label>
-    <label class="check"><input type="checkbox" [(ngModel)]="activeOnly" (change)="load()" [disabled]="filtersLoading" /> Active only</label>
+    <label class="check"><input type="checkbox" [(ngModel)]="activeOnly" (ngModelChange)="load()" [disabled]="filtersLoading" /> Active only</label>
   </div>
 
   @if (error) {

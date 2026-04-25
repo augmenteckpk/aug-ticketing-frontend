@@ -14,14 +14,14 @@
   <div class="filters">
     @if (isAdmin()) {
       <label>OPD
-        <select [(ngModel)]="filterOpdId" (change)="onAdminOpdChanged()">
+        <select [(ngModel)]="filterOpdId" (ngModelChange)="onAdminOpdChanged()">
           @for (o of opdPickList; track o.id) {
             <option [ngValue]="o.id">{{ o.center_label }} — {{ o.name }} ({{ o.display_code }})</option>
           }
         </select>
       </label>
       <label>Date
-        <input type="date" [(ngModel)]="date" (change)="onFiltersChanged()" />
+        <input type="date" [(ngModel)]="date" (ngModelChange)="onFiltersChanged()" />
       </label>
     } @else {
       <p class="muted staff-scope-hint">Showing <strong>today</strong> for <strong>your assigned OPD</strong>.</p>
@@ -293,6 +293,9 @@
     <div class="modal modal--xl consultation-modal" (click)="$event.stopPropagation()">
       <h3>Follow-up report · Token #{{ selectedReport.appointment.token_number }}</h3>
       <p class="muted">{{ selectedReport.appointment.patient_name || '—' }} · {{ selectedReport.appointment.patient_cnic || '—' }}</p>
+      @if (reportLoading) {
+        <p class="muted" role="status">Loading report details…</p>
+      }
       <h4 class="subh">Laboratory</h4>
       <div class="table-wrap">
         <table>

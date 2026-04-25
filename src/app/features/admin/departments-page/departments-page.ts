@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api';
 import { ConfirmService } from '../../../core/services/confirm';
@@ -31,15 +31,43 @@ export class DepartmentsPage implements OnInit {
     private readonly api: ApiService,
     private readonly confirm: ConfirmService,
     private readonly toast: ToastService,
+    private readonly cdr: ChangeDetectorRef,
   ) {}
 
   async ngOnInit(): Promise<void> { await this.load(); }
 
   async load(): Promise<void> {
-    this.loading = true; this.error = '';
-    try { this.rows = await this.api.get<Department[]>('/departments'); }
-    catch (e) { this.error = e instanceof Error ? e.message : 'Failed to load departments'; this.rows = []; }
-    finally { this.loading = false; }
+    this.loading = true;
+    this.error = '';
+    try {
+      this.rows = await this.api.get<Department[]>('/departments');
+    } catch (e) {
+      this.error = e instanceof Error ? e.message : 'Failed to load departments';
+      this.rows = [];
+    } finally {
+      this.loading = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  startCreate(): void {
+    this.creating = true;
+    this.cdr.detectChanges();
+  }
+
+  startEdit(r: Department): void {
+    this.editing = { ...r };
+    this.cdr.detectChanges();
+  }
+
+  closeCreate(): void {
+    this.creating = false;
+    this.cdr.detectChanges();
+  }
+
+  closeEdit(): void {
+    this.editing = null;
+    this.cdr.detectChanges();
   }
 
   get paged(): Department[] {
@@ -75,7 +103,10 @@ export class DepartmentsPage implements OnInit {
       await this.load();
       this.toast.success('Department created.');
     } catch (e) { this.error = e instanceof Error ? e.message : 'Could not create department'; this.toast.error(this.error); }
-    finally { this.saving = false; }
+    finally {
+      this.saving = false;
+      this.cdr.detectChanges();
+    }
   }
 
   async saveEdit(): Promise<void> {
@@ -91,7 +122,10 @@ export class DepartmentsPage implements OnInit {
       await this.load();
       this.toast.success('Department updated.');
     } catch (e) { this.error = e instanceof Error ? e.message : 'Could not update department'; this.toast.error(this.error); }
-    finally { this.saving = false; }
+    finally {
+      this.saving = false;
+      this.cdr.detectChanges();
+    }
   }
 
   async remove(row: Department): Promise<void> {
@@ -102,7 +136,15 @@ export class DepartmentsPage implements OnInit {
       danger: true,
     });
     if (!ok) return;
-    try { await this.api.request(`/departments/${row.id}`, { method: 'DELETE' }); await this.load(); this.toast.success('Department deleted.'); }
-    catch (e) { this.error = e instanceof Error ? e.message : 'Could not delete department'; this.toast.error(this.error); }
+    try {
+      await this.api.request(`/departments/${row.id}`, { method: 'DELETE' });
+      await this.load();
+      this.toast.success('Department deleted.');
+    } catch (e) {
+      this.error = e instanceof Error ? e.message : 'Could not delete department';
+      this.toast.error(this.error);
+    } finally {
+      this.cdr.detectChanges();
+    }
   }
 }

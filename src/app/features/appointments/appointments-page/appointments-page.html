@@ -25,7 +25,7 @@
     @if (isAdmin()) {
       <label>
         <span>OPD</span>
-        <select [(ngModel)]="filterOpdId" (change)="onAdminOpdChanged()">
+        <select [(ngModel)]="filterOpdId" (ngModelChange)="onAdminOpdChanged()">
           @for (o of opdPickList; track o.id) {
             <option [ngValue]="o.id">{{ o.center_label }} — {{ o.name }} ({{ o.display_code }})</option>
           }
@@ -33,14 +33,14 @@
       </label>
       <label>
         <span>Date</span>
-        <input type="date" [(ngModel)]="date" (change)="onFilterChange()" />
+        <input type="date" [(ngModel)]="date" (ngModelChange)="onFilterChange()" />
       </label>
     } @else {
       <p class="muted staff-scope-hint">Showing <strong>today</strong> for <strong>your assigned OPD</strong>.</p>
     }
     <label>
       <span>Status</span>
-      <select [(ngModel)]="status" (change)="onFilterChange()">
+      <select [(ngModel)]="status" (ngModelChange)="onFilterChange()">
         <option value="">All statuses</option>
         <option value="booked">Booked</option>
         <option value="registered">Registered</option>
@@ -127,8 +127,41 @@
 </section>
 
 @if (creatingWalkIn) {
-  <div class="modal-overlay" (click)="closeWalkInModal()">
+  <div class="modal-overlay" (click)="onWalkInBackdropClick()">
     <div class="modal modal--lg walkin-modal" (click)="$event.stopPropagation()">
+      @if (walkInSuccess) {
+        <h3>Token issued</h3>
+        <p class="walkin-hint">
+          Give the patient this ticket reference. Use <strong>Print slip</strong> for a paper copy, then
+          <strong>Back to list</strong> when you are done.
+        </p>
+        <div class="walkin-success">
+          <p class="walkin-success-ticket">
+            {{ walkInSuccess.ticket_display?.trim() || ('#' + walkInSuccess.token_number) }}
+          </p>
+          <dl class="walkin-success-dl">
+            <dt>Patient</dt>
+            <dd>{{ walkInSuccess.patient_name || '—' }}</dd>
+            <dt>Visit date</dt>
+            <dd>{{ walkInSuccess.appointment_date | slice: 0 : 10 }}</dd>
+            <dt>OPD / clinic</dt>
+            <dd>
+              {{ walkInSuccess.opd_display_code || walkInSuccess.opd_name || '—' }}
+              @if (walkInSuccess.clinic_name) {
+                <span> · {{ walkInSuccess.clinic_name }}</span>
+              }
+            </dd>
+            @if (walkInSuccess.w_number) {
+              <dt>W number</dt>
+              <dd>{{ walkInSuccess.w_number }}</dd>
+            }
+          </dl>
+        </div>
+        <div class="actions walkin-success-actions">
+          <button type="button" class="btn primary" (click)="printWalkInSuccessSlip()">Print slip</button>
+          <button type="button" class="btn" (click)="finishWalkInSuccess()">Back to list</button>
+        </div>
+      } @else {
       <h3>Issue walk-in token</h3>
       <p class="walkin-hint">
         Enter CNIC and patient details manually. If a matching chart already exists, name and date of birth load
@@ -230,6 +263,7 @@
           {{ walkInSaving ? 'Creating…' : 'Create token' }}
         </button>
       </div>
+      }
     </div>
   </div>
 }

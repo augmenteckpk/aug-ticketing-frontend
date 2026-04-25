@@ -101,6 +101,7 @@ export class UsersPage implements OnInit {
   async load(): Promise<void> {
     this.loading = true;
     this.error = '';
+    this.cdr.detectChanges();
     try {
       const reqMs = 20000;
       const [usersRes, rolesRes] = await Promise.allSettled([
@@ -130,6 +131,23 @@ export class UsersPage implements OnInit {
   openEdit(u: UserRow): void {
     this.editing = { ...u };
     this.editOpdId = u.opd_id != null ? u.opd_id : '';
+    this.cdr.detectChanges();
+  }
+
+  startCreate(): void {
+    this.creating = true;
+    this.cdr.detectChanges();
+  }
+
+  closeCreate(): void {
+    this.creating = false;
+    this.cdr.detectChanges();
+  }
+
+  closeEdit(): void {
+    this.editing = null;
+    this.editOpdId = '';
+    this.cdr.detectChanges();
   }
 
   async create(): Promise<void> {

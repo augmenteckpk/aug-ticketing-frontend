@@ -81,6 +81,7 @@ export class PatientDetailPage implements OnInit {
     this.loading = true;
     this.error = '';
     this.appointmentsError = '';
+    this.cdr.detectChanges();
     try {
       const [p, appts] = await Promise.all([
         this.api.get<PatientDetail>(`/patients/${patientId}`, 15000),

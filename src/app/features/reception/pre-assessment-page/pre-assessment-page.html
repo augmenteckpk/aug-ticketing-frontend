@@ -15,14 +15,14 @@
     <div class="pre-assessment-toolbar__filters">
       @if (isAdmin()) {
         <label>OPD
-          <select [(ngModel)]="filterOpdId" (change)="onAdminOpdChanged()">
+          <select [(ngModel)]="filterOpdId" (ngModelChange)="onAdminOpdChanged()">
             @for (o of opdPickList; track o.id) {
               <option [ngValue]="o.id">{{ o.center_label }} — {{ o.name }} ({{ o.display_code }})</option>
             }
           </select>
         </label>
         <label>Date
-          <input type="date" [(ngModel)]="date" (change)="onFiltersChanged()" />
+          <input type="date" [(ngModel)]="date" (ngModelChange)="onFiltersChanged()" />
         </label>
       } @else {
         <p class="muted staff-scope-hint">Showing <strong>today</strong> for <strong>your assigned OPD</strong>.</p>

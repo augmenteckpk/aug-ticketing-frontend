@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject, Subscription, debounceTime } from 'rxjs';
 import { ApiService } from '../../../core/services/api';
 import { AuthService } from '../../../core/services/auth';
+import { SlipPrintService } from '../../../core/services/slip-print.service';
 import { ToastService } from '../../../core/services/toast';
 import { centerIdFromOpd, consoleIsAdmin, listCenterIdForRequest, listDateForRequest } from '../../../core/utils/listing-scope';
 import { todayLocalYmd } from '../../../core/utils/local-date';
@@ -34,6 +35,9 @@ type Appointment = {
   status: string;
   patient_name?: string | null;
   patient_cnic?: string | null;
+  visit_barcode?: string | null;
+  w_number?: string | null;
+  clinic_name?: string | null;
   walk_in_notices?: string[];
   /** When not `own`, the CNIC on file is a parent’s or escort’s number; demographics are still the patient’s. */
   patient_identifier_kind?: PatientIdentifierKind | string | null;
@@ -92,12 +96,17 @@ export class AppointmentsPage implements OnInit, OnDestroy {
   walkInBooking: OpdBookingOptionsResponse | null = null;
   walkInBookingLoading = false;
 
+  /** After POST /walk-in: show token, print, and Done (desk / WebView). */
+  walkInSuccess: Appointment | null = null;
+
+  private loadRunId = 0;
   private readonly walkInPrefill$ = new Subject<void>();
   private walkInPrefillSub?: Subscription;
 
   constructor(
     private readonly api: ApiService,
     private readonly auth: AuthService,
+    private readonly slipPrint: SlipPrintService,
     private readonly toast: ToastService,
     private readonly cdr: ChangeDetectorRef,
   ) {}
@@ -173,6 +182,7 @@ export class AppointmentsPage implements OnInit, OnDestroy {
   }
 
   async openWalkInModal(): Promise<void> {
+    this.walkInSuccess = null;
     this.walkIn.identifier_kind = 'own';
     this.walkIn.escort_relationship = '';
     this.walkIn.date_of_birth = '';
@@ -183,6 +193,7 @@ export class AppointmentsPage implements OnInit, OnDestroy {
     const wc = listCenterIdForRequest(this.auth.user(), this.walkIn.center_id);
     if (wc !== '') this.walkIn.center_id = wc;
     this.creatingWalkIn = true;
+    this.cdr.detectChanges();
     await this.loadWalkInBookingOptions();
     this.scheduleWalkInPatientPrefill();
     this.cdr.detectChanges();
@@ -279,8 +290,10 @@ export class AppointmentsPage implements OnInit, OnDestroy {
 
   async loadAppointments(): Promise<void> {
     this.syncListScope();
+    const runId = ++this.loadRunId;
     this.busy = true;
     this.error = '';
+    this.cdr.detectChanges();
     try {
       const q = new URLSearchParams();
       if (this.isAdmin()) {
@@ -291,24 +304,76 @@ export class AppointmentsPage implements OnInit, OnDestroy {
       }
       if (this.date) q.set('date', this.date);
       if (this.status) q.set('status', this.status);
-      this.rows = await this.api.get<Appointment[]>(`/appointments?${q.toString()}`);
+      const next = await this.api.get<Appointment[]>(`/appointments?${q.toString()}`);
+      if (this.loadRunId !== runId) return;
+      this.rows = next;
       const maxPage = Math.max(1, Math.ceil(this.rows.length / this.pageSize));
       if (this.page > maxPage) this.page = maxPage;
     } catch (e) {
+      if (this.loadRunId !== runId) return;
       this.error = e instanceof Error ? e.message : 'Failed to load appointments';
       this.rows = [];
     } finally {
+      if (this.loadRunId !== runId) return;
       this.busy = false;
+      this.cdr.detectChanges();
     }
   }
 
   closeWalkInModal(): void {
     this.creatingWalkIn = false;
+    this.walkInSuccess = null;
     this.walkInBooking = null;
+    this.cdr.detectChanges();
+  }
+
+  /** Backdrop: ignore taps while the success step is shown so staff use Done / Print. */
+  onWalkInBackdropClick(): void {
+    if (this.walkInSuccess) return;
+    this.closeWalkInModal();
+  }
+
+  printWalkInSuccessSlip(): void {
+    const a = this.walkInSuccess;
+    if (!a) return;
+    const opdLine = [a.opd_display_code, a.opd_name].filter(Boolean).join(' · ') || '—';
+    const ticketLine = a.ticket_display?.trim() || String(a.token_number);
+    const idNote = this.patientIdentifierBadge(a.patient_identifier_kind);
+    this.slipPrint.print('OPD Ticket Slip', 'Walk-in — OPD visit ticket', [
+      { label: 'Ticket', value: ticketLine },
+      { label: 'W number', value: a.w_number?.trim() || '-' },
+      { label: 'Patient', value: a.patient_name?.trim() || '-' },
+      { label: 'CNIC', value: a.patient_cnic?.trim() || this.walkIn.cnic.trim() || '-' },
+      ...(idNote ? [{ label: 'CNIC note', value: idNote }] : []),
+      { label: 'OPD', value: opdLine },
+      { label: 'Clinic', value: a.clinic_name || '—' },
+      { label: 'Campus / center', value: a.center_name || this.walkInCenterLabel() },
+      { label: 'Visit date', value: String(a.appointment_date).slice(0, 10) },
+      { label: 'Status', value: 'booked (walk-in)' },
+    ]);
+  }
+
+  async finishWalkInSuccess(): Promise<void> {
+    this.walkIn.cnic = '';
+    this.walkIn.identifier_kind = 'own';
+    this.walkIn.escort_relationship = '';
+    this.walkIn.date_of_birth = '';
+    this.walkIn.first_name = '';
+    this.walkIn.last_name = '';
+    this.walkIn.opd_id = '';
+    this.walkIn.clinic_id = '';
+    this.walkInSuccess = null;
+    this.closeWalkInModal();
+    await this.loadAppointments();
+  }
+
+  private walkInCenterLabel(): string {
+    const c = this.centers.find((x) => x.id === this.walkIn.center_id);
+    return c ? `${c.hospital_name || ''} - ${c.name} (${c.city || ''})`.trim() : '—';
   }
 
   private async prefillWalkInFromServer(): Promise<void> {
-    if (!this.creatingWalkIn) return;
+    if (!this.creatingWalkIn || this.walkInSuccess) return;
     const digits = this.walkIn.cnic.replace(/\D/g, '');
     if (digits.length !== 13) return;
     const kind = this.walkIn.identifier_kind;
@@ -398,18 +463,11 @@ export class AppointmentsPage implements OnInit, OnDestroy {
           this.toast.info(line);
         }
       }
-      this.closeWalkInModal();
-      this.walkIn.cnic = '';
-      this.walkIn.identifier_kind = 'own';
-      this.walkIn.escort_relationship = '';
-      this.walkIn.date_of_birth = '';
-      this.walkIn.first_name = '';
-      this.walkIn.last_name = '';
-      this.walkIn.opd_id = '';
-      this.walkIn.clinic_id = '';
+      this.walkInSuccess = created;
       this.page = 1;
-      await this.loadAppointments();
-      this.toast.success('Walk-in token created.');
+      void this.loadAppointments();
+      this.toast.success('Walk-in token created — print slip or tap Done when finished.');
+      this.cdr.detectChanges();
     } catch (e) {
       this.error = e instanceof Error ? e.message : 'Could not create walk-in appointment';
       this.toast.error(this.error);

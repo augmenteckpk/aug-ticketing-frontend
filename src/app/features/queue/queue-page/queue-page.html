@@ -26,21 +26,21 @@
   <div class="filters">
     @if (isQueueAdmin()) {
       <label>OPD
-        <select [(ngModel)]="adminFilterOpdId" (change)="onAdminOpdChanged()">
+        <select [(ngModel)]="adminFilterOpdId" (ngModelChange)="onAdminOpdChanged()">
           @for (o of opdPickList; track o.id) {
             <option [ngValue]="o.id">{{ o.center_label }} — {{ o.name }} ({{ o.display_code }})</option>
           }
         </select>
       </label>
       <label>Date
-        <input type="date" [(ngModel)]="date" (change)="onFiltersChanged()" />
+        <input type="date" [(ngModel)]="date" (ngModelChange)="onFiltersChanged()" />
       </label>
     } @else {
       <p class="muted staff-scope-hint">Showing <strong>today</strong> for <strong>your assigned OPD</strong>.</p>
     }
     @if (clinicOptions.length) {
       <label>Clinic lane
-        <select [(ngModel)]="clinicLaneId" (change)="onClinicLaneChanged()">
+        <select [(ngModel)]="clinicLaneId" (ngModelChange)="onClinicLaneChanged()">
           @if (isQueueAdmin()) {
             <option [ngValue]="''">All clinics (admin)</option>
           }
@@ -57,6 +57,9 @@
 
   @if (error) {
     <p class="error">{{ error }}</p>
+  }
+  @if (refreshing && !loading) {
+    <p class="muted" role="status">Refreshing…</p>
   }
 
   @if (loading) {
@@ -239,6 +242,9 @@
   <div class="modal-overlay" (click)="selectedBatch = null">
     <div class="modal" (click)="$event.stopPropagation()">
       <h3>Batch #{{ selectedBatch.batch.batch_index || selectedBatch.batch.id }} Details</h3>
+      @if (selectedBatchLoading) {
+        <p class="muted" role="status">Loading batch details…</p>
+      }
       <p class="muted">{{ selectedBatch.appointments.length }} patients</p>
       @if (selectedBatch.doctor_room && selectedBatch.batch.status === 'dispatched') {
         <p class="muted doctor-room">
@@ -315,6 +321,9 @@
   <div class="modal-overlay" (click)="closeSwapModal()">
     <div class="modal" (click)="$event.stopPropagation()">
       <h3>Replace slot in batch #{{ swapBatch.batch.id }}</h3>
+      @if (swapLoading) {
+        <p class="muted" role="status">Loading batch…</p>
+      }
       <label>Remove token from draft batch
         <select [(ngModel)]="swapRemoveId">
           @for (a of swapBatch.appointments; track a.id) {
@@ -331,7 +340,7 @@
       </label>
       <div class="actions">
         <button class="btn" (click)="closeSwapModal()">Cancel</button>
-        <button class="btn primary" (click)="confirmSwap()" [disabled]="saving || swapRemoveId === '' || swapAddId === ''">Confirm swap</button>
+        <button class="btn primary" (click)="confirmSwap()" [disabled]="swapLoading || saving || swapRemoveId === '' || swapAddId === ''">Confirm swap</button>
       </div>
     </div>
   </div>

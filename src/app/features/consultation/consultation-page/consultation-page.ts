@@ -103,6 +103,7 @@ export class ConsultationPage implements OnInit {
   pageSize = 15;
   selected: Appointment | null = null;
   selectedReport: ReportModalData | null = null;
+  reportLoading = false;
   labOrders: LabOrder[] = [];
   radOrders: RadOrder[] = [];
 
@@ -738,21 +739,32 @@ export class ConsultationPage implements OnInit {
   }
 
   async openReportModal(row: Appointment): Promise<void> {
+    this.selectedReport = { appointment: row, orders: [], radOrders: [] };
+    this.reportLoading = true;
+    this.cdr.detectChanges();
     try {
       const [orders, radOrders] = await Promise.all([
         this.withTimeout(this.api.get<LabOrder[]>(`/appointments/${row.id}/lab`, 15000), 16000),
         this.withTimeout(this.api.get<RadOrder[]>(`/appointments/${row.id}/radiology`, 15000), 16000),
       ]);
+      if (!this.selectedReport || this.selectedReport.appointment.id !== row.id) return;
       this.selectedReport = { appointment: row, orders, radOrders };
     } catch (e) {
       this.toast.error(e instanceof Error ? e.message : 'Could not load report details');
       this.selectedReport = null;
+    } finally {
+      if (this.selectedReport?.appointment.id === row.id) {
+        this.reportLoading = false;
+      } else {
+        this.reportLoading = false;
+      }
     }
     this.cdr.detectChanges();
   }
 
   closeReportModal(): void {
     this.selectedReport = null;
+    this.reportLoading = false;
     this.cdr.detectChanges();
   }
 

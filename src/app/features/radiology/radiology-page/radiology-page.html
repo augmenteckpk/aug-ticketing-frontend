@@ -15,21 +15,21 @@
     <div class="filters__group">
       @if (isAdmin()) {
         <label>OPD
-          <select [(ngModel)]="filterOpdId" (change)="onAdminOpdChanged()">
+          <select [(ngModel)]="filterOpdId" (ngModelChange)="onAdminOpdChanged()">
             @for (o of opdPickList; track o.id) {
               <option [ngValue]="o.id">{{ o.center_label }} — {{ o.name }} ({{ o.display_code }})</option>
             }
           </select>
         </label>
         <label>Date
-          <input type="date" [(ngModel)]="date" (change)="load()" />
+          <input type="date" [(ngModel)]="date" (ngModelChange)="load()" />
         </label>
       } @else {
         <p class="muted staff-scope-hint">Showing <strong>today</strong> for <strong>your assigned OPD</strong>.</p>
       }
     </div>
     <div class="filters__aside">
-      <label class="check"><input type="checkbox" [(ngModel)]="pendingOnly" (change)="load()" /> Pending only</label>
+      <label class="check"><input type="checkbox" [(ngModel)]="pendingOnly" (ngModelChange)="load()" /> Pending only</label>
     </div>
   </div>
 

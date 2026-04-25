@@ -101,6 +101,26 @@ export class CentersPage implements OnInit {
     }
   }
 
+  openCreate(): void {
+    this.creating = true;
+    this.cdr.detectChanges();
+  }
+
+  openEditRow(row: Center): void {
+    this.editing = { ...row };
+    this.cdr.detectChanges();
+  }
+
+  closeCreate(): void {
+    this.creating = false;
+    this.cdr.detectChanges();
+  }
+
+  closeEdit(): void {
+    this.editing = null;
+    this.cdr.detectChanges();
+  }
+
   async create(): Promise<void> {
     if (this.form.hospital_id === '' || !this.form.name.trim() || !this.form.city.trim()) {
       this.toast.error('Hospital, center name, and city are required.');
@@ -129,6 +149,7 @@ export class CentersPage implements OnInit {
       this.toast.error(this.error);
     } finally {
       this.saving = false;
+      this.cdr.detectChanges();
     }
   }
 
@@ -168,6 +189,7 @@ export class CentersPage implements OnInit {
       this.toast.error(this.error);
     } finally {
       this.saving = false;
+      this.cdr.detectChanges();
     }
   }
 
@@ -186,6 +208,8 @@ export class CentersPage implements OnInit {
     } catch (e) {
       this.error = e instanceof Error ? e.message : 'Could not delete center';
       this.toast.error(this.error);
+    } finally {
+      this.cdr.detectChanges();
     }
   }
 }

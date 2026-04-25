@@ -5,7 +5,7 @@
       <p>Manage medical departments available for booking/routing.</p>
     </div>
     <div class="actions">
-      <button type="button" class="btn primary" [disabled]="saving" (click)="creating = true">
+      <button type="button" class="btn primary" [disabled]="saving" (click)="startCreate()">
         <span class="material-icons" aria-hidden="true">add</span>
         Add
       </button>
@@ -33,7 +33,7 @@
                 class="btn-icon btn-icon--primary"
                 title="Edit department"
                 aria-label="Edit department"
-                (click)="editing = { ...r }"
+                (click)="startEdit(r)"
               >
                 <span class="material-icons">edit</span>
               </button>
@@ -61,24 +61,24 @@
   />
 
   @if (creating) {
-    <div class="modal-backdrop" (click)="creating = false">
+    <div class="modal-backdrop" (click)="closeCreate()">
       <div class="modal" (click)="$event.stopPropagation()">
         <h2>Create department</h2>
         <app-speech-input [(model)]="form.name" placeholder="Department name" />
         <app-speech-input [(model)]="form.description" placeholder="Description (optional)" />
-        <div class="actions"><button class="btn-secondary" type="button" (click)="creating = false">Cancel</button><button class="btn-primary" type="button" [disabled]="saving || !form.name.trim()" (click)="create()">Create</button></div>
+        <div class="actions"><button class="btn-secondary" type="button" (click)="closeCreate()">Cancel</button><button class="btn-primary" type="button" [disabled]="saving || !form.name.trim()" (click)="create()">Create</button></div>
       </div>
     </div>
   }
 
   @if (editing) {
-    <div class="modal-backdrop" (click)="editing = null">
+    <div class="modal-backdrop" (click)="closeEdit()">
       <div class="modal" (click)="$event.stopPropagation()">
         <h2>Edit department</h2>
         <app-speech-input [(model)]="editing.name" placeholder="Name" />
         <app-speech-input [model]="editing.description ?? ''" (modelChange)="editing.description = $event" placeholder="Description" />
         <select [(ngModel)]="editing.status"><option value="Active">Active</option><option value="Inactive">Inactive</option></select>
-        <div class="actions"><button class="btn-secondary" type="button" (click)="editing = null">Cancel</button><button class="btn-primary" type="button" (click)="saveEdit()">Save</button></div>
+        <div class="actions"><button class="btn-secondary" type="button" (click)="closeEdit()">Cancel</button><button class="btn-primary" type="button" (click)="saveEdit()">Save</button></div>
       </div>
     </div>
   }

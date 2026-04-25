@@ -134,6 +134,22 @@ export class RolesPage implements OnInit {
       ...r,
       selectedPermissions: [...(r.permissions ?? [])],
     };
+    this.cdr.detectChanges();
+  }
+
+  startCreate(): void {
+    this.creating = true;
+    this.cdr.detectChanges();
+  }
+
+  closeCreate(): void {
+    this.creating = false;
+    this.cdr.detectChanges();
+  }
+
+  closeEdit(): void {
+    this.editing = null;
+    this.cdr.detectChanges();
   }
 
   async saveEdit(): Promise<void> {

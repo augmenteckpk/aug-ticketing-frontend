@@ -345,6 +345,7 @@ export class RegistrationPage implements OnInit, OnDestroy {
     }
     this.loading = true;
     this.error = '';
+    this.cdr.detectChanges();
     try {
       const q = new URLSearchParams({ visit_barcode: code });
       const result = await this.api.get<LookupResponse>(`/appointments/lookup-visit-barcode?${q.toString()}`);
@@ -398,6 +399,7 @@ export class RegistrationPage implements OnInit, OnDestroy {
     }
     this.loading = true;
     this.error = '';
+    this.cdr.detectChanges();
     try {
       const q = new URLSearchParams({
         cnic: this.cnic.trim(),

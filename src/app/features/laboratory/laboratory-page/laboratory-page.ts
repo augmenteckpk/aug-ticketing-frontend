@@ -49,6 +49,8 @@ export class LaboratoryPage implements OnInit {
   resultFile: File | null = null;
   existingFilePath: string | null = null;
   private loadRunId = 0;
+  /** After the first worklist fetch, filter changes refresh without blanking the table. */
+  private hasLoadedWorklist = false;
 
   constructor(
     private readonly api: ApiService,
@@ -108,11 +110,12 @@ export class LaboratoryPage implements OnInit {
 
   async load(): Promise<void> {
     const runId = ++this.loadRunId;
-    this.loading = true;
+    const useSpinner = !this.hasLoadedWorklist;
+    if (useSpinner) this.loading = true;
     this.error = '';
     const guard = setTimeout(() => {
       if (this.loadRunId !== runId || !this.loading) return;
-      this.loading = false;
+      if (useSpinner) this.loading = false;
       this.error = 'Request timed out. Please click Refresh.';
       this.toast.error(this.error);
       this.cdr.detectChanges();
@@ -134,7 +137,8 @@ export class LaboratoryPage implements OnInit {
       this.toast.error(this.error);
     } finally {
       clearTimeout(guard);
-      this.loading = false;
+      if (useSpinner) this.loading = false;
+      this.hasLoadedWorklist = true;
       this.bootstrapped = true;
       this.cdr.detectChanges();
     }

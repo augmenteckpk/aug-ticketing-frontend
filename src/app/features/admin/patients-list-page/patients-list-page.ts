@@ -92,6 +92,26 @@ export class PatientsListPage implements OnInit {
     return cleaned || '—';
   }
 
+  startCreate(): void {
+    this.creating = true;
+    this.cdr.detectChanges();
+  }
+
+  startEditPatient(p: Patient): void {
+    this.editing = { ...p };
+    this.cdr.detectChanges();
+  }
+
+  closeCreate(): void {
+    this.creating = false;
+    this.cdr.detectChanges();
+  }
+
+  closeEdit(): void {
+    this.editing = null;
+    this.cdr.detectChanges();
+  }
+
   async create(): Promise<void> {
     if (!this.form.cnic.trim() || !this.form.first_name.trim()) {
       this.toast.error('CNIC and first name are required.');

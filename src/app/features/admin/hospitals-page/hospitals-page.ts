@@ -129,4 +129,24 @@ export class HospitalsPage implements OnInit {
       this.cdr.detectChanges();
     }
   }
+
+  openCreate(): void {
+    this.creating = true;
+    this.cdr.detectChanges();
+  }
+
+  openEditRow(r: Hospital): void {
+    this.editing = { ...r };
+    this.cdr.detectChanges();
+  }
+
+  closeCreate(): void {
+    this.creating = false;
+    this.cdr.detectChanges();
+  }
+
+  closeEdit(): void {
+    this.editing = null;
+    this.cdr.detectChanges();
+  }
 }

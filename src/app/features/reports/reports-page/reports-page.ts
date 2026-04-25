@@ -52,8 +52,10 @@ export class ReportsPage implements OnInit {
   opdFilterList: OpdPickRow[] = [];
   filterOpdId: number | '' = '';
   loading = false;
+  refreshing = false;
   error = '';
   data: DailyReport | null = null;
+  private loadRunId = 0;
 
   constructor(
     private readonly api: ApiService,
@@ -83,19 +85,31 @@ export class ReportsPage implements OnInit {
   }
 
   async load(): Promise<void> {
-    this.loading = true;
+    const runId = ++this.loadRunId;
+    const initial = this.data == null;
+    if (initial) {
+      this.loading = true;
+    } else {
+      this.refreshing = true;
+    }
     this.error = '';
+    this.cdr.detectChanges();
     try {
       const effDate = listDateForRequest(this.auth.user(), this.date);
       const q = new URLSearchParams({ date: effDate });
       if (this.isAdmin() && this.filterOpdId !== '') q.set('opd_id', String(this.filterOpdId));
-      this.data = await this.api.get<DailyReport>(`/reports/daily?${q.toString()}`, 20000);
+      const next = await this.api.get<DailyReport>(`/reports/daily?${q.toString()}`, 20000);
+      if (this.loadRunId !== runId) return;
+      this.data = next;
     } catch (e) {
+      if (this.loadRunId !== runId) return;
       this.error = e instanceof Error ? e.message : 'Failed to load reports';
       this.data = null;
       this.toast.error(this.error);
     } finally {
+      if (this.loadRunId !== runId) return;
       this.loading = false;
+      this.refreshing = false;
       this.cdr.detectChanges();
     }
   }

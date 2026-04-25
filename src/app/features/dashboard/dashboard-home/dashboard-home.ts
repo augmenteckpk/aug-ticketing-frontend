@@ -67,7 +67,10 @@ export class DashboardHome implements OnInit {
   summary: Summary | null = null;
   /** Start true so first paint shows loading while admin OPD list fetch runs before summary. */
   loading = true;
+  /** True while re-fetching when a summary is already shown (keeps filters usable). */
+  refreshing = false;
   error = '';
+  private loadRunId = 0;
 
   readonly rangeOptions: Array<{ id: DashboardRangePreset; label: string }> = [
     { id: 'day', label: '1 day' },
@@ -231,21 +234,33 @@ export class DashboardHome implements OnInit {
   }
 
   async loadSummary(): Promise<void> {
-    this.loading = true;
+    const runId = ++this.loadRunId;
+    const initial = this.summary == null;
+    if (initial) {
+      this.loading = true;
+    } else {
+      this.refreshing = true;
+    }
     this.error = '';
+    this.cdr.detectChanges();
     try {
       const q = new URLSearchParams();
       const effDate = listDateForRequest(this.auth.user(), this.date);
       q.set('date', effDate);
       q.set('range', this.isAdmin() ? this.rangePreset : 'day');
       if (this.isAdmin() && this.filterOpdId !== '') q.set('opd_id', String(this.filterOpdId));
-      this.summary = await this.api.get<Summary>(`/dashboard/summary?${q.toString()}`, 20000);
+      const next = await this.api.get<Summary>(`/dashboard/summary?${q.toString()}`, 20000);
+      if (this.loadRunId !== runId) return;
+      this.summary = next;
     } catch (e) {
+      if (this.loadRunId !== runId) return;
       this.summary = null;
       this.error = e instanceof Error ? e.message : 'Failed to load dashboard summary';
       this.toast.error(this.error);
     } finally {
+      if (this.loadRunId !== runId) return;
       this.loading = false;
+      this.refreshing = false;
       this.cdr.detectChanges();
     }
   }
