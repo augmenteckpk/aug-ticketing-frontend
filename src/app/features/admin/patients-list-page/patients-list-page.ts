@@ -8,6 +8,7 @@ import { ToastService } from '../../../core/services/toast';
 import { EntityStatusBadgePipe } from '../../../shared/pipes/status-badge.pipe';
 import { Pagination } from '../../../ui-kit/pagination/pagination';
 import { SpeechInput } from '../../../ui-kit/speech-input/speech-input';
+import { isValidCnic13, normalizeCnicInput } from '../../../core/utils/cnic';
 
 type Patient = {
   id: number;
@@ -113,8 +114,13 @@ export class PatientsListPage implements OnInit {
   }
 
   async create(): Promise<void> {
+    this.form.cnic = normalizeCnicInput(this.form.cnic);
     if (!this.form.cnic.trim() || !this.form.first_name.trim()) {
       this.toast.error('CNIC and first name are required.');
+      return;
+    }
+    if (!isValidCnic13(this.form.cnic)) {
+      this.toast.error('CNIC must be exactly 13 digits.');
       return;
     }
     this.saving = true;

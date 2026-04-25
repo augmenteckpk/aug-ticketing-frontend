@@ -43,40 +43,51 @@ type PublicOpdWaitingBoard = {
 })
 export class WaitingBoardPage implements OnInit, OnDestroy {
   readonly apiBase = resolveApiBaseUrl();
+  private static readonly CLINICS_ON_SCREEN_1 = 3;
+  private static readonly TOKENS_PER_SUBCOL = 5;
+  private static readonly SUBCOLS_PER_PAGE = 2;
+  private static readonly PAGE_ROTATE_MS = 10_000;
 
   /** Urdu labels — waiting-area display. */
   readonly ur = {
     /** Shown after OPD name in the main title. */
-    screenTitleUr: 'او پی ڈی · انتظار کی اسکرین',
+    screenTitleUr: 'انتظار کی اسکرین',
     opd: 'او پی ڈی',
     date: 'تاریخ',
     applyBookmark: 'لاگو کریں اور لنک محفوظ کریں',
     loading: 'لوڈ ہو رہا ہے…',
-    liveSse: 'براہ راست (SSE)',
-    polling: 'وقفے سے تازہ',
+    liveSse: '',
+    polling: '',
     noRoster: 'اس دن کے لیے کوئی کلینک شیڈول نہیں — ایڈمن میں او پی ڈی کا ہفتہ وار روستر سیٹ کریں۔',
     noTickets: '—',
-    openControls: 'اختیارات کھولیں',
-    closeControls: 'اختیارات بند کریں',
+    openControls: '',
+    closeControls: '',
     failedLoad: 'لوڈ نہیں ہو سکا۔',
     invalidPayload: 'بورڈ کا ڈیٹا درست نہیں۔',
-    localTime: 'مقامی وقت',
+    localTime: '',
     pickOpdHint: 'او پی ڈی منتخب کریں یا URL میں ?opd_id= استعمال کریں۔',
   } as const;
 
   allOpds: PublicOpdOption[] = [];
   opdId = 0;
   date = todayLocalYmd();
+  screen: 1 | 2 = 1;
   board: PublicOpdWaitingBoard | null = null;
   error = '';
   liveClock = new Date();
   sseOk = false;
   showControls = false;
   opdsLoading = false;
+  controlsAuthOpen = false;
+  controlsPassword = '';
+  controlsPasswordError = '';
+  private static readonly CONTROLS_PASSWORD = 'Admin@123';
 
   private eventSource: EventSource | null = null;
   private pollTimer: number | null = null;
   private clockTimer: number | null = null;
+  private tokenPageTimer: number | null = null;
+  pageFlipOn = false;
   /** If calendar day rolls while the screen stays open, keep queue on “today”. */
   private dayRollTimer: number | null = null;
   private readonly destroy$ = new Subject<void>();
@@ -105,6 +116,132 @@ export class WaitingBoardPage implements OnInit, OnDestroy {
     return `accent-${i % 8}`;
   }
 
+  get visibleColumns(): PublicOpdWaitingBoard['columns'] {
+    const cols = this.board?.columns ?? [];
+    if (this.screen === 1) return cols.slice(0, WaitingBoardPage.CLINICS_ON_SCREEN_1);
+    return cols.slice(WaitingBoardPage.CLINICS_ON_SCREEN_1);
+  }
+
+  private clinicPageCount(col: PublicOpdWaitingBoard['columns'][number]): number {
+    const perPage = WaitingBoardPage.TOKENS_PER_SUBCOL * WaitingBoardPage.SUBCOLS_PER_PAGE;
+    const n = col.tickets?.length ?? 0;
+    return Math.max(1, Math.ceil(n / perPage));
+  }
+
+  get anyOverflowOnScreen(): boolean {
+    return this.visibleColumns.some((c) => this.clinicPageCount(c) > 1);
+  }
+
+  get screenTotalPages(): number {
+    const cols = this.visibleColumns;
+    if (!cols.length) return 1;
+    return Math.max(1, ...cols.map((c) => this.clinicPageCount(c)));
+  }
+
+  get screenPageIndicator(): string {
+    const total = this.screenTotalPages;
+    if (total <= 1) return '';
+    return `${this.screenPage + 1}/${total}`;
+  }
+
+  tokenSubcols(col: PublicOpdWaitingBoard['columns'][number]): Array<Array<{ ticket_display: string; token_number: number; status: string }>> {
+    const perSubcol = WaitingBoardPage.TOKENS_PER_SUBCOL;
+    const perPage = perSubcol * WaitingBoardPage.SUBCOLS_PER_PAGE;
+    const total = this.clinicPageCount(col);
+    const page = total <= 1 ? 0 : this.screenPage % total;
+    const start = page * perPage;
+    const slice = (col.tickets ?? []).slice(start, start + perPage);
+    const out: Array<Array<{ ticket_display: string; token_number: number; status: string }>> = [];
+    for (let i = 0; i < slice.length; i += perSubcol) {
+      out.push(slice.slice(i, i + perSubcol));
+    }
+    return out.length ? out : [[]];
+  }
+
+  subcolCount(col: PublicOpdWaitingBoard['columns'][number]): number {
+    const n = col.tickets?.length ?? 0;
+    if (n <= WaitingBoardPage.TOKENS_PER_SUBCOL) return 1;
+    return 2;
+  }
+
+  private screenPage = 0;
+
+  private resetTokenPaging(): void {
+    this.screenPage = 0;
+  }
+
+  /**
+   * Keep paging stable even if SSE/poll refreshes frequently.
+   * (If we reset the interval on every board refresh, it may never reach 10s.)
+   */
+  private ensureTokenPaging(): void {
+    const total = this.screenTotalPages;
+    if (total <= 1) {
+      this.screenPage = 0;
+      this.stopTokenPaging();
+      return;
+    }
+
+    // Clamp if total pages changed while running.
+    if (this.screenPage >= total) this.screenPage = this.screenPage % total;
+
+    if (this.tokenPageTimer != null) return;
+    this.tokenPageTimer = window.setInterval(() => {
+      this.zone.run(() => {
+        const totalNow = this.screenTotalPages;
+        if (totalNow <= 1) {
+          this.screenPage = 0;
+          this.stopTokenPaging();
+          return;
+        }
+        const next = (this.screenPage + 1) % totalNow;
+        if (next !== this.screenPage) {
+          this.screenPage = next;
+          this.pageFlipOn = true;
+          window.setTimeout(() => {
+            this.zone.run(() => (this.pageFlipOn = false));
+          }, 260);
+        }
+      });
+    }, WaitingBoardPage.PAGE_ROTATE_MS);
+  }
+
+  private stopTokenPaging(): void {
+    if (this.tokenPageTimer != null) {
+      window.clearInterval(this.tokenPageTimer);
+      this.tokenPageTimer = null;
+    }
+  }
+
+  openControlsAuth(): void {
+    // Always require password for settings popup (display devices are public).
+    this.controlsPassword = '';
+    this.controlsPasswordError = '';
+    this.controlsAuthOpen = true;
+    this.showControls = false;
+  }
+
+  closeControlsAuth(): void {
+    this.controlsAuthOpen = false;
+    this.controlsPassword = '';
+    this.controlsPasswordError = '';
+  }
+
+  confirmControlsPassword(): void {
+    if (this.controlsPassword !== WaitingBoardPage.CONTROLS_PASSWORD) {
+      this.controlsPasswordError = 'Wrong password';
+      return;
+    }
+    this.controlsAuthOpen = false;
+    this.controlsPassword = '';
+    this.controlsPasswordError = '';
+    this.showControls = true;
+  }
+
+  closeControls(): void {
+    this.showControls = false;
+  }
+
   ngOnInit(): void {
     this.clockTimer = window.setInterval(() => {
       this.zone.run(() => {
@@ -124,7 +261,10 @@ export class WaitingBoardPage implements OnInit, OnDestroy {
       }
     });
 
-    void this.bootstrap();
+    void this.bootstrap().finally(() => {
+      // Ensure pager runs even if first payload is delayed.
+      this.ensureTokenPaging();
+    });
   }
 
   ngOnDestroy(): void {
@@ -137,6 +277,7 @@ export class WaitingBoardPage implements OnInit, OnDestroy {
     }
     this.eventSource?.close();
     this.clearPollTimer();
+    this.stopTokenPaging();
     if (this.clockTimer) window.clearInterval(this.clockTimer);
   }
 
@@ -149,6 +290,12 @@ export class WaitingBoardPage implements OnInit, OnDestroy {
     const oid = Number(params.get('opd_id'));
     if (Number.isFinite(oid) && oid > 0 && this.opdId !== oid) {
       this.opdId = oid;
+      changed = true;
+    }
+    const sRaw = params.get('screen');
+    const s = sRaw === '2' ? 2 : 1;
+    if (this.screen !== s) {
+      this.screen = s;
       changed = true;
     }
     return changed;
@@ -218,6 +365,8 @@ export class WaitingBoardPage implements OnInit, OnDestroy {
       }
       this.board = unwrapApiEnvelope<PublicOpdWaitingBoard>(data);
       this.error = '';
+      // Keep token paging stable; if clinic count changes, restart the timer.
+      this.ensureTokenPaging();
       if (this.board && !this.allOpds.some((o) => o.id === this.opdId)) {
         await this.loadAllOpds();
       }
@@ -233,6 +382,7 @@ export class WaitingBoardPage implements OnInit, OnDestroy {
       queryParams: {
         opd_id: this.opdId > 0 ? this.opdId : undefined,
         date: this.date,
+        screen: this.screen,
         center_id: undefined,
       },
       replaceUrl: true,
@@ -255,6 +405,7 @@ export class WaitingBoardPage implements OnInit, OnDestroy {
     this.eventSource?.close();
     this.eventSource = null;
     this.clearPollTimer();
+    this.resetTokenPaging();
     void this.refreshBoard();
     this.connectSse();
     this.startPollingWhenOffline();
@@ -282,6 +433,7 @@ export class WaitingBoardPage implements OnInit, OnDestroy {
           this.board = payload;
           this.error = '';
           this.sseOk = true;
+          this.ensureTokenPaging();
         });
       } catch {
         this.zone.run(() => {

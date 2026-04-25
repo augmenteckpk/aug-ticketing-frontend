@@ -35,7 +35,7 @@
     } @else {
       <p class="muted staff-scope-hint">Lookup uses <strong>today</strong> and <strong>your assigned OPD center</strong>.</p>
     }
-    <app-speech-input label="CNIC" [(model)]="cnic" placeholder="42101-1234567-8" />
+    <app-speech-input label="CNIC" [(model)]="cnic" placeholder="42101-1234567-8" [maxLength]="15" />
   </div>
 
   <div class="table-wrap">

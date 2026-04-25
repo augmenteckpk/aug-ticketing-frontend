@@ -4,16 +4,10 @@
       <div class="board-title-block">
         <h1 class="display-title">
           <span class="title-ur">{{ ur.screenTitleUr }}</span>
-          @if (headerOpdName) {
-            <span class="opd-name" dir="ltr" lang="en">{{ headerOpdName }}</span>
-            <span class="title-sep" aria-hidden="true">&nbsp;</span>
-          }
-          
         </h1>
       </div>
       <div class="board-header-actions">
         <div class="clock-card">
-          <p class="clock-label">{{ ur.localTime }}</p>
           <p class="clock-time" dir="ltr" lang="en">
             {{
               liveClock.toLocaleTimeString('ur-PK', {
@@ -24,18 +18,98 @@
             }}
           </p>
         </div>
-        <div class="transport-pill" [class.live]="sseOk">
-          {{ sseOk ? ur.liveSse : ur.polling }}
-        </div>
-        <button type="button" class="btn-toggle-controls" (click)="showControls = !showControls">
+        <button type="button" class="btn-toggle-controls" (click)="openControlsAuth()">
           <span aria-hidden="true">☰</span>
-          {{ showControls ? ur.closeControls : ur.openControls }}
         </button>
       </div>
     </div>
 
-    @if (showControls) {
-      <div class="controls-panel">
+  </header>
+
+  @if (error) {
+    <div class="error-banner-wrap">
+      <p class="error-banner" role="alert">{{ error }}</p>
+    </div>
+  }
+
+  <main class="board-main">
+    @if (opdId <= 0 && !error) {
+      <p class="loading-line">{{ ur.pickOpdHint }}</p>
+    } @else if (!board && !error) {
+      <p class="loading-line">{{ ur.loading }}</p>
+    }
+
+    @if (board) {
+      @if (!visibleColumns.length) {
+        <p class="roster-empty">{{ ur.noRoster }}</p>
+      } @else {
+        <div class="columns-wrap" dir="ltr">
+          @for (col of visibleColumns; track col.clinic_id; let i = $index) {
+            <section class="token-column" [ngClass]="columnAccentClass(i)">
+              <header class="column-head">
+                <span class="clinic-name">{{ col.clinic_name || 'Clinic' }}</span>
+              </header>
+              <div
+                class="token-grid"
+                [class.token-grid--flip]="pageFlipOn"
+                [style.gridTemplateColumns]="'repeat(' + subcolCount(col) + ', minmax(0, 1fr))'"
+              >
+                @for (sub of tokenSubcols(col); track $index) {
+                  <ul class="token-list">
+                    @for (t of sub; track t.token_number) {
+                      <li class="token-chip" [class.ready]="t.status === 'batched'">
+                        {{ t.ticket_display }}
+                      </li>
+                    } @empty {
+                      <li class="token-chip empty">{{ ur.noTickets }}</li>
+                    }
+                  </ul>
+                }
+              </div>
+            </section>
+          }
+        </div>
+      }
+    }
+  </main>
+</div>
+
+@if (screenPageIndicator) {
+  <div class="screen-page-indicator" dir="ltr" lang="en">Page {{ screenPageIndicator }}</div>
+}
+
+@if (controlsAuthOpen) {
+  <div class="modal-overlay" (click)="closeControlsAuth()">
+    <div class="modal-card" (click)="$event.stopPropagation()" dir="ltr" lang="en">
+      <h3 class="modal-title">Admin password</h3>
+      <p class="modal-sub">Enter password to open settings.</p>
+      <input
+        class="modal-input"
+        type="password"
+        [(ngModel)]="controlsPassword"
+        (keydown.enter)="confirmControlsPassword()"
+        placeholder="Password"
+        autofocus
+      />
+      @if (controlsPasswordError) {
+        <p class="modal-error" role="alert">{{ controlsPasswordError }}</p>
+      }
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" (click)="closeControlsAuth()">Cancel</button>
+        <button type="button" class="btn-primary" (click)="confirmControlsPassword()">Open</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (showControls) {
+  <div class="modal-overlay" (click)="closeControls()">
+    <div class="modal-card modal-card--wide" (click)="$event.stopPropagation()">
+      <div class="settings-head">
+        <h3 class="modal-title">Settings</h3>
+        <button type="button" class="btn-ghost" (click)="closeControls()">Close</button>
+      </div>
+      <div class="controls-panel controls-panel--in-modal">
         <div class="controls-row">
           <label class="field">
             <span class="field-label">{{ ur.opd }}</span>
@@ -68,48 +142,15 @@
           <button type="button" class="btn-apply" (click)="applyBookmarkAndRefresh()">
             {{ ur.applyBookmark }}
           </button>
+          <label class="field">
+            <span class="field-label">Screen</span>
+            <select class="field-control" [(ngModel)]="screen" (ngModelChange)="onOpdOrDateChanged()">
+              <option [ngValue]="1">Waiting 1</option>
+              <option [ngValue]="2">Waiting 2</option>
+            </select>
+          </label>
         </div>
       </div>
-    }
-  </header>
-
-  @if (error) {
-    <div class="error-banner-wrap">
-      <p class="error-banner" role="alert">{{ error }}</p>
     </div>
-  }
-
-  <main class="board-main">
-    @if (opdId <= 0 && !error) {
-      <p class="loading-line">{{ ur.pickOpdHint }}</p>
-    } @else if (!board && !error) {
-      <p class="loading-line">{{ ur.loading }}</p>
-    }
-
-    @if (board) {
-      @if (!board.columns.length) {
-        <p class="roster-empty">{{ ur.noRoster }}</p>
-      } @else {
-        <div class="columns-wrap" dir="ltr">
-          @for (col of board.columns; track col.clinic_id; let i = $index) {
-            <section class="token-column" [ngClass]="columnAccentClass(i)">
-              <header class="column-head">
-                <span class="prefix">{{ col.ticket_prefix }}</span>
-                <span class="clinic-name">{{ col.clinic_name || 'Clinic' }}</span>
-              </header>
-              <ul class="token-list">
-                @for (t of col.tickets; track t.token_number) {
-                  <li class="token-chip" [class.ready]="t.status === 'ready'">
-                    {{ t.ticket_display }}
-                  </li>
-                } @empty {
-                  <li class="token-chip empty">{{ ur.noTickets }}</li>
-                }
-              </ul>
-            </section>
-          }
-        </div>
-      }
-    }
-  </main>
-</div>
+  </div>
+}

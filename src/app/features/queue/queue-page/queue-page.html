@@ -79,7 +79,7 @@
     </div>
 
     @if (flaggedRows.length) {
-      <section class="pool-card">
+      <section class="pool-card pool-card--fixed">
         <h3>Emergency / Physician-flagged Pool</h3>
         <div class="token-list">
           @for (r of flaggedRows; track r.id) {
@@ -96,7 +96,7 @@
     }
 
     <div class="pools-grid">
-      <section class="pool-card">
+      <section class="pool-card pool-card--fixed">
         <h3>Ready Pool</h3>
         @if (!readyRows.length) {
           <p class="muted">No ready tokens.</p>
@@ -116,7 +116,7 @@
         }
       </section>
 
-      <section class="pool-card">
+      <section class="pool-card pool-card--fixed">
         <h3>Active / Not Arrived</h3>
         @if (!notArrivedRows.length) {
           <p class="muted">No active pending tokens.</p>

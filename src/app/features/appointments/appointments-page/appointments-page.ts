@@ -8,6 +8,7 @@ import { SlipPrintService } from '../../../core/services/slip-print.service';
 import { ToastService } from '../../../core/services/toast';
 import { centerIdFromOpd, consoleIsAdmin, listCenterIdForRequest, listDateForRequest } from '../../../core/utils/listing-scope';
 import { todayLocalYmd } from '../../../core/utils/local-date';
+import { cnicDigits, isValidCnic13, normalizeCnicInput } from '../../../core/utils/cnic';
 import { WorkflowStatusBadgePipe } from '../../../shared/pipes/status-badge.pipe';
 import { SpeechInput } from '../../../ui-kit/speech-input/speech-input';
 import { Pagination } from '../../../ui-kit/pagination/pagination';
@@ -170,6 +171,12 @@ export class AppointmentsPage implements OnInit, OnDestroy {
   /** Debounced: when CNIC (+ kind / DOB rules) match an existing chart, fill name and DOB automatically. */
   scheduleWalkInPatientPrefill(): void {
     this.walkInPrefill$.next();
+  }
+
+  onWalkInCnicChanged(raw: string): void {
+    this.walkIn.cnic = normalizeCnicInput(raw);
+    this.scheduleWalkInPatientPrefill();
+    this.cdr.detectChanges();
   }
 
   onWalkInIdentifierKindChanged(): void {
@@ -374,7 +381,7 @@ export class AppointmentsPage implements OnInit, OnDestroy {
 
   private async prefillWalkInFromServer(): Promise<void> {
     if (!this.creatingWalkIn || this.walkInSuccess) return;
-    const digits = this.walkIn.cnic.replace(/\D/g, '');
+    const digits = cnicDigits(this.walkIn.cnic);
     if (digits.length !== 13) return;
     const kind = this.walkIn.identifier_kind;
     const fn = this.walkIn.first_name.trim();
@@ -416,6 +423,11 @@ export class AppointmentsPage implements OnInit, OnDestroy {
       this.toast.error(this.error);
       return;
     }
+    if (!isValidCnic13(this.walkIn.cnic)) {
+      this.error = 'CNIC must be exactly 13 digits.';
+      this.toast.error(this.error);
+      return;
+    }
     if (this.walkIn.identifier_kind === 'relative_escort' && !this.walkIn.escort_relationship.trim()) {
       this.error = 'Enter how the CNIC holder is related to the patient (e.g. brother, spouse).';
       this.toast.error(this.error);
@@ -447,7 +459,7 @@ export class AppointmentsPage implements OnInit, OnDestroy {
         opd_id: Number(this.walkIn.opd_id),
         clinic_id: Number(this.walkIn.clinic_id),
         patient: {
-          cnic: this.walkIn.cnic.trim(),
+          cnic: normalizeCnicInput(this.walkIn.cnic).trim(),
           identifier_kind: this.walkIn.identifier_kind,
           escort_relationship:
             this.walkIn.identifier_kind === 'relative_escort'

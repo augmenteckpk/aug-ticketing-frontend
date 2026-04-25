@@ -221,7 +221,8 @@
           <app-speech-input
             [(model)]="walkIn.cnic"
             placeholder="42101-1234567-8"
-            (modelChange)="scheduleWalkInPatientPrefill()"
+            [maxLength]="15"
+            (modelChange)="onWalkInCnicChanged($event)"
           />
         </label>
         <label class="walkin-span-2">

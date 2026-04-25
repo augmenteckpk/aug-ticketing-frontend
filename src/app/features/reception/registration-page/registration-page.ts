@@ -12,6 +12,7 @@ import { SlipPrintService } from '../../../core/services/slip-print.service';
 import { ToastService } from '../../../core/services/toast';
 import { todayLocalYmd } from '../../../core/utils/local-date';
 import { FingerprintReaderService } from '../../../core/services/fingerprint-reader.service';
+import { isValidCnic13, normalizeCnicInput } from '../../../core/utils/cnic';
 
 type Center = { id: number; name: string; hospital_name?: string; city?: string };
 type OpdPickRow = { id: number; name: string; display_code: string; center_id: number; center_label: string; sort_order: number };
@@ -393,8 +394,13 @@ export class RegistrationPage implements OnInit, OnDestroy {
     }
     const day = listDateForRequest(this.auth.user(), this.date);
     const cid = listCenterIdForRequest(this.auth.user(), this.centerId);
+    this.cnic = normalizeCnicInput(this.cnic);
     if (cid === '' || !this.cnic.trim()) {
       this.toast.error('Site and CNIC are required for lookup.');
+      return;
+    }
+    if (!isValidCnic13(this.cnic)) {
+      this.toast.error('CNIC must be exactly 13 digits.');
       return;
     }
     this.loading = true;
