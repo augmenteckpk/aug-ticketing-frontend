@@ -51,7 +51,7 @@ export class WaitingBoardPage implements OnInit, OnDestroy {
   /** Urdu labels — waiting-area display. */
   readonly ur = {
     /** Shown after OPD name in the main title. */
-    screenTitleUr: 'انتظار کی اسکرین',
+    screenTitleUr: 'انتظار سکرین',
     opd: 'او پی ڈی',
     date: 'تاریخ',
     applyBookmark: 'لاگو کریں اور لنک محفوظ کریں',
