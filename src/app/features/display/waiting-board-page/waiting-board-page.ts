@@ -58,7 +58,7 @@ export class WaitingBoardPage implements OnInit, OnDestroy {
     loading: 'لوڈ ہو رہا ہے…',
     liveSse: '',
     polling: '',
-    noRoster: 'اس دن کے لیے کوئی کلینک شیڈول نہیں — ایڈمن میں او پی ڈی کا ہفتہ وار روستر سیٹ کریں۔',
+    noRoster: 'اس دن کے لیے کوئی کلینک شیڈول نہیں —',
     noTickets: '—',
     openControls: '',
     closeControls: '',
