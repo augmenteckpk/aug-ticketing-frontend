@@ -55,7 +55,7 @@ type OpdBookingBlock = {
 
 type OpdBookingOptionsResponse = { date: string; weekday: number; opds: OpdBookingBlock[] };
 
-/** Public `POST /public/cnic-extract` — matches backend `CnicVisionExtraction`. */
+/** Public `POST /public/cnic-extract` response shape. */
 type CnicVisionExtractResponse = {
   cnic: string | null;
   first_name: string | null;
@@ -110,7 +110,7 @@ export class AppointmentsPage implements OnInit, OnDestroy {
     address: '',
   };
 
-  /** Single-photo CNIC read via server AI. */
+  /** Single-photo CNIC: upload image and apply extracted fields from `/public/cnic-extract`. */
   walkInVisionModalOpen = false;
   walkInVisionBusy = false;
   walkInVisionFile: File | null = null;
@@ -338,12 +338,14 @@ export class AppointmentsPage implements OnInit, OnDestroy {
         if (ext.gender) parts.push('gender');
       }
       if (ext.name_confidence === 'low') {
-        this.toast.info('AI confidence was low — check all fields before creating the token.');
+        this.toast.info('Reading confidence was low — check all fields before creating the token.');
       }
-      this.toast.success(parts.length ? `Filled from card: ${parts.join(', ')}.` : 'AI returned no fields — type manually.');
+      this.toast.success(
+        parts.length ? `Filled from card: ${parts.join(', ')}.` : 'Nothing could be read from the photo — enter details manually.',
+      );
       this.closeWalkInVisionModal();
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Could not read CNIC from photo';
+      const msg = e instanceof Error ? e.message : 'Could not read details from the photo';
       this.toast.error(msg);
     } finally {
       this.walkInVisionBusy = false;

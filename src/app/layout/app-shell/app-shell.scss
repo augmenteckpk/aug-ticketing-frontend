@@ -240,7 +240,10 @@
 .content {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  min-width: 0;
+  /* Vertical scroll for the page; horizontal overflow stays inside `.table-wrap` (tables only). */
+  overflow-x: hidden;
+  overflow-y: auto;
   padding: clamp(0.75rem, 2.5vw, 1.25rem);
   -webkit-overflow-scrolling: touch;
 }

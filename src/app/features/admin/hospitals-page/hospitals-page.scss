@@ -10,7 +10,6 @@
 }
 .form-row{display:grid;grid-template-columns:2fr 1fr auto;gap:.6rem;margin-bottom:1rem}
 input,select{border:1px solid var(--color-border);border-radius:.65rem;padding:.55rem .65rem}
-.table-wrap{overflow:auto}
 table{width:100%;border-collapse:collapse}
 th,td{border:1px solid var(--color-border);padding:.6rem;text-align:left}
 th{background:#f1f5f9}

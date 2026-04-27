@@ -110,7 +110,11 @@ h1 {
 }
 
 .table-wrap {
-  overflow: auto;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
   border: 1px solid #e2e8f0;
   border-radius: 0.75rem;
   background: #fff;

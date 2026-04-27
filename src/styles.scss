@@ -67,18 +67,9 @@ body {
   box-shadow:
     0 4px 18px rgb(0 0 0 / 0.04),
     0 10px 34px -24px rgb(6 13 57 / 0.25);
-}
-
-/* Wide data tables: keep natural column widths and scroll on small viewports (do not shrink columns). */
-.table-wrap {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+  /* Let flex/grid children shrink on narrow viewports so inner `.table-wrap` can scroll horizontally. */
+  min-width: 0;
   max-width: 100%;
-}
-
-.table-wrap > table {
-  width: max-content;
-  min-width: 100%;
 }
 
 .btn,
@@ -366,22 +357,32 @@ summary {
   background: #fff5f5;
 }
 
+/**
+ * Data tables: only this region scrolls horizontally on phones/tablets.
+ * Page chrome (header, filters) stays viewport-width.
+ */
 .table-wrap {
   margin-top: 0.85rem;
-  overflow: auto;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
   border: 1px solid #d0d9e4;
   border-radius: 0.86rem;
   background: #fff;
 }
 
-.table-wrap table {
+.table-wrap > table {
+  width: max-content;
+  min-width: 100%;
   table-layout: auto;
 }
 
 /** Uniform data tables: full grid (vertical + horizontal lines) everywhere. */
 table {
   width: 100%;
-  min-width: min(100%, 680px);
   border-collapse: collapse;
   border: 1px solid #cdd6e3;
 }
@@ -608,6 +609,7 @@ tbody tr:nth-child(even) {
   max-width: 100%;
   max-height: var(--modal-max-h);
   min-height: 0;
+  min-width: 0;
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -619,6 +621,11 @@ tbody tr:nth-child(even) {
   display: grid;
   gap: 0.85rem;
   box-sizing: border-box;
+}
+
+/* Grid children default to min-width:auto (content size); allow shrink so wide tables scroll inside `.table-wrap`. */
+.modal > * {
+  min-width: 0;
 }
 
 /** Wider dialogs (forms with several columns) */
