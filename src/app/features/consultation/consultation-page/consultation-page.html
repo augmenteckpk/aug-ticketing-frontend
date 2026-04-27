@@ -142,57 +142,123 @@
         </header>
 
         <div class="form-grid">
-          <label>Outcome
-            <select [(ngModel)]="consultForm.consultation_outcome">
-              <option value="medication_only">Medication only</option>
-              <option value="lab_required">Lab required</option>
-              <option value="radiology_required">Radiology required</option>
-              <option value="follow_up">Follow up</option>
-              <option value="admission">Admission</option>
-            </select>
-          </label>
-          @if (consultForm.consultation_outcome === 'follow_up') {
-            <label>Follow-up advised date
-              <input type="date" [(ngModel)]="consultForm.follow_up_advised_date" class="input-date" />
-            </label>
-            <div class="routing-panel" role="region" aria-label="OPD roster for visit date">
-              <div class="routing-panel__head">
-                <h3 class="routing-panel__title">OPD / clinic roster ({{ date }})</h3>
-                <p class="routing-panel__hint">Ticket prefixes for this weekday — same options patients see when booking.</p>
-              </div>
-              @if (!bookingPreview?.opds?.length) {
-                <p class="muted small">No roster rows for this weekday, or roster not loaded. You can still pick a follow-up clinic below.</p>
-              } @else {
-                <div class="routing-grid">
-                  @for (b of bookingPreview!.opds; track b.opd.id) {
-                    <div class="routing-row">
-                      <div class="routing-row__day">
-                        <span class="routing-day-pill">{{ b.opd.display_code }}</span>
-                      </div>
-                      <div class="routing-row__body">
-                        <span class="routing-slot__dept">{{ b.opd.name }}</span>
-                        @for (cl of b.clinics; track cl.clinic_id + '-' + cl.ticket_prefix) {
-                          <div class="routing-slot">
-                            <span class="routing-slot__clinic">{{ cl.ticket_prefix }} · {{ cl.clinic_name || ('#' + cl.clinic_id) }}</span>
-                          </div>
-                        }
-                      </div>
-                    </div>
-                  }
-                </div>
-              }
+          <fieldset class="consult-path-fieldset full">
+            <legend class="consult-path-legend">Visit plan (select one or more)</legend>
+            <p class="muted small consult-path-hint">
+              Record the plan here. When you save with <strong>Follow-up</strong> checked, a return ticket is
+              auto-booked for the chosen date (and clinic when set). Lab/radiology request slips use the buttons below
+              only — those forms no longer book follow-up visits. <strong>Admission</strong> clears the other toggles.
+            </p>
+            <div class="consult-path-grid">
+              <label class="consult-path-row">
+                <input
+                  type="checkbox"
+                  [(ngModel)]="consultPaths.medication"
+                  [disabled]="consultPaths.admission"
+                />
+                <span>Medication / visit closure</span>
+              </label>
+              <label class="consult-path-row">
+                <input
+                  type="checkbox"
+                  [(ngModel)]="consultPaths.admission"
+                  (ngModelChange)="onConsultAdmissionChanged($event)"
+                />
+                <span>Admission</span>
+              </label>
+              <label class="consult-path-row">
+                <input
+                  type="checkbox"
+                  [(ngModel)]="consultPaths.followUp"
+                  [disabled]="consultPaths.admission"
+                  (ngModelChange)="onFollowUpPathChanged($event)"
+                />
+                <span>Follow-up visit advised</span>
+              </label>
+              <label class="consult-path-row">
+                <input type="checkbox" [(ngModel)]="consultPaths.lab" [disabled]="consultPaths.admission" />
+                <span>Lab investigations</span>
+              </label>
+              <label class="consult-path-row">
+                <input type="checkbox" [(ngModel)]="consultPaths.radiology" [disabled]="consultPaths.admission" />
+                <span>Radiology investigations</span>
+              </label>
             </div>
-            <label>Follow-up clinic (optional)
-              <select [(ngModel)]="consultForm.follow_up_advised_clinic_id" [disabled]="!centerClinics.length">
-                <option [ngValue]="''">Optional — select clinic</option>
-                @for (c of centerClinics; track c.id) {
-                  <option [ngValue]="c.id">{{ clinicOptionLabel(c) }}</option>
-                }
-              </select>
-            </label>
-            @if (!centerClinics.length) {
-              <p class="muted small">No clinics for this center, or still loading.</p>
+          </fieldset>
+          @if (consultPaths.followUp && !consultPaths.admission) {
+            <div class="follow-up-stack full">
+              <label class="follow-up-pair__field">
+                <span>Follow-up date</span>
+                <input
+                  type="date"
+                  [(ngModel)]="consultForm.follow_up_advised_date"
+                  (ngModelChange)="onFollowUpDateChanged()"
+                  class="input-date"
+                />
+              </label>
+              @if (followUpBookingLoading) {
+                <p class="muted small">Loading roster for that date…</p>
+              }
+              <label class="follow-up-pair__field">
+                <span>Follow-up OPD (optional)</span>
+                <select
+                  [(ngModel)]="followUpOpdId"
+                  (ngModelChange)="onFollowUpOpdChanged()"
+                  [disabled]="followUpBookingLoading || !(followUpBooking?.opds?.length)"
+                >
+                  <option [ngValue]="''">— Select OPD —</option>
+                  @for (b of followUpBooking?.opds ?? []; track b.opd.id) {
+                    <option [ngValue]="b.opd.id">{{ b.opd.display_code }} — {{ b.opd.name }}</option>
+                  }
+                </select>
+              </label>
+              <label class="follow-up-pair__field">
+                <span>Clinic on that day’s roster (optional)</span>
+                <select
+                  [(ngModel)]="consultForm.follow_up_advised_clinic_id"
+                  [disabled]="followUpOpdId === '' || !followUpClinicsForSelectedOpd.length"
+                >
+                  <option [ngValue]="''">— Select clinic —</option>
+                  @for (cl of followUpClinicsForSelectedOpd; track cl.clinic_id) {
+                    <option [ngValue]="cl.clinic_id">{{ followUpClinicOptionLabel(cl) }}</option>
+                  }
+                </select>
+              </label>
+            </div>
+            @if (!followUpBookingLoading && consultForm.follow_up_advised_date && !(followUpBooking?.opds?.length)) {
+              <p class="muted small">No OPD roster for that date at this center.</p>
             }
+            <div class="routing-panel routing-panel--week" role="region" aria-label="OPD clinic roster for the week">
+              <div class="routing-panel__head">
+                <h3 class="routing-panel__title">OPD / clinic roster (7 days from list date)</h3>
+                <p class="routing-panel__hint">Each day shows which OPD lanes and ticket prefixes are on roster (scroll).</p>
+              </div>
+              <div class="routing-week-scroll">
+                @for (day of centerWeekRoster; track day.ymd) {
+                  <div class="routing-day-card">
+                    <div class="routing-day-card__head">
+                      <span class="routing-day-card__dow">{{ day.headline }}</span>
+                      <span class="routing-day-card__ymd" dir="ltr">{{ day.ymd }}</span>
+                    </div>
+                    @if (!day.lines.length) {
+                      <p class="routing-day-card__empty muted small">No roster rows.</p>
+                    } @else {
+                      @for (line of day.lines; track line.trackId) {
+                        <div class="routing-day-opd">
+                          <span class="routing-day-pill">{{ line.opdCode }}</span>
+                          <span class="routing-day-opd__name">{{ line.opdName }}</span>
+                          <div class="routing-day-clinics">
+                            @for (chip of line.clinicChips; track $index) {
+                              <span class="routing-chip">{{ chip }}</span>
+                            }
+                          </div>
+                        </div>
+                      }
+                    }
+                  </div>
+                }
+              </div>
+            </div>
           }
           <div class="rte-wrap full">
             <span class="rte-label">Doctor notes</span>
@@ -206,7 +272,7 @@
         </div>
         <div class="actions">
           <button class="btn primary" (click)="saveConsultation()" [disabled]="saving">Save consultation</button>
-          @if (consultForm.consultation_outcome !== 'lab_required' && consultForm.consultation_outcome !== 'radiology_required') {
+          @if (consultCompleteAllowed()) {
             <button class="btn" (click)="completeFromConsultation()" [disabled]="saving">Complete patient</button>
           }
         </div>
@@ -216,7 +282,10 @@
         <header class="page-header">
           <div>
             <h2>Lab orders</h2>
-            <p class="muted small">Create investigations below; optional return visit after results for doctor review.</p>
+            <p class="muted small">
+              Create lab requests below. Return for review uses the checkbox only — follow-up tickets are created from
+              the visit plan above, not here.
+            </p>
           </div>
         </header>
 
@@ -373,19 +442,11 @@
             placeholder="Tests requested, panels, urgency, clinical detail…"
           />
         </div>
-        <label>Optional follow-up after lab (review with doctor)
-          <input type="date" [(ngModel)]="labForm.follow_up_advised_date" />
-        </label>
-        <label>Follow-up clinic (optional)
-          <select [(ngModel)]="labForm.follow_up_advised_clinic_id" [disabled]="!centerClinics.length">
-            <option [ngValue]="''">—</option>
-            @for (c of centerClinics; track c.id) {
-              <option [ngValue]="c.id">{{ clinicOptionLabel(c) }}</option>
-            }
-          </select>
-        </label>
-        <app-speech-input label="Follow-up notes" [(model)]="labForm.follow_up_notes" />
-        <label class="check"><input type="checkbox" [(ngModel)]="labForm.return_for_doctor_review" /> Patient should return for doctor review of results</label>
+        <p class="muted small full">
+          Use <strong>Visit plan → Follow-up</strong> above to book a return ticket; it is no longer duplicated on this
+          form.
+        </p>
+        <label class="check full"><input type="checkbox" [(ngModel)]="labForm.return_for_doctor_review" /> Patient should return for doctor review of results</label>
       </div>
       <div class="actions">
         <button type="button" class="btn" (click)="closeLabOrderModal()">Cancel</button>
@@ -417,19 +478,11 @@
             placeholder="Examinations requested, contrast, clinical detail…"
           />
         </div>
-        <label>Optional follow-up after imaging
-          <input type="date" [(ngModel)]="radiologyForm.follow_up_advised_date" />
-        </label>
-        <label>Follow-up clinic (optional)
-          <select [(ngModel)]="radiologyForm.follow_up_advised_clinic_id" [disabled]="!centerClinics.length">
-            <option [ngValue]="''">—</option>
-            @for (c of centerClinics; track c.id) {
-              <option [ngValue]="c.id">{{ clinicOptionLabel(c) }}</option>
-            }
-          </select>
-        </label>
-        <app-speech-input label="Follow-up notes" [(model)]="radiologyForm.follow_up_notes" />
-        <label class="check"><input type="checkbox" [(ngModel)]="radiologyForm.return_for_doctor_review" /> Patient should return for doctor review of report</label>
+        <p class="muted small full">
+          Use <strong>Visit plan → Follow-up</strong> above to book a return ticket; it is no longer duplicated on this
+          form.
+        </p>
+        <label class="check full"><input type="checkbox" [(ngModel)]="radiologyForm.return_for_doctor_review" /> Patient should return for doctor review of report</label>
       </div>
       <div class="actions">
         <button type="button" class="btn" (click)="closeRadiologyOrderModal()">Cancel</button>

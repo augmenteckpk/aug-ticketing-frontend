@@ -65,6 +65,95 @@
   font-variant-numeric: tabular-nums;
 }
 
+.consult-path-fieldset {
+  margin: 0;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  background: #f8fafc;
+}
+
+.consult-path-fieldset.full {
+  grid-column: 1 / -1;
+}
+
+.consult-path-legend {
+  padding: 0 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.consult-path-hint {
+  margin: 0 0 0.65rem;
+}
+
+.consult-path-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.consult-path-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.55rem;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: #334155;
+  cursor: pointer;
+  user-select: none;
+}
+
+.consult-path-row input[type='checkbox'] {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: #2563eb;
+}
+
+.consult-path-row input[type='checkbox']:disabled {
+  opacity: 0.55;
+}
+
+.follow-up-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.follow-up-stack.full {
+  grid-column: 1 / -1;
+}
+
+.follow-up-pair__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.follow-up-pair__field span {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.form-grid .full {
+  grid-column: 1 / -1;
+}
+
+
 /* Weekly routing table (follow-up) */
 .routing-panel {
   grid-column: 1 / -1;
@@ -93,6 +182,91 @@
   font-size: 0.8rem;
   line-height: 1.4;
   color: #64748b;
+}
+
+.routing-panel--week .routing-week-scroll {
+  max-height: min(38vh, 320px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0.5rem 0.65rem 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.routing-day-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.65rem;
+  background: #f8fafc;
+  padding: 0.5rem 0.6rem;
+}
+
+.routing-day-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.routing-day-card__dow {
+  font-weight: 800;
+  font-size: 0.82rem;
+  color: #0f172a;
+}
+
+.routing-day-card__ymd {
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.routing-day-card__empty {
+  margin: 0.25rem 0 0;
+}
+
+.routing-day-opd {
+  margin-top: 0.4rem;
+  padding-top: 0.35rem;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.routing-day-opd:first-of-type {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.routing-day-opd__name {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #475569;
+  margin: 0.15rem 0 0.25rem 1.85rem;
+}
+
+.routing-day-clinics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.35rem;
+  margin-left: 1.85rem;
+}
+
+.routing-chip {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.12rem 0.4rem;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .routing-grid {

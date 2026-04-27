@@ -6,7 +6,6 @@ import { AuthService } from '../../../core/services/auth';
 import { centerIdFromOpd, consoleIsAdmin, listCenterIdForRequest, listDateForRequest } from '../../../core/utils/listing-scope';
 import { WorkflowStatusBadgePipe } from '../../../shared/pipes/status-badge.pipe';
 import { SpeechInput } from '../../../ui-kit/speech-input/speech-input';
-import { SlipPrintService } from '../../../core/services/slip-print.service';
 import { ToastService } from '../../../core/services/toast';
 import { todayLocalYmd } from '../../../core/utils/local-date';
 
@@ -73,7 +72,6 @@ export class PreAssessmentPage implements OnInit {
   constructor(
     private readonly api: ApiService,
     private readonly auth: AuthService,
-    private readonly slipPrint: SlipPrintService,
     private readonly toast: ToastService,
     private readonly cdr: ChangeDetectorRef,
   ) {}
@@ -297,24 +295,7 @@ export class PreAssessmentPage implements OnInit {
         symptoms: this.form.symptoms.trim() || null,
         medical_history_notes: this.form.medical_history_notes.trim() || null,
       });
-      this.toast.success('Pre-assessment saved. Patient moved to ready pool.');
-      const opdLine = [selected.opd_display_code, selected.opd_name].filter(Boolean).join(' · ') || '—';
-      this.slipPrint.print('Pre-Assessment Slip', 'Vitals and triage — OPD visit', [
-        { label: 'Ticket', value: selected.ticket_display?.trim() || String(selected.token_number) },
-        { label: 'Patient', value: selected.patient_name || '-' },
-        { label: 'CNIC', value: selected.patient_cnic || '-' },
-        { label: 'OPD', value: opdLine },
-        { label: 'Clinic', value: selected.clinic_name || '—' },
-        { label: 'Campus / center', value: selected.center_name || '—' },
-        { label: 'Visit date', value: this.date },
-        { label: 'BP', value: `${this.form.bp_systolic ?? '-'} / ${this.form.bp_diastolic ?? '-'}` },
-        { label: 'Weight (kg)', value: this.form.weight_kg == null ? '-' : String(this.form.weight_kg) },
-        { label: 'Height (cm)', value: this.form.height_cm == null ? '-' : String(this.form.height_cm) },
-        { label: 'Blood sugar', value: this.form.blood_sugar_mg_dl == null ? '-' : String(this.form.blood_sugar_mg_dl) },
-        { label: 'Symptoms', value: this.form.symptoms.trim() || '-' },
-        { label: 'History', value: this.form.medical_history_notes.trim() || '-' },
-        { label: 'Status after save', value: 'ready' },
-      ]);
+      this.toast.success('Pre-assessment saved. Patient moved to ready pool. Vitals print on the doctor registration slip after consultation.');
       this.rows = this.rows.filter((r) => r.id !== selected.id);
       this.closeAssessment();
       await this.load();

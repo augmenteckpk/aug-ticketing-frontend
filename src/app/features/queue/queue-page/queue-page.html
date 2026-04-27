@@ -95,8 +95,8 @@
       </section>
     }
 
-    <div class="pools-grid">
-      <section class="pool-card pool-card--fixed">
+    <div class="pools-grid pools-grid--compact">
+      <section class="pool-card pool-card--fixed pool-card--compact">
         <h3>Ready Pool</h3>
         @if (!readyRows.length) {
           <p class="muted">No ready tokens.</p>
@@ -116,7 +116,7 @@
         }
       </section>
 
-      <section class="pool-card pool-card--fixed">
+      <section class="pool-card pool-card--fixed pool-card--compact">
         <h3>Active / Not Arrived</h3>
         @if (!notArrivedRows.length) {
           <p class="muted">No active pending tokens.</p>

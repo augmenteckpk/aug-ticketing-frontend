@@ -47,13 +47,6 @@ type Appointment = {
   follow_up_advised_clinic_name?: string | null;
 };
 
-type ClinicRow = {
-  id: number;
-  name: string;
-  opd_display_code?: string | null;
-  opd_name?: string | null;
-  schedule?: string | null;
-};
 type BookingPreview = {
   date: string;
   weekday: number;
@@ -85,6 +78,14 @@ type RadOrder = {
 type LabReportResult = { summary?: string | null; details?: string | null; file_path?: string | null };
 type ReportModalData = { appointment: Appointment; orders: LabOrder[]; radOrders: RadOrder[] };
 
+type ConsultationOutcomeSaved =
+  | 'medication_only'
+  | 'lab_required'
+  | 'radiology_required'
+  | 'follow_up'
+  | 'admission'
+  | 'mixed';
+
 @Component({
   selector: 'app-consultation-page',
   imports: [CommonModule, FormsModule, QuillModule, SpeechInput, WorkflowStatusBadgePipe, Pagination],
@@ -115,32 +116,40 @@ export class ConsultationPage implements OnInit {
   private loadRunId = 0;
 
   consultForm = {
-    consultation_outcome: 'medication_only',
     doctor_notes: '',
     follow_up_advised_date: '',
     follow_up_advised_clinic_id: '' as number | '',
   };
 
-  /** Active clinics under the selected visit's center (all OPDs). */
-  centerClinics: ClinicRow[] = [];
-  /** OPD roster for the consultation list date (patient booking view). */
-  bookingPreview: BookingPreview | null = null;
+  /** Multiple clinical paths can apply; saved as one `consultation_outcome` (including `mixed`). */
+  consultPaths = {
+    medication: true,
+    admission: false,
+    followUp: false,
+    lab: false,
+    radiology: false,
+  };
+
+  /** Booking preview for the chosen follow-up date (roster that day). */
+  followUpBooking: BookingPreview | null = null;
+  followUpOpdId: number | '' = '';
+  followUpBookingLoading = false;
+  /** Seven-day OPD/clinic roster from the list date (for follow-up planning). */
+  centerWeekRoster: Array<{
+    ymd: string;
+    headline: string;
+    lines: Array<{ trackId: string; opdCode: string; opdName: string; clinicChips: string[] }>;
+  }> = [];
 
   labForm = {
     test_code: '',
     notes: '',
-    follow_up_advised_date: '',
-    follow_up_advised_clinic_id: '' as number | '',
-    follow_up_notes: '',
     return_for_doctor_review: false,
   };
 
   radiologyForm = {
     study_code: '',
     notes: '',
-    follow_up_advised_date: '',
-    follow_up_advised_clinic_id: '' as number | '',
-    follow_up_notes: '',
     return_for_doctor_review: false,
   };
 
@@ -304,7 +313,10 @@ export class ConsultationPage implements OnInit {
       else if (this.centerId !== '') q.set('center_id', String(this.centerId));
       const completed = await this.withTimeout(this.api.get<Appointment[]>(`/appointments?${q.toString()}`, 20000), 21000);
       // Fast initial render: show explicit follow-up outcomes immediately.
-      const followUpByOutcome = completed.filter((row) => String(row.consultation_outcome || '') === 'follow_up');
+      const followUpByOutcome = completed.filter((row) => {
+        const o = String(row.consultation_outcome || '');
+        return o === 'follow_up' || o === 'mixed';
+      });
       this.followUpRows = followUpByOutcome;
       this.cdr.detectChanges();
       // Background enrichment: append completed visits that have lab reports.
@@ -369,49 +381,165 @@ export class ConsultationPage implements OnInit {
     this.creatingRadiologyOrder = false;
     this.selected = row;
     const adv = row.follow_up_advised_date ? String(row.follow_up_advised_date).slice(0, 10) : '';
+    this.hydrateConsultPathsFromRow(row);
     this.consultForm = {
-      consultation_outcome: (row.consultation_outcome || 'medication_only') as string,
       doctor_notes: row.doctor_notes ?? '',
       follow_up_advised_date: adv,
       follow_up_advised_clinic_id: row.follow_up_advised_clinic_id ?? '',
     };
-    this.centerClinics = [];
-    this.bookingPreview = null;
+    this.followUpBooking = null;
+    this.followUpOpdId = '';
+    this.centerWeekRoster = [];
     this.cdr.detectChanges();
-    await Promise.all([this.loadCenterClinics(row.center_id), this.loadBookingPreview(row.center_id)]);
+    await this.loadCenterWeekRoster(row.center_id, this.date);
+    if (adv && /^\d{4}-\d{2}-\d{2}$/.test(adv)) {
+      await this.loadFollowUpDateBooking(row.center_id, adv);
+      this.hydrateFollowUpOpdFromSavedClinic(row.follow_up_advised_clinic_id);
+    }
     await this.loadLabOrders();
     await this.loadRadiologyOrders();
   }
 
-  clinicOptionLabel(c: ClinicRow): string {
-    const code = (c.opd_display_code ?? '').trim();
-    const op = (c.opd_name ?? '').trim();
-    const prefix = code ? `${code}` : op ? op : '';
-    return prefix ? `${prefix} · ${c.name}` : c.name;
+  /** Clinics on roster for the selected follow-up OPD and date. */
+  get followUpClinicsForSelectedOpd(): Array<{
+    clinic_id: number;
+    clinic_name: string | null;
+    ticket_prefix: string;
+    sort_order: number;
+  }> {
+    const oid = this.followUpOpdId;
+    if (oid === '' || !this.followUpBooking?.opds?.length) return [];
+    const block = this.followUpBooking.opds.find((x) => x.opd.id === oid);
+    return block?.clinics ?? [];
   }
 
-  private async loadCenterClinics(centerId: number): Promise<void> {
-    try {
-      const q = new URLSearchParams({ center_id: String(centerId), active_only: 'true' });
-      this.centerClinics = await this.withTimeout(
-        this.api.get<ClinicRow[]>(`/clinics/by-center?${q.toString()}`, 15000),
-        16000,
-      );
-    } catch {
-      this.centerClinics = [];
+  followUpClinicOptionLabel(cl: {
+    clinic_id: number;
+    clinic_name: string | null;
+    ticket_prefix: string;
+  }): string {
+    const nm = cl.clinic_name?.trim() || `Clinic #${cl.clinic_id}`;
+    return `${cl.ticket_prefix} · ${nm}`;
+  }
+
+  async onFollowUpDateChanged(): Promise<void> {
+    if (!this.selected) return;
+    this.followUpOpdId = '';
+    this.consultForm.follow_up_advised_clinic_id = '';
+    const d = String(this.consultForm.follow_up_advised_date ?? '').trim().slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+      this.followUpBooking = null;
+      this.cdr.detectChanges();
+      return;
+    }
+    await this.loadFollowUpDateBooking(this.selected.center_id, d);
+  }
+
+  onFollowUpOpdChanged(): void {
+    const clinics = this.followUpClinicsForSelectedOpd;
+    const cid = this.consultForm.follow_up_advised_clinic_id;
+    if (cid !== '' && !clinics.some((c) => c.clinic_id === cid)) {
+      this.consultForm.follow_up_advised_clinic_id = '';
     }
     this.cdr.detectChanges();
   }
 
-  private async loadBookingPreview(centerId: number): Promise<void> {
+  onFollowUpPathChanged(checked: boolean): void {
+    if (checked) return;
+    this.followUpBooking = null;
+    this.followUpOpdId = '';
+    this.consultForm.follow_up_advised_date = '';
+    this.consultForm.follow_up_advised_clinic_id = '';
+    this.cdr.detectChanges();
+  }
+
+  private async loadFollowUpDateBooking(centerId: number, ymd: string): Promise<void> {
+    this.followUpBookingLoading = true;
+    this.cdr.detectChanges();
     try {
-      const d = encodeURIComponent(this.date);
-      this.bookingPreview = await this.withTimeout(
-        this.api.get<BookingPreview>(`/centers/${centerId}/opd-booking-options?date=${d}`, 15000),
-        16000,
+      this.followUpBooking = await this.withTimeout(
+        this.api.get<BookingPreview>(
+          `/centers/${centerId}/opd-booking-options?date=${encodeURIComponent(ymd)}`,
+          12000,
+        ),
+        13000,
       );
     } catch {
-      this.bookingPreview = null;
+      this.followUpBooking = null;
+    } finally {
+      this.followUpBookingLoading = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  private hydrateFollowUpOpdFromSavedClinic(clinicId: number | null | undefined): void {
+    const cid = clinicId ?? null;
+    if (cid == null || !this.followUpBooking?.opds?.length) return;
+    const block = this.followUpBooking.opds.find((b) => b.clinics.some((c) => c.clinic_id === cid));
+    if (block) {
+      this.followUpOpdId = block.opd.id;
+    } else {
+      this.consultForm.follow_up_advised_clinic_id = '';
+    }
+    this.cdr.detectChanges();
+  }
+
+  private addDaysYmd(ymd: string, days: number): string {
+    const [y, m, d] = ymd.split('-').map((x) => Number(x));
+    const dt = new Date(y, m - 1, d + days);
+    const yy = dt.getFullYear();
+    const mm = String(dt.getMonth() + 1).padStart(2, '0');
+    const dd = String(dt.getDate()).padStart(2, '0');
+    return `${yy}-${mm}-${dd}`;
+  }
+
+  private async loadCenterWeekRoster(centerId: number, startYmd: string): Promise<void> {
+    const out: Array<{
+      ymd: string;
+      headline: string;
+      lines: Array<{ trackId: string; opdCode: string; opdName: string; clinicChips: string[] }>;
+    }> = [];
+    try {
+      for (let i = 0; i < 7; i++) {
+        const ymd = this.addDaysYmd(startYmd, i);
+        const [yy, mm, dd] = ymd.split('-').map(Number);
+        const headline = new Date(yy, mm - 1, dd).toLocaleDateString(undefined, {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+        });
+        out.push({ ymd, headline, lines: [] });
+      }
+      const previews = await Promise.all(
+        out.map((slot) =>
+          this.withTimeout(
+            this.api.get<BookingPreview>(
+              `/centers/${centerId}/opd-booking-options?date=${encodeURIComponent(slot.ymd)}`,
+              12000,
+            ),
+            13000,
+          ).catch(() => null),
+        ),
+      );
+      previews.forEach((p, i) => {
+        const ymd = out[i].ymd;
+        const opds = p?.opds ?? [];
+        for (const b of opds) {
+          const clinicChips = (b.clinics ?? []).map((cl) => {
+            const nm = cl.clinic_name?.trim() || `#${cl.clinic_id}`;
+            return `${cl.ticket_prefix} · ${nm}`;
+          });
+          out[i].lines.push({
+            trackId: `${ymd}-opd-${b.opd.id}`,
+            opdCode: b.opd.display_code,
+            opdName: b.opd.name,
+            clinicChips,
+          });
+        }
+      });
+      this.centerWeekRoster = out;
+    } catch {
+      this.centerWeekRoster = [];
     }
     this.cdr.detectChanges();
   }
@@ -436,21 +564,70 @@ export class ConsultationPage implements OnInit {
     this.cdr.detectChanges();
   }
 
+  private hydrateConsultPathsFromRow(row: Appointment): void {
+    const o = String(row.consultation_outcome || 'medication_only');
+    this.consultPaths = {
+      medication: o !== 'admission',
+      admission: o === 'admission',
+      followUp: o === 'follow_up' || o === 'mixed',
+      lab: o === 'lab_required' || o === 'mixed',
+      radiology: o === 'radiology_required' || o === 'mixed',
+    };
+  }
+
+  private deriveConsultationOutcome(): ConsultationOutcomeSaved {
+    const p = this.consultPaths;
+    if (p.admission) return 'admission';
+    const n = (p.followUp ? 1 : 0) + (p.lab ? 1 : 0) + (p.radiology ? 1 : 0);
+    if (n >= 2) return 'mixed';
+    if (p.followUp) return 'follow_up';
+    if (p.lab) return 'lab_required';
+    if (p.radiology) return 'radiology_required';
+    return 'medication_only';
+  }
+
+  onConsultAdmissionChanged(checked: boolean): void {
+    if (checked) {
+      this.consultPaths.followUp = false;
+      this.consultPaths.lab = false;
+      this.consultPaths.radiology = false;
+      this.consultPaths.medication = false;
+      this.followUpBooking = null;
+      this.followUpOpdId = '';
+      this.consultForm.follow_up_advised_date = '';
+      this.consultForm.follow_up_advised_clinic_id = '';
+    } else {
+      this.consultPaths.medication = true;
+    }
+  }
+
+  consultCompleteAllowed(): boolean {
+    const o = this.deriveConsultationOutcome();
+    return o !== 'lab_required' && o !== 'radiology_required';
+  }
+
   async saveConsultation(): Promise<void> {
     if (!this.selected) return;
+    const outcome = this.deriveConsultationOutcome();
+    if (this.consultPaths.followUp && !String(this.consultForm.follow_up_advised_date ?? '').trim()) {
+      this.toast.error('Follow-up is selected: enter the advised return date.');
+      return;
+    }
     this.saving = true;
     this.error = '';
     try {
       await this.api.patch(`/appointments/${this.selected.id}/consultation`, {
-        consultation_outcome: this.consultForm.consultation_outcome,
+        consultation_outcome: outcome,
         doctor_notes: this.consultForm.doctor_notes || null,
         follow_up_advised_date:
-          this.consultForm.consultation_outcome === 'follow_up'
+          (outcome === 'follow_up' || outcome === 'mixed') && this.consultPaths.followUp
             ? this.consultForm.follow_up_advised_date || null
             : null,
         follow_up_advised_department_id: null,
         follow_up_advised_clinic_id:
-          this.consultForm.consultation_outcome === 'follow_up' && this.consultForm.follow_up_advised_clinic_id !== ''
+          (outcome === 'follow_up' || outcome === 'mixed') &&
+          this.consultPaths.followUp &&
+          this.consultForm.follow_up_advised_clinic_id !== ''
             ? Number(this.consultForm.follow_up_advised_clinic_id)
             : null,
       });
@@ -486,11 +663,12 @@ export class ConsultationPage implements OnInit {
 
   async completeFromConsultation(): Promise<void> {
     if (!this.selected) return;
-    if (this.consultForm.consultation_outcome === 'lab_required') {
+    const outcome = this.deriveConsultationOutcome();
+    if (outcome === 'lab_required') {
       this.toast.error('Lab-required visits must be completed from Laboratory after result entry.');
       return;
     }
-    if (this.consultForm.consultation_outcome === 'radiology_required') {
+    if (outcome === 'radiology_required') {
       this.toast.error('Radiology-required visits must be completed from Radiology after report upload.');
       return;
     }
@@ -534,6 +712,10 @@ export class ConsultationPage implements OnInit {
 
   closeConsultationModal(): void {
     this.selected = null;
+    this.centerWeekRoster = [];
+    this.followUpBooking = null;
+    this.followUpOpdId = '';
+    this.followUpBookingLoading = false;
     this.creatingLabOrder = false;
     this.creatingRadiologyOrder = false;
     this.cdr.detectChanges();
@@ -550,19 +732,15 @@ export class ConsultationPage implements OnInit {
       const order = await this.api.post<LabOrder>(`/appointments/${appt.id}/lab-orders`, {
         test_code: this.labForm.test_code || null,
         notes: testsPlainForApi.length > 0 ? testsHtml : null,
-        follow_up_advised_date: this.labForm.follow_up_advised_date || null,
-        follow_up_notes: this.labForm.follow_up_notes.trim() || null,
+        follow_up_advised_date: null,
+        follow_up_notes: null,
         return_for_doctor_review: this.labForm.return_for_doctor_review,
         follow_up_advised_department_id: null,
-        follow_up_advised_clinic_id:
-          this.labForm.follow_up_advised_clinic_id !== '' ? Number(this.labForm.follow_up_advised_clinic_id) : null,
+        follow_up_advised_clinic_id: null,
       });
       this.labForm = {
         test_code: '',
         notes: '',
-        follow_up_advised_date: '',
-        follow_up_advised_clinic_id: '',
-        follow_up_notes: '',
         return_for_doctor_review: false,
       };
       this.closeLabOrderModal();
@@ -589,19 +767,15 @@ export class ConsultationPage implements OnInit {
       const order = await this.api.post<RadOrder>(`/appointments/${appt.id}/radiology-orders`, {
         study_code: this.radiologyForm.study_code || null,
         notes: examsPlainForApi.length > 0 ? examsHtml : null,
-        follow_up_advised_date: this.radiologyForm.follow_up_advised_date || null,
-        follow_up_notes: this.radiologyForm.follow_up_notes.trim() || null,
+        follow_up_advised_date: null,
+        follow_up_notes: null,
         return_for_doctor_review: this.radiologyForm.return_for_doctor_review,
         follow_up_advised_department_id: null,
-        follow_up_advised_clinic_id:
-          this.radiologyForm.follow_up_advised_clinic_id !== '' ? Number(this.radiologyForm.follow_up_advised_clinic_id) : null,
+        follow_up_advised_clinic_id: null,
       });
       this.radiologyForm = {
         study_code: '',
         notes: '',
-        follow_up_advised_date: '',
-        follow_up_advised_clinic_id: '',
-        follow_up_notes: '',
         return_for_doctor_review: false,
       };
       this.closeRadiologyOrderModal();

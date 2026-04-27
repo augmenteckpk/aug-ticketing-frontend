@@ -164,8 +164,9 @@
       } @else {
       <h3>Issue walk-in token</h3>
       <p class="walkin-hint">
-        Enter CNIC and patient details manually. If a matching chart already exists, name and date of birth load
-        automatically once CNIC is complete (for minor / escort, also enter first name and DOB first).
+        Type or <strong>scan the CNIC</strong> (camera). For <strong>patient’s own CNIC</strong>, an existing chart also
+        fills phone and address when found. For parent / escort CNIC, enter the <strong>patient’s</strong> name and date
+        of birth first — only the CNIC number is taken from the card until those match a chart.
       </p>
 
       <div class="walkin-grid">
@@ -216,15 +217,27 @@
             No clinics on roster for this weekday. Set OPD weekday clinics in admin or pick another date.
           </p>
         }
-        <label>
-          <span>CNIC</span>
-          <app-speech-input
-            [(model)]="walkIn.cnic"
-            placeholder="42101-1234567-8"
-            [maxLength]="15"
-            (modelChange)="onWalkInCnicChanged($event)"
-          />
-        </label>
+        <div class="walkin-cnic-row walkin-span-2">
+          <label class="walkin-cnic-field">
+            <span>CNIC</span>
+            <app-speech-input
+              [(model)]="walkIn.cnic"
+              placeholder="42101-1234567-8"
+              [maxLength]="15"
+              (modelChange)="onWalkInCnicChanged($event)"
+            />
+          </label>
+          <button
+            type="button"
+            class="btn walkin-scan-btn"
+            (click)="openWalkInCnicScanner()"
+            [disabled]="walkInSaving || walkInCnicScannerOpen"
+            title="Scan CNIC barcode with camera"
+          >
+            <span class="material-icons walkin-scan-icon" aria-hidden="true">photo_camera</span>
+            Scan CNIC
+          </button>
+        </div>
         <label class="walkin-span-2">
           <span>Whose CNIC number is this?</span>
           <select [(ngModel)]="walkIn.identifier_kind" (ngModelChange)="onWalkInIdentifierKindChanged()">
@@ -252,6 +265,25 @@
           <span>Last name</span>
           <app-speech-input [(model)]="walkIn.last_name" />
         </label>
+        @if (walkIn.identifier_kind === 'own') {
+          <label>
+            <span>Phone (optional)</span>
+            <app-speech-input [(model)]="walkIn.phone" placeholder="03xx…" />
+          </label>
+          <label>
+            <span>Gender (optional)</span>
+            <select [(ngModel)]="walkIn.gender">
+              <option value="">—</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+          <label class="walkin-span-2">
+            <span>Address (optional)</span>
+            <app-speech-input [(model)]="walkIn.address" placeholder="Street, area, city" />
+          </label>
+        }
       </div>
       <div class="actions">
         <button type="button" class="btn" (click)="closeWalkInModal()">Cancel</button>
@@ -265,6 +297,30 @@
         </button>
       </div>
       }
+    </div>
+  </div>
+}
+
+@if (walkInCnicScannerOpen) {
+  <div
+    class="barcode-scanner-backdrop"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="walkin-cnic-scanner-title"
+    (click)="cancelWalkInCnicScanner()"
+  >
+    <div class="barcode-scanner-panel" (click)="$event.stopPropagation()">
+      <h2 id="walkin-cnic-scanner-title" class="barcode-scanner-title">Scan CNIC</h2>
+      <p class="barcode-scanner-hint">
+        Point the camera at the CNIC barcode (PDF417 / strip). A booked-visit CODE128 from the patient app will not
+        work here — use Registration desk for that.
+      </p>
+      <div class="barcode-scanner-video-wrap">
+        <video #walkInScannerVideo class="barcode-scanner-video" playsinline muted autoplay></video>
+      </div>
+      <div class="barcode-scanner-actions">
+        <button type="button" class="btn" (click)="cancelWalkInCnicScanner()">Cancel</button>
+      </div>
     </div>
   </div>
 }

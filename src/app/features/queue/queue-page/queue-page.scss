@@ -42,6 +42,11 @@
   margin-top: 0.75rem;
 }
 
+.pools-grid--compact {
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
 .pool-card {
   margin-top: 0.75rem;
   border: 1px solid #e2e8f0;
@@ -72,6 +77,8 @@
   flex: 1 1 auto;
   overflow: auto;
   padding-right: 4px;
+  /* Keep each patient row only as tall as its content; don’t stretch one row to fill the pool. */
+  align-content: start;
 }
 
 .pool-card--fixed .token-list::-webkit-scrollbar {
@@ -86,6 +93,72 @@
 
 .pool-card--fixed .token-list::-webkit-scrollbar-track {
   background: transparent;
+}
+
+.pool-card--fixed .token-list > .token {
+  align-self: start;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Smaller Ready / Active pools: short column, patient rows as compact cards inside a scroll pane */
+.pool-card--compact {
+  margin-top: 0.5rem;
+  padding: 0.55rem 0.65rem;
+  height: min(36vh, 300px);
+}
+
+.pool-card--compact h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #0f172a;
+}
+
+.pool-card--compact .muted {
+  font-size: 0.78rem;
+  margin: 0 0 0.35rem;
+}
+
+.pool-card--compact .token-list {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.55rem;
+  padding: 0.4rem;
+  min-height: 0;
+}
+
+.pool-card--compact .token {
+  padding: 0.32rem 0.45rem;
+  border-radius: 0.5rem;
+  gap: 0.35rem 0.45rem;
+  font-size: 0.8rem;
+  animation: none;
+}
+
+.pool-card--compact .token .id {
+  font-size: 0.78rem;
+}
+
+.pool-card--compact .token .name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pool-card--compact .token .state {
+  font-size: 0.65rem;
+}
+
+.pool-card--compact .token .btn {
+  padding: 0.2rem 0.45rem;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  border-radius: 0.4rem;
 }
 
 .spinner-wrap {

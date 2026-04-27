@@ -108,3 +108,85 @@
   max-width: 11rem;
   line-height: 1.2;
 }
+
+.walkin-cnic-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.65rem;
+}
+
+.walkin-cnic-field {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.walkin-scan-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+  align-self: flex-end;
+}
+
+.walkin-scan-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.barcode-scanner-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1450;
+  background: rgb(15 23 42 / 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.barcode-scanner-panel {
+  width: min(100%, 28rem);
+  max-height: min(90vh, 40rem);
+  background: #fff;
+  border-radius: 1rem;
+  padding: 1.25rem;
+  box-shadow: 0 24px 48px rgb(0 0 0 / 0.2);
+}
+
+.barcode-scanner-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.barcode-scanner-hint {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.barcode-scanner-video-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #0f172a;
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.barcode-scanner-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.barcode-scanner-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}

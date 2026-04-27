@@ -18,3 +18,28 @@ export function isValidCnic13(raw: string): boolean {
   return cnicDigits(raw).length === 13;
 }
 
+/** True when the scan text looks like a 32-char visit barcode token (patient app CODE128 payload). */
+export function isProbableVisitBarcodeScan(raw: string): boolean {
+  const n = String(raw ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '');
+  return /[0-9a-f]{32}/.test(n);
+}
+
+/**
+ * Extract a 13-digit CNIC from scanner output (PDF417 / manual paste / long numeric strings).
+ * Returns null for visit-barcode-like payloads so callers can show the right message.
+ */
+export function extractCnicDigitsFromScan(raw: string): string | null {
+  if (isProbableVisitBarcodeScan(raw)) return null;
+  const digits = String(raw ?? '').replace(/\D/g, '');
+  if (digits.length === 13) return digits;
+  if (digits.length < 13) return null;
+  for (let i = digits.length - 13; i >= 0; i--) {
+    const chunk = digits.slice(i, i + 13);
+    if (chunk.length === 13) return chunk;
+  }
+  return null;
+}
+
