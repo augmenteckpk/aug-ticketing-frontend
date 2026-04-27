@@ -1,8 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, ElementRef, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { BrowserMultiFormatReader, type IScannerControls } from '@zxing/browser';
-import { DecodeHintType } from '@zxing/library';
 import { Subject, Subscription, debounceTime } from 'rxjs';
 import { ApiService } from '../../../core/services/api';
 import { AuthService } from '../../../core/services/auth';
@@ -10,18 +8,10 @@ import { SlipPrintService } from '../../../core/services/slip-print.service';
 import { ToastService } from '../../../core/services/toast';
 import { centerIdFromOpd, consoleIsAdmin, listCenterIdForRequest, listDateForRequest } from '../../../core/utils/listing-scope';
 import { todayLocalYmd } from '../../../core/utils/local-date';
-import {
-  cnicDigits,
-  extractCnicDigitsFromScan,
-  isProbableVisitBarcodeScan,
-  isValidCnic13,
-  normalizeCnicInput,
-} from '../../../core/utils/cnic';
+import { cnicDigits, isValidCnic13, normalizeCnicInput } from '../../../core/utils/cnic';
 import { WorkflowStatusBadgePipe } from '../../../shared/pipes/status-badge.pipe';
 import { SpeechInput } from '../../../ui-kit/speech-input/speech-input';
 import { Pagination } from '../../../ui-kit/pagination/pagination';
-
-const WALKIN_CNIC_SCAN_HINTS = new Map<DecodeHintType, unknown>([[DecodeHintType.TRY_HARDER, true]]);
 
 type Center = { id: number; name: string; city: string; hospital_name?: string };
 type OpdPickRow = { id: number; name: string; display_code: string; center_id: number; center_label: string; sort_order: number };
@@ -65,6 +55,17 @@ type OpdBookingBlock = {
 
 type OpdBookingOptionsResponse = { date: string; weekday: number; opds: OpdBookingBlock[] };
 
+/** Public `POST /public/cnic-extract` — matches backend `CnicVisionExtraction`. */
+type CnicVisionExtractResponse = {
+  cnic: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  father_name: string | null;
+  gender: string | null;
+  date_of_birth: string | null;
+  name_confidence: 'high' | 'medium' | 'low';
+};
+
 @Component({
   selector: 'app-appointments-page',
   imports: [CommonModule, FormsModule, SpeechInput, WorkflowStatusBadgePipe, Pagination],
@@ -72,7 +73,8 @@ type OpdBookingOptionsResponse = { date: string; weekday: number; opds: OpdBooki
   styleUrl: './appointments-page.scss',
 })
 export class AppointmentsPage implements OnInit, OnDestroy {
-  @ViewChild('walkInScannerVideo') walkInScannerVideoRef?: ElementRef<HTMLVideoElement>;
+  @ViewChild('walkInVisionCam') walkInVisionCamRef?: ElementRef<HTMLInputElement>;
+  @ViewChild('walkInVisionGal') walkInVisionGalRef?: ElementRef<HTMLInputElement>;
 
   centers: Center[] = [];
   /** Admin: OPD filter replaces center picker on the list. */
@@ -108,9 +110,11 @@ export class AppointmentsPage implements OnInit, OnDestroy {
     address: '',
   };
 
-  walkInCnicScannerOpen = false;
-  private walkInScanUserCancelled = false;
-  private walkInScannerControls: IScannerControls | null = null;
+  /** Single-photo CNIC read via server AI. */
+  walkInVisionModalOpen = false;
+  walkInVisionBusy = false;
+  walkInVisionFile: File | null = null;
+  walkInVisionPreview: string | null = null;
 
   /** Roster for selected center + walk-in date (weekday-filtered clinics). */
   walkInBooking: OpdBookingOptionsResponse | null = null;
@@ -129,7 +133,6 @@ export class AppointmentsPage implements OnInit, OnDestroy {
     private readonly slipPrint: SlipPrintService,
     private readonly toast: ToastService,
     private readonly cdr: ChangeDetectorRef,
-    private readonly ngZone: NgZone,
   ) {}
 
   /** Short label for staff when CNIC on chart is not the patient’s own NIC. */
@@ -186,109 +189,165 @@ export class AppointmentsPage implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.walkInPrefillSub?.unsubscribe();
-    this.stopWalkInCnicScanner();
+    this.revokeWalkInVisionPreview();
   }
 
-  openWalkInCnicScanner(): void {
-    if (this.walkInSaving || this.walkInCnicScannerOpen) return;
-    if (!navigator.mediaDevices?.getUserMedia) {
-      this.toast.error('Camera access is not available in this browser. Use HTTPS or type the CNIC.');
+  openWalkInVisionModal(): void {
+    if (this.walkInSaving) return;
+    this.walkInVisionModalOpen = true;
+    this.walkInVisionFile = null;
+    this.revokeWalkInVisionPreview();
+    this.cdr.detectChanges();
+  }
+
+  onWalkInVisionBackdropClick(): void {
+    if (this.walkInVisionBusy) return;
+    this.closeWalkInVisionModal();
+  }
+
+  closeWalkInVisionModal(): void {
+    this.walkInVisionModalOpen = false;
+    this.walkInVisionBusy = false;
+    this.walkInVisionFile = null;
+    this.revokeWalkInVisionPreview();
+    this.cdr.detectChanges();
+  }
+
+  triggerWalkInVisionCamera(): void {
+    this.walkInVisionCamRef?.nativeElement.click();
+  }
+
+  triggerWalkInVisionGallery(): void {
+    this.walkInVisionGalRef?.nativeElement.click();
+  }
+
+  onWalkInVisionFileSelected(ev: Event): void {
+    const input = ev.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      this.toast.error('Please choose an image (camera or gallery).');
       return;
     }
-    this.walkInScanUserCancelled = false;
-    this.walkInCnicScannerOpen = true;
-    this.cdr.detectChanges();
-    setTimeout(() => void this.runWalkInCnicScan(), 0);
-  }
-
-  cancelWalkInCnicScanner(): void {
-    this.walkInScanUserCancelled = true;
-    this.stopWalkInCnicScanner();
-    this.walkInCnicScannerOpen = false;
+    if (!this.walkInVisionModalOpen) this.walkInVisionModalOpen = true;
+    this.walkInVisionFile = file;
+    this.revokeWalkInVisionPreview();
+    this.walkInVisionPreview = URL.createObjectURL(file);
     this.cdr.detectChanges();
   }
 
-  private stopWalkInCnicScanner(): void {
+  clearWalkInVisionPick(): void {
+    this.walkInVisionFile = null;
+    this.revokeWalkInVisionPreview();
+    this.cdr.detectChanges();
+  }
+
+  private revokeWalkInVisionPreview(): void {
+    if (this.walkInVisionPreview) {
+      try {
+        URL.revokeObjectURL(this.walkInVisionPreview);
+      } catch {
+        /* ignore */
+      }
+    }
+    this.walkInVisionPreview = null;
+  }
+
+  private mapVisionGenderToWalkInSelect(g: string | null | undefined): string {
+    if (!g) return '';
+    const x = String(g).trim().toLowerCase();
+    if (x === 'male' || x === 'm') return 'male';
+    if (x === 'female' || x === 'f') return 'female';
+    return 'other';
+  }
+
+  private async imageFileToVisionJpegPayload(file: File): Promise<{ image_base64: string; mime_type: 'image/jpeg' }> {
+    const maxSide = 1800;
+    const quality = 0.88;
     try {
-      this.walkInScannerControls?.stop();
+      const bmp = await createImageBitmap(file);
+      try {
+        const scale = Math.min(1, maxSide / Math.max(bmp.width, bmp.height));
+        const w = Math.max(1, Math.round(bmp.width * scale));
+        const h = Math.max(1, Math.round(bmp.height * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('no-2d');
+        ctx.drawImage(bmp, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        const image_base64 = dataUrl.split(',')[1] ?? '';
+        if (image_base64.length < 200) throw new Error('short-b64');
+        return { image_base64, mime_type: 'image/jpeg' };
+      } finally {
+        bmp.close();
+      }
     } catch {
-      /* ignore */
-    }
-    this.walkInScannerControls = null;
-    const el = this.walkInScannerVideoRef?.nativeElement;
-    if (el?.srcObject) {
-      const stream = el.srcObject as MediaStream;
-      stream.getTracks().forEach((t) => t.stop());
-      el.srcObject = null;
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result ?? ''));
+        r.onerror = () => reject(new Error('read-fail'));
+        r.readAsDataURL(file);
+      });
+      const image_base64 = dataUrl.split(',')[1] ?? '';
+      if (image_base64.length < 200) throw new Error('short-b64');
+      return { image_base64, mime_type: 'image/jpeg' };
     }
   }
 
-  private async runWalkInCnicScan(): Promise<void> {
-    const video = this.walkInScannerVideoRef?.nativeElement;
-    if (!video) {
-      this.toast.error('Scanner could not start.');
-      this.walkInCnicScannerOpen = false;
-      this.cdr.detectChanges();
-      return;
+  private applyWalkInVisionExtraction(ext: CnicVisionExtractResponse): void {
+    if (ext.cnic) {
+      this.walkIn.cnic = normalizeCnicInput(ext.cnic);
+      this.onWalkInCnicChanged(this.walkIn.cnic);
     }
-    const reader = new BrowserMultiFormatReader(WALKIN_CNIC_SCAN_HINTS);
-    try {
-      const devices = await BrowserMultiFormatReader.listVideoInputDevices();
-      if (this.walkInScanUserCancelled) {
-        this.walkInCnicScannerOpen = false;
-        this.cdr.detectChanges();
-        return;
+    if (this.walkIn.identifier_kind === 'own') {
+      if (ext.first_name) this.walkIn.first_name = ext.first_name;
+      if (ext.last_name !== undefined && ext.last_name !== null) {
+        this.walkIn.last_name = ext.last_name.trim();
       }
-      const back = devices.find((d) => /back|rear|environment/i.test(d.label));
-      const deviceId = back?.deviceId;
-      const videoConstraints: MediaTrackConstraints = deviceId
-        ? { deviceId: { exact: deviceId }, width: { ideal: 1920 }, height: { ideal: 1080 } }
-        : { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } };
+      if (ext.date_of_birth) {
+        this.walkIn.date_of_birth = String(ext.date_of_birth).slice(0, 10);
+      }
+      if (ext.gender) {
+        this.walkIn.gender = this.mapVisionGenderToWalkInSelect(ext.gender);
+      }
+      this.scheduleWalkInPatientPrefill();
+    }
+    this.cdr.detectChanges();
+  }
 
-      const controls = await reader.decodeFromConstraints({ video: videoConstraints }, video, (result, _err, ctrl) => {
-        if (this.walkInScanUserCancelled) {
-          ctrl.stop();
-          return;
-        }
-        this.ngZone.run(() => {
-          if (!result) return;
-          const raw = result.getText();
-          if (isProbableVisitBarcodeScan(raw)) {
-            ctrl.stop();
-            this.walkInScannerControls = null;
-            this.walkInCnicScannerOpen = false;
-            this.cdr.detectChanges();
-            this.toast.error('That looks like a visit barcode. Use Registration desk “Scan visit barcode” for booked visits.');
-            return;
-          }
-          const digits = extractCnicDigitsFromScan(raw);
-          if (!digits) return;
-          ctrl.stop();
-          this.walkInScannerControls = null;
-          this.walkInCnicScannerOpen = false;
-          this.walkIn.cnic = normalizeCnicInput(digits);
-          this.onWalkInCnicChanged(this.walkIn.cnic);
-          this.cdr.detectChanges();
-          this.toast.success('CNIC captured from scan.');
-        });
-      });
-      this.walkInScannerControls = controls;
-      this.cdr.detectChanges();
+  async submitWalkInVisionExtraction(): Promise<void> {
+    if (!this.walkInVisionFile || this.walkInVisionBusy) return;
+    this.walkInVisionBusy = true;
+    this.cdr.detectChanges();
+    try {
+      const payload = await this.imageFileToVisionJpegPayload(this.walkInVisionFile);
+      const ext = await this.api.post<CnicVisionExtractResponse>(
+        '/public/cnic-extract',
+        { image_base64: payload.image_base64, mime_type: payload.mime_type },
+        90000,
+      );
+      this.applyWalkInVisionExtraction(ext);
+      const parts: string[] = [];
+      if (ext.cnic) parts.push('CNIC');
+      if (this.walkIn.identifier_kind === 'own') {
+        if (ext.first_name) parts.push('name');
+        if (ext.date_of_birth) parts.push('DOB');
+        if (ext.gender) parts.push('gender');
+      }
+      if (ext.name_confidence === 'low') {
+        this.toast.info('AI confidence was low — check all fields before creating the token.');
+      }
+      this.toast.success(parts.length ? `Filled from card: ${parts.join(', ')}.` : 'AI returned no fields — type manually.');
+      this.closeWalkInVisionModal();
     } catch (e) {
-      if (this.walkInScanUserCancelled) return;
-      this.stopWalkInCnicScanner();
-      this.walkInCnicScannerOpen = false;
+      const msg = e instanceof Error ? e.message : 'Could not read CNIC from photo';
+      this.toast.error(msg);
+    } finally {
+      this.walkInVisionBusy = false;
       this.cdr.detectChanges();
-      const name = e instanceof Error ? e.name : '';
-      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-        this.toast.error('Camera permission was denied.');
-        return;
-      }
-      if (name === 'NotFoundError') {
-        this.toast.error('No camera found on this device.');
-        return;
-      }
-      this.toast.error(e instanceof Error ? e.message : 'Could not read barcode.');
     }
   }
 
@@ -316,9 +375,7 @@ export class AppointmentsPage implements OnInit, OnDestroy {
   }
 
   async openWalkInModal(): Promise<void> {
-    this.stopWalkInCnicScanner();
-    this.walkInScanUserCancelled = false;
-    this.walkInCnicScannerOpen = false;
+    this.closeWalkInVisionModal();
     this.walkInSuccess = null;
     this.walkIn.identifier_kind = 'own';
     this.walkIn.escort_relationship = '';
@@ -461,7 +518,7 @@ export class AppointmentsPage implements OnInit, OnDestroy {
   }
 
   closeWalkInModal(): void {
-    this.cancelWalkInCnicScanner();
+    this.closeWalkInVisionModal();
     this.creatingWalkIn = false;
     this.walkInSuccess = null;
     this.walkInBooking = null;

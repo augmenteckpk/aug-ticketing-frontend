@@ -164,9 +164,10 @@
       } @else {
       <h3>Issue walk-in token</h3>
       <p class="walkin-hint">
-        Type or <strong>scan the CNIC</strong> (camera). For <strong>patient’s own CNIC</strong>, an existing chart also
-        fills phone and address when found. For parent / escort CNIC, enter the <strong>patient’s</strong> name and date
-        of birth first — only the CNIC number is taken from the card until those match a chart.
+        Type the CNIC or use <strong>CNIC from photo (AI)</strong> (camera or gallery — one picture sent to the server).
+        For <strong>patient’s own CNIC</strong>, an existing chart also fills phone and address when found. For parent /
+        escort CNIC, enter the <strong>patient’s</strong> name and date of birth first — photo/AI fills only the
+        <strong>CNIC number</strong> from the card until those match a chart.
       </p>
 
       <div class="walkin-grid">
@@ -227,16 +228,18 @@
               (modelChange)="onWalkInCnicChanged($event)"
             />
           </label>
-          <button
-            type="button"
-            class="btn walkin-scan-btn"
-            (click)="openWalkInCnicScanner()"
-            [disabled]="walkInSaving || walkInCnicScannerOpen"
-            title="Scan CNIC barcode with camera"
-          >
-            <span class="material-icons walkin-scan-icon" aria-hidden="true">photo_camera</span>
-            Scan CNIC
-          </button>
+          <div class="walkin-cnic-actions">
+            <button
+              type="button"
+              class="btn primary walkin-scan-btn"
+              (click)="openWalkInVisionModal()"
+              [disabled]="walkInSaving || walkInVisionModalOpen"
+              title="Take or pick one photo of the CNIC; server reads fields with AI"
+            >
+              <span class="material-icons walkin-scan-icon" aria-hidden="true">add_a_photo</span>
+              CNIC from photo (AI)
+            </button>
+          </div>
         </div>
         <label class="walkin-span-2">
           <span>Whose CNIC number is this?</span>
@@ -301,26 +304,74 @@
   </div>
 }
 
-@if (walkInCnicScannerOpen) {
+<input
+  #walkInVisionCam
+  type="file"
+  accept="image/*"
+  capture="environment"
+  class="sr-only"
+  tabindex="-1"
+  (change)="onWalkInVisionFileSelected($event)"
+/>
+<input
+  #walkInVisionGal
+  type="file"
+  accept="image/*"
+  class="sr-only"
+  tabindex="-1"
+  (change)="onWalkInVisionFileSelected($event)"
+/>
+
+@if (walkInVisionModalOpen) {
   <div
-    class="barcode-scanner-backdrop"
+    class="barcode-scanner-backdrop walkin-vision-backdrop"
     role="dialog"
     aria-modal="true"
-    aria-labelledby="walkin-cnic-scanner-title"
-    (click)="cancelWalkInCnicScanner()"
+    aria-labelledby="walkin-vision-title"
+    (click)="onWalkInVisionBackdropClick()"
   >
-    <div class="barcode-scanner-panel" (click)="$event.stopPropagation()">
-      <h2 id="walkin-cnic-scanner-title" class="barcode-scanner-title">Scan CNIC</h2>
-      <p class="barcode-scanner-hint">
-        Point the camera at the CNIC barcode (PDF417 / strip). A booked-visit CODE128 from the patient app will not
-        work here — use Registration desk for that.
-      </p>
-      <div class="barcode-scanner-video-wrap">
-        <video #walkInScannerVideo class="barcode-scanner-video" playsinline muted autoplay></video>
-      </div>
-      <div class="barcode-scanner-actions">
-        <button type="button" class="btn" (click)="cancelWalkInCnicScanner()">Cancel</button>
-      </div>
+    <div class="barcode-scanner-panel walkin-vision-panel" (click)="$event.stopPropagation()">
+      <h2 id="walkin-vision-title" class="barcode-scanner-title">CNIC from photo (AI)</h2>
+      @if (!walkInVisionPreview) {
+        <p class="barcode-scanner-hint">
+          Use the tablet camera or pick an image from the gallery. One clear photo of the card is sent to the server
+          to read printed fields. This needs CNIC vision enabled on the server.
+          @if (walkIn.identifier_kind !== 'own') {
+            <strong> Escort / parent mode:</strong> only the CNIC number will be filled from the card — keep entering the
+            patient’s name and date of birth.
+          }
+        </p>
+        <div class="walkin-vision-pick-actions">
+          <button type="button" class="btn primary" (click)="triggerWalkInVisionCamera()">
+            <span class="material-icons walkin-scan-icon" aria-hidden="true">photo_camera</span>
+            Take photo
+          </button>
+          <button type="button" class="btn" (click)="triggerWalkInVisionGallery()">
+            <span class="material-icons walkin-scan-icon" aria-hidden="true">photo_library</span>
+            Choose from gallery
+          </button>
+        </div>
+        <div class="barcode-scanner-actions">
+          <button type="button" class="btn" (click)="closeWalkInVisionModal()">Close</button>
+        </div>
+      } @else {
+        <div class="walkin-vision-preview-wrap">
+          <img [src]="walkInVisionPreview" alt="Selected CNIC photo preview" />
+        </div>
+        <p class="barcode-scanner-hint">
+          Check that the card is readable, then run AI extraction. You can pick a different photo if needed.
+        </p>
+        <div class="barcode-scanner-actions walkin-vision-read-actions">
+          <button type="button" class="btn" (click)="clearWalkInVisionPick()" [disabled]="walkInVisionBusy">
+            Different photo
+          </button>
+          <button type="button" class="btn primary" (click)="submitWalkInVisionExtraction()" [disabled]="walkInVisionBusy">
+            {{ walkInVisionBusy ? 'Reading…' : 'Read card with AI' }}
+          </button>
+          <button type="button" class="btn" (click)="closeWalkInVisionModal()" [disabled]="walkInVisionBusy">Cancel</button>
+        </div>
+      }
     </div>
   </div>
 }
+

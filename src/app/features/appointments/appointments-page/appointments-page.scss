@@ -116,6 +116,13 @@
   gap: 0.65rem;
 }
 
+.walkin-cnic-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
 .walkin-cnic-field {
   flex: 1 1 220px;
   min-width: 0;
@@ -189,4 +196,44 @@
   justify-content: flex-end;
   gap: 0.5rem;
   margin-top: 1rem;
+}
+
+.walkin-vision-backdrop {
+  z-index: 1460;
+}
+
+.walkin-vision-panel {
+  width: min(100%, 32rem);
+}
+
+.walkin-vision-pick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.walkin-vision-preview-wrap {
+  margin: 0 0 0.75rem;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: #0f172a;
+  max-height: min(50vh, 22rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.walkin-vision-preview-wrap img {
+  display: block;
+  max-width: 100%;
+  max-height: min(50vh, 22rem);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+.walkin-vision-read-actions {
+  flex-wrap: wrap;
+  justify-content: flex-start;
 }

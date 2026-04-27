@@ -100,6 +100,32 @@
   line-height: 1;
 }
 
+.cnic-scan-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.cnic-scan-row--inline {
+  margin: 0 0 0.85rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.5rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.cnic-scan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.cnic-scan-status {
+  flex: 1 1 100%;
+}
+
 .barcode-scanner-backdrop {
   position: fixed;
   inset: 0;
